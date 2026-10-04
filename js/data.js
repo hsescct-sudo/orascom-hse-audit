@@ -57,6 +57,7 @@ export function createSupabaseApi(url, key) {
     async signInAdmin(email, password) { const { error } = await sb.auth.signInWithPassword({ email: email.trim().toLowerCase(), password }); if (error) throw friendly(error); },
     async signOut() { await sb.auth.signOut(); urlCache.clear(); },
     async whoami() { const rows = await q(sb.rpc("whoami")); return rows && rows[0] ? rows[0] : null; },
+    async changeMyPassword(password) { const { error } = await sb.auth.updateUser({ password }); if (error) throw friendly(error); },
 
     // projects & users
     listProjects: () => q(sb.from("projects").select("*").order("name")),
@@ -161,6 +162,7 @@ export function createDemoApi() {
     async signInProject(projectId, password) { if (password !== "demo1234") throw new Error("Wrong password. In the demo every project password is demo1234."); me = { role: "project", project_id: projectId }; },
     async signInAdmin(email, password) { if (password !== "demo1234") throw new Error("Wrong password. In the demo the admin password is demo1234."); me = { role: "admin", project_id: null, display_name: "Demo Admin" }; },
     async signOut() { me = null; },
+    async changeMyPassword(pw) { if (String(pw).length < 8) throw new Error("Passwords need at least 8 characters."); },
     async whoami() { if (!me) return null; const p = proj(me.project_id); return { role: me.role, project_id: me.project_id, project_name: p?.name || null, project_code: p?.code || null, display_name: me.display_name || p?.name || "" }; },
 
     listProjects: () => delay(S.projects.filter(p => can(p.id)).sort((a, b) => a.name.localeCompare(b.name))),

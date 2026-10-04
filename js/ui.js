@@ -167,6 +167,7 @@ export const ICON = {
   upload: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 3l5 5h-3v6h-4V8H7zM5 17h14v3H5z" fill="currentColor"/></svg>',
   building: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 21V5l8-3v6l8 3v10h-6v-5h-4v5zm3-12v2h2V9zm0 4v2h2v-2zm4-6v2h2V7z" fill="currentColor"/></svg>',
   users: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm8 1a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM2 20c0-3.3 3.1-6 7-6s7 2.7 7 6zm15.5 0c0-1.9-.7-3.6-1.9-4.9 3 .2 5.4 2.2 5.4 4.9z" fill="currentColor"/></svg>',
+  key: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M7 14a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm5.7-4A6 6 0 1 0 12.7 14H16v3h3v-3h2v-4z" fill="currentColor"/></svg>',
   out: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M10 4H5v16h5v-2H7V6h3zm5 3l-1.4 1.4 2.6 2.6H9v2h7.2l-2.6 2.6L15 17l5-5z" fill="currentColor"/></svg>',
   cam: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 4h6l1.5 2H20a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3.5zm3 4a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z" fill="currentColor"/></svg>',
   menu: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z" fill="currentColor"/></svg>',

@@ -40,6 +40,21 @@ export async function askName() {
   if (v) { me.name = v; saveName(v); renderChrome(); }
 }
 
+export async function changeMyPassword() {
+  const v = await dialog({
+    title: "Change my password",
+    body: `<p class="muted">Use at least 8 characters. Your new password works from the next sign-in; you stay signed in now.</p>
+      <label class="fld"><span>New password</span><input id="np1" type="password" autocomplete="new-password"></label>
+      <label class="fld"><span>Repeat new password</span><input id="np2" type="password" autocomplete="new-password"></label>`,
+    actions: [{ label: "Cancel", value: null }, {
+      label: "Change password", value: w => w.querySelector("#np1").value,
+      validate: w => { const a = w.querySelector("#np1").value, b = w.querySelector("#np2").value; return a.length < 8 ? "The password needs at least 8 characters." : a !== b ? "The two passwords don't match." : null; }
+    }]
+  });
+  if (!v) return;
+  try { await api.changeMyPassword(v); toast("Password changed."); } catch (e) { toast(e.message, "error"); }
+}
+
 // ---------- routing ----------
 const ROUTES = {
   dashboard: () => import("./views/dashboard.js"),
@@ -104,6 +119,7 @@ function renderChrome(active) {
         <a class="brand" href="#/dashboard"><img src="assets/orascom-logo.png" alt="Orascom Construction"><span class="brand-t"><b>HSE Flash Audit</b><small>Corporate HSE</small></span></a>
         <div class="grow"></div>
         <div class="who" id="who"></div>
+        <button class="icon-btn" id="pw-btn" title="Change my password" aria-label="Change my password" hidden>${ICON.key}</button>
         <button class="icon-btn" id="signout" title="Sign out" aria-label="Sign out">${ICON.out}</button>
       </header>
       ${api.mode === "demo" ? `<div class="demo-bar">Demo mode — sample data only. Nothing here is real and nothing is saved.</div>` : ""}
@@ -113,10 +129,12 @@ function renderChrome(active) {
       </div>
     </div>`;
     $("#signout").addEventListener("click", signOut);
+    $("#pw-btn").addEventListener("click", changeMyPassword);
     $("#menu-btn").addEventListener("click", () => document.body.classList.toggle("nav-open"));
     $("#side").addEventListener("click", e => { if (e.target.closest("a")) document.body.classList.remove("nav-open"); });
     $("#who").addEventListener("click", e => { if (e.target.closest("[data-name]")) askName(); });
   }
+  $("#pw-btn").hidden = !isAdmin();
   const cur = active || parseHash().name;
   $("#side").innerHTML = NAV.filter(n => !n[3] || isAdmin()).map(([k, label, icon]) =>
     `<a href="#/${k}" class="${cur === k || (k === "audits" && (cur === "audit" || cur === "form")) || (k === "register" && cur === "finding") ? "on" : ""}">${icon}<span>${label}</span></a>`).join("")
@@ -149,6 +167,7 @@ async function renderLogin() {
       <form id="f-admin" class="login-form" hidden>
         <label class="fld"><span>E-mail</span><input id="la" type="email" autocomplete="username" required></label>
         <label class="fld"><span>Password</span><input id="lapw" type="password" autocomplete="current-password" required></label>
+        <label class="fld"><span>Your name</span><input id="lan" autocomplete="name" value="${esc(savedName())}" required></label>
         <button class="btn primary wide" type="submit">Sign in</button>
       </form>
       <p class="login-err" id="lerr" role="alert"></p>
@@ -171,8 +190,11 @@ async function renderLogin() {
     catch (x) { err(x.message); busy(e.target, false); }
   });
   $("#f-admin").addEventListener("submit", async e => {
-    e.preventDefault(); err(""); busy(e.target, true);
-    try { await api.signInAdmin($("#la").value, $("#lapw").value); await afterSignIn(); }
+    e.preventDefault(); err("");
+    const nm = $("#lan").value.trim();
+    if (!nm) return err("Enter your name.");
+    busy(e.target, true);
+    try { await api.signInAdmin($("#la").value, $("#lapw").value); saveName(nm); me.name = nm; await afterSignIn(); }
     catch (x) { err(x.message); busy(e.target, false); }
   });
 }
@@ -181,8 +203,7 @@ async function afterSignIn() {
   const w = await api.whoami();
   if (!w) { await api.signOut(); throw new Error("This account isn't linked to a project or to the administration."); }
   Object.assign(me, w);
-  if (w.role === "admin") me.name = w.display_name || "Administration";
-  else me.name = me.name || savedName();
+  me.name = me.name || savedName() || (w.role === "admin" ? (w.display_name || "Administration") : "");
   $("#app").innerHTML = "";
   store.loaded = false; store.stale = true;
   if (!location.hash || location.hash === "#/login") location.hash = "#/dashboard";
