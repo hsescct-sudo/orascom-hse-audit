@@ -148,7 +148,7 @@ export async function ensurePptx() {
   if (window.PptxGenJS) return window.PptxGenJS;
   const srcs = (window.HSE_CONFIG && window.HSE_CONFIG.pptxUrls) || [
     "https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js",
-    "https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js"];
+    "https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"];
   for (const s of srcs) { try { await loadScript(s); if (window.PptxGenJS) return window.PptxGenJS; } catch (e) { /* next */ } }
   throw new Error("The PowerPoint library couldn't load. Check the internet connection and try again.");
 }
