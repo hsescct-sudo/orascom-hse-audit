@@ -45,7 +45,19 @@ export function createSupabaseApi(url, key) {
     return data;
   }
   async function removePaths(paths) {
-    for (const part of chunk(paths, 100)) { if (part.length) await sb.storage.from(BUCKET).remove(part); }
+    for (const part of chunk(paths, 100)) {
+      if (!part.length) continue;
+      const { error } = await sb.storage.from(BUCKET).remove(part);
+      if (error) throw friendly(error);
+      part.forEach(p => urlCache.delete(p));
+    }
+  }
+  // Removes the photo files of these findings from storage (the rows go with the findings).
+  async function removeFindingPhotos(findingIds) {
+    for (const part of chunk(findingIds, 100)) {
+      const ph = await q(sb.from("finding_photos").select("path").in("finding_id", part));
+      await removePaths(ph.map(p => p.path));
+    }
   }
 
   return {
@@ -79,12 +91,26 @@ export function createSupabaseApi(url, key) {
     updateAudit: (id, patch) => q(sb.from("audits").update(patch).eq("id", id).select("*, projects(name, code, pm)").single()),
     async deleteAudit(id) {
       const fs = await q(sb.from("findings").select("id").eq("audit_id", id));
-      const ids = fs.map(f => f.id);
-      for (const part of chunk(ids, 100)) {
-        const ph = await q(sb.from("finding_photos").select("path").in("finding_id", part));
-        await removePaths(ph.map(p => p.path));
-      }
+      await removeFindingPhotos(fs.map(f => f.id));
       await q(sb.from("audits").delete().eq("id", id));
+    },
+    // Bulk delete (administration): audits with their findings, comments and photo files.
+    async deleteAudits(ids, onProgress) {
+      let done = 0;
+      for (const part of chunk(ids, 40)) {
+        const fs = await fetchAll(() => sb.from("findings").select("id").in("audit_id", part).order("id"));
+        await removeFindingPhotos(fs.map(f => f.id));
+        await q(sb.from("audits").delete().in("id", part));
+        done += part.length; if (onProgress) onProgress(done, ids.length);
+      }
+    },
+    async deleteFindings(ids, onProgress) {
+      let done = 0;
+      for (const part of chunk(ids, 80)) {
+        await removeFindingPhotos(part);
+        await q(sb.from("findings").delete().in("id", part));
+        done += part.length; if (onProgress) onProgress(done, ids.length);
+      }
     },
 
     // findings
@@ -199,6 +225,8 @@ export function createDemoApi() {
       const fids = S.findings.filter(f => f.audit_id === id).map(f => f.id);
       S.photos = S.photos.filter(p => !fids.includes(p.finding_id)); S.findings = S.findings.filter(f => f.audit_id !== id); S.audits = S.audits.filter(x => x.id !== id);
     },
+    async deleteAudits(ids, onProgress) { need(me?.role === "admin"); let n = 0; for (const id of ids) { await this.deleteAudit(id); if (onProgress) onProgress(++n, ids.length); } },
+    async deleteFindings(ids, onProgress) { need(me?.role === "admin"); let n = 0; for (const id of ids) { await this.deleteFinding(id); if (onProgress) onProgress(++n, ids.length); } },
 
     listFindings: () => delay(S.findings.filter(f => can(f.project_id)).sort((a, b) => b.ref - a.ref).map(withJoin)),
     findingsOfAudit: id => delay(S.findings.filter(f => f.audit_id === id && can(f.project_id)).sort((a, b) => a.seq - b.seq).map(withJoin)),

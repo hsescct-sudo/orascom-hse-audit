@@ -1,4 +1,4 @@
-import { esc, fmtDate, fRef, findingState, stateChip, riskChip, toast, saveBlob, todayISO } from "../ui.js";
+import { esc, fmtDate, fRef, findingState, stateChip, riskChip, toast, saveBlob, todayISO, confirmBox, busyOverlay, ICON } from "../ui.js";
 import { TOPICS, topicName } from "../checklist.js";
 import { buildRegister } from "../report.js";
 
@@ -25,9 +25,10 @@ export function filterFindings(list, q) {
 }
 
 export async function render(root, ctx) {
-  const { store, isAdmin, query } = ctx;
+  const { api, store, isAdmin, query } = ctx;
   await store.load();
   const q = { ...query };
+  const picked = new Set();
   let sort = { key: "ref", dir: -1 }, limit = 100;
   const sel = (id, opts, val) => `<select id="${id}">${opts.map(([v, l]) => `<option value="${esc(v)}" ${v === (val || "") ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
 
@@ -46,9 +47,10 @@ export async function render(root, ctx) {
       <button class="btn ghost sm" id="f-clear">Clear</button>
     </div>
     <div id="chips"></div>
+    ${isAdmin ? `<div class="selbar" id="selbar" hidden><span><b id="sel-n">0</b> selected</span><button class="linkish" id="sel-clear">Clear selection</button><span class="grow"></span><button class="btn sm danger" id="sel-del">${ICON.trash} Delete selected</button></div>` : ""}
     <div class="card table-card"><div class="tscroll"><table class="tbl reg">
       <thead><tr>
-        <th data-k="ref">Ref</th><th data-k="date">Audit date</th>${isAdmin ? `<th data-k="project">Project</th>` : ""}<th data-k="area">Area</th><th data-k="topic">Topic</th>
+        ${isAdmin ? `<th class="selcol"><input type="checkbox" id="sel-all" aria-label="Select every finding that matches the filters"></th>` : ""}<th data-k="ref">Ref</th><th data-k="date">Audit date</th>${isAdmin ? `<th data-k="project">Project</th>` : ""}<th data-k="area">Area</th><th data-k="topic">Topic</th>
         <th>Observation</th><th data-k="risk">Risk</th><th data-k="state">Status</th><th data-k="owner">Owner</th><th data-k="target">Target</th><th class="num" title="Photos">Photos</th></tr></thead>
       <tbody id="rows"></tbody></table></div><div class="more" id="more"></div></div>`;
 
@@ -63,14 +65,26 @@ export async function render(root, ctx) {
     root.querySelector("#chips").innerHTML = extra.length ? `<div class="filter-chips">${extra.map(t => `<span class="chip st-pending">${esc(t)}</span>`).join("")}<button class="linkish" id="x-extra">Remove</button></div>` : "";
     root.querySelector("#rows").innerHTML = rows.slice(0, limit).map(f => {
       const pc = store.photoCount?.[f.id]; const n = pc ? pc.violation + pc.closure : 0;
-      return `<tr class="click" data-id="${f.id}"><td><a href="#/finding/${f.id}"><b>${fRef(f.ref)}</b></a></td><td class="nowrap">${fmtDate(f.audits?.audit_date)}</td>
+      return `<tr class="click${picked.has(f.id) ? " picked" : ""}" data-id="${f.id}">${isAdmin ? `<td class="selcol"><input type="checkbox" class="rsel" data-id="${f.id}" ${picked.has(f.id) ? "checked" : ""} aria-label="Select ${fRef(f.ref)}"></td>` : ""}<td><a href="#/finding/${f.id}"><b>${fRef(f.ref)}</b></a></td><td class="nowrap">${fmtDate(f.audits?.audit_date)}</td>
         ${isAdmin ? `<td>${esc(f.projects?.name || "")}</td>` : ""}<td>${esc(f.area)}</td><td>${esc(topicName(f.topic))}</td>
         <td class="obs">${esc(f.observation.length > 140 ? f.observation.slice(0, 140) + "…" : f.observation)}</td><td>${riskChip(f.risk)}</td><td>${stateChip(f)}</td>
         <td>${esc(f.owner)}</td><td class="nowrap">${f.fixed_on_spot ? "Immediately" : fmtDate(f.target_date)}</td><td class="num">${n || ""}</td></tr>`;
-    }).join("") || `<tr><td colspan="11" class="empty-row">No findings match these filters.</td></tr>`;
+    }).join("") || `<tr><td colspan="12" class="empty-row">No findings match these filters.</td></tr>`;
     root.querySelector("#more").innerHTML = rows.length > limit ? `<button class="btn ghost" id="more-btn">Show ${Math.min(100, rows.length - limit)} more of ${rows.length - limit}</button>` : "";
     root.querySelectorAll("th[data-k]").forEach(th => th.classList.toggle("sorted", th.dataset.k === sort.key));
+    if (isAdmin) { const vis = new Set(rows.map(f => f.id)); [...picked].forEach(id => { if (!vis.has(id)) picked.delete(id); }); selUi(); }
   }
+  function selUi() {
+    const bar = root.querySelector("#selbar"); if (!bar) return;
+    bar.hidden = !picked.size; root.querySelector("#sel-n").textContent = picked.size;
+    root.querySelectorAll(".rsel").forEach(cb => { cb.checked = picked.has(cb.dataset.id); cb.closest("tr").classList.toggle("picked", cb.checked); });
+    const all = root.querySelector("#sel-all");
+    all.checked = rows.length > 0 && picked.size === rows.length; all.indeterminate = picked.size > 0 && picked.size < rows.length;
+  }
+  root.addEventListener("change", e => {
+    if (e.target.id === "sel-all") { picked.clear(); if (e.target.checked) rows.forEach(f => picked.add(f.id)); selUi(); }
+    else if (e.target.classList.contains("rsel")) { e.target.checked ? picked.add(e.target.dataset.id) : picked.delete(e.target.dataset.id); selUi(); }
+  });
   const sync = () => { const h = "#/register?" + new URLSearchParams(Object.entries(q).filter(([, v]) => v)).toString(); history.replaceState(null, "", h); };
   root.querySelector(".filters").addEventListener("input", e => {
     const map = { "f-project": "project", "f-status": "status", "f-risk": "risk", "f-topic": "topic", "f-type": "type", "f-from": "from", "f-to": "to", "f-q": "q" };
@@ -80,6 +94,19 @@ export async function render(root, ctx) {
     if (e.target.id === "f-clear") { Object.keys(q).forEach(k => delete q[k]); root.querySelectorAll(".filters select, .filters input").forEach(i => { i.value = ""; }); sync(); draw(); return; }
     if (e.target.id === "x-extra") { delete q.root; delete q.item; delete q.support; sync(); draw(); return; }
     if (e.target.id === "more-btn") { limit += 100; draw(); return; }
+    if (e.target.closest(".selcol")) return;
+    if (e.target.id === "sel-clear") { picked.clear(); selUi(); return; }
+    if (e.target.closest("#sel-del")) {
+      const ids = [...picked], n = ids.length;
+      const photos = ids.reduce((s, id) => { const c = store.photoCount?.[id]; return s + (c ? c.violation + c.closure : 0); }, 0);
+      const ok = await confirmBox(`Delete ${n} finding${n > 1 ? "s" : ""}${photos ? ` and ${photos} photo${photos > 1 ? "s" : ""}` : ""}, with their comments? This can't be undone.`, { title: "Delete findings", ok: `Delete ${n}`, danger: true, typeToConfirm: n > 10 ? "DELETE" : "" });
+      if (!ok) return;
+      const b = busyOverlay(`Deleting ${n} findings…`);
+      try { await api.deleteFindings(ids, (d, t) => b.set(`Deleting findings ${d} of ${t}…`)); toast(`${n} finding${n > 1 ? "s" : ""} deleted.`); }
+      catch (x) { toast(x.message, "error"); }
+      finally { b.done(); picked.clear(); await store.load(true); draw(); }
+      return;
+    }
     const th = e.target.closest("th[data-k]"); if (th) { sort = { key: th.dataset.k, dir: sort.key === th.dataset.k ? -sort.dir : (th.dataset.k === "ref" || th.dataset.k === "date" ? -1 : 1) }; draw(); return; }
     const tr = e.target.closest("tr[data-id]"); if (tr && !e.target.closest("a")) { location.hash = "#/finding/" + tr.dataset.id; return; }
     if (e.target.id === "xl") {

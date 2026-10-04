@@ -6,13 +6,13 @@ const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.s
 const nLines = (s, cpl) => String(s || "").split("\n").reduce((n, p) => n + Math.max(1, Math.ceil(p.length / cpl)), 0);
 const isoToDate = s => { const m = String(s || "").match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : null; };
 let LOGO = null;
-async function logoData() {
+export async function logoData() {
   if (LOGO) return LOGO;
   const b = await (await fetch("assets/orascom-logo.png")).blob();
   LOGO = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
   return LOGO;
 }
-async function imageData(url) {
+export async function imageData(url) {
   const blob = await (await fetch(url)).blob();
   const bmp = await createImageBitmap(blob);
   const k = Math.min(1, 1000 / Math.max(bmp.width, bmp.height));

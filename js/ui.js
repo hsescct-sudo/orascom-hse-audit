@@ -144,6 +144,23 @@ export async function ensureExcelJS() {
   for (const s of srcs) { try { await loadScript(s); if (window.ExcelJS) return window.ExcelJS; } catch (e) { /* next */ } }
   throw new Error("The Excel library couldn't load. Check the internet connection and try again.");
 }
+export async function ensurePptx() {
+  if (window.PptxGenJS) return window.PptxGenJS;
+  const srcs = (window.HSE_CONFIG && window.HSE_CONFIG.pptxUrls) || [
+    "https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js"];
+  for (const s of srcs) { try { await loadScript(s); if (window.PptxGenJS) return window.PptxGenJS; } catch (e) { /* next */ } }
+  throw new Error("The PowerPoint library couldn't load. Check the internet connection and try again.");
+}
+// A blocking progress note for long jobs (bulk delete, PowerPoint with photos).
+export function busyOverlay(text) {
+  const el = document.createElement("div");
+  el.className = "busy-wrap"; el.setAttribute("role", "status");
+  el.innerHTML = `<div class="busy"><span class="spin"></span><span class="busy-t"></span></div>`;
+  el.querySelector(".busy-t").textContent = text;
+  document.body.appendChild(el);
+  return { set(t) { el.querySelector(".busy-t").textContent = t; }, done() { el.remove(); } };
+}
 export async function saveBlob(blob, filename) {
   // Inside a Claude preview the page must ask the viewer to save; elsewhere a normal download link works.
   try {
@@ -172,4 +189,12 @@ export const ICON = {
   cam: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 4h6l1.5 2H20a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3.5zm3 4a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z" fill="currentColor"/></svg>',
   menu: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z" fill="currentColor"/></svg>',
   dl: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M11 3h2v9l3-3 1.4 1.4L12 15.8 6.6 10.4 8 9l3 3zM5 18h14v2H5z" fill="currentColor"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4zm-3 6h12l-1 12H7zm4 2v8h2v-8zm4 0v8h2v-8z" fill="currentColor"/></svg>',
+  ppt: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-7v2h3v2H8v-2h3v-2H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 2v9h14V6zm2 7l3-4 2 2 2-3 3 5z" fill="currentColor"/></svg>',
+  xls: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 3h11l5 5v13H4zm10 1.5V9h4.5zM7.5 11l2.2 3.2L7.4 17.5h2l1.3-2 1.3 2h2l-2.3-3.3L14 11h-2l-1.3 1.9L9.5 11z" fill="currentColor"/></svg>',
+  expand: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z" fill="currentColor"/></svg>',
+  table: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M3 4h18v16H3zm2 2v3h6V6zm8 0v3h6V6zM5 11v3h6v-3zm8 0v3h6v-3zm-8 5v2h6v-2zm8 0v2h6v-2z" fill="currentColor"/></svg>',
+  chart: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 19h16v2H2V3h2zm3-2V10h3v7zm5 0V6h3v11zm5 0v-5h3v5z" fill="currentColor"/></svg>',
+  warn: '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 2l10 18H2zm-1 7v5h2V9zm0 7v2h2v-2z" fill="currentColor"/></svg>',
+  check: '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M9 16.2l-3.5-3.5L4 14.2l5 5 11-11-1.4-1.4z" fill="currentColor"/></svg>',
 };

@@ -1,4 +1,4 @@
-import { esc, toast, dialog, confirmBox, ensureExcelJS, saveBlob, findingState } from "../ui.js";
+import { esc, toast, dialog, confirmBox, ensureExcelJS, saveBlob, findingState, busyOverlay, fmtDate, ICON } from "../ui.js";
 
 const slug = s => String(s || "").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 const CODE_RE = /^[a-z0-9][a-z0-9-]{1,39}$/;
@@ -20,6 +20,7 @@ export async function render(root, ctx) {
     root.innerHTML = `
       <div class="page-head"><div><h1>Projects</h1><p class="muted">${store.projects.length} projects · each project signs in with its own password</p></div>
         <div class="actions">
+          <button class="btn ghost danger" data-act="wipe">${ICON.trash} Delete data…</button>
           <button class="btn ghost" data-act="import">Import list from Excel</button>
           ${noLogin ? `<button class="btn ghost" data-act="bulk">Create logins for ${noLogin} project${noLogin > 1 ? "s" : ""}</button>` : ""}
           <button class="btn primary" data-act="add">Add project</button>
@@ -32,7 +33,7 @@ export async function render(root, ctx) {
           <td class="num">${c.audits}</td><td class="num">${c.open}</td><td class="num">${c.overdue ? `<b class="t-over">${c.overdue}</b>` : 0}</td>
           <td>${p.login_user_id ? `<span class="chip st-closed">Ready</span>` : `<span class="chip st-open">No password</span>`}</td>
           <td>${p.active ? "Active" : `<span class="muted">Inactive</span>`}</td>
-          <td class="row-actions"><button class="btn sm ghost" data-act="edit" data-id="${p.id}">Edit</button><button class="btn sm ghost" data-act="pw" data-id="${p.id}">${p.login_user_id ? "Change password" : "Set password"}</button><button class="btn sm ghost danger" data-act="del" data-id="${p.id}">Delete</button></td>
+          <td class="row-actions"><button class="btn sm ghost" data-act="edit" data-id="${p.id}">Edit</button><button class="btn sm ghost" data-act="pw" data-id="${p.id}">${p.login_user_id ? "Change password" : "Set password"}</button>${c.audits ? `<button class="btn sm ghost danger" data-act="clear" data-id="${p.id}" title="Delete this project's audits, findings and photos; keep the project and its login">Clear data</button>` : ""}<button class="btn sm ghost danger" data-act="del" data-id="${p.id}">Delete</button></td>
         </tr>`; }).join("")}</tbody></table></div></div>`
       : `<div class="empty"><h3>No projects yet</h3><p>Add projects one by one, or import the list from an Excel file with columns Project, Code, Location, Project Manager, Client.</p></div>`}`;
   };
@@ -147,6 +148,44 @@ export async function render(root, ctx) {
     input.click();
   }
 
+  // Delete audit data in bulk: one project or all, optionally only audits dated inside a range.
+  function scopeOf(projectId, from, to) {
+    const audits = store.audits.filter(a => (!projectId || a.project_id === projectId) && (!from || a.audit_date >= from) && (!to || a.audit_date <= to));
+    const ids = new Set(audits.map(a => a.id));
+    const findings = store.findings.filter(f => ids.has(f.audit_id));
+    const photos = findings.reduce((s, f) => { const c = store.photoCount?.[f.id]; return s + (c ? c.violation + c.closure : 0); }, 0);
+    return { audits, findings, photos };
+  }
+  async function runWipe(audits, label) {
+    const b = busyOverlay(`Deleting ${audits.length} audits…`);
+    try { await api.deleteAudits(audits.map(a => a.id), (d, t) => b.set(`Deleting audits ${d} of ${t}…`)); toast(`${label}: ${audits.length} audit${audits.length === 1 ? "" : "s"} deleted with their findings and photos.`); }
+    catch (x) { toast(x.message, "error"); }
+    finally { b.done(); await store.load(true); draw(); }
+  }
+  async function wipeDialog(presetProject = "") {
+    const count = w => {
+      const s = scopeOf(w.querySelector("#w-project").value, w.querySelector("#w-from").value, w.querySelector("#w-to").value);
+      w.querySelector("#w-sum").innerHTML = s.audits.length ? `This deletes <b>${s.audits.length}</b> audit${s.audits.length === 1 ? "" : "s"}, <b>${s.findings.length}</b> finding${s.findings.length === 1 ? "" : "s"} and <b>${s.photos}</b> photo${s.photos === 1 ? "" : "s"}, with all their comments. Projects, logins and administrators are kept.` : "Nothing matches — no audits in this selection.";
+      return s;
+    };
+    const v = await dialog({
+      title: "Delete data",
+      body: `<p class="muted">Use this to clear test entries or old campaigns. Deleted data and photos can't be recovered — download the Excel register or reports first if you may need them.</p>
+        <label class="fld"><span>Project</span><select id="w-project"><option value="">All projects</option>${store.projects.map(p => `<option value="${p.id}" ${p.id === presetProject ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
+        <div class="form-grid"><label class="fld"><span>Audits dated from (optional)</span><input type="date" id="w-from"></label><label class="fld"><span>To (optional)</span><input type="date" id="w-to"></label></div>
+        <p class="panel warn" id="w-sum"></p>
+        <label class="fld"><span>Type <b>DELETE</b> to confirm</span><input id="w-type" autocomplete="off"></label>`,
+      onMount: w => { count(w); w.addEventListener("input", e => { if (e.target.id !== "w-type") count(w); }); },
+      actions: [{ label: "Cancel", value: null }, {
+        label: "Delete data", kind: "danger",
+        value: w => count(w),
+        validate: w => { const s = count(w); if (!s.audits.length) return "There is nothing to delete in this selection."; return w.querySelector("#w-type").value.trim() === "DELETE" ? null : "Type DELETE to confirm."; }
+      }]
+    });
+    if (!v) return;
+    await runWipe(v.audits, "Data deleted");
+  }
+
   root.addEventListener("click", async e => {
     const b = e.target.closest("[data-act]"); if (!b) return;
     const p = b.dataset.id && store.project(b.dataset.id);
@@ -155,6 +194,13 @@ export async function render(root, ctx) {
     else if (b.dataset.act === "pw") pwDialog(p);
     else if (b.dataset.act === "bulk") bulkLogins();
     else if (b.dataset.act === "import") importList();
+    else if (b.dataset.act === "wipe") wipeDialog();
+    else if (b.dataset.act === "clear") {
+      const s = scopeOf(p.id);
+      const ok = await confirmBox(`Delete all ${s.audits.length} audits, ${s.findings.length} findings and ${s.photos} photos of ${p.name}? The project and its login stay. This can't be undone.`, { title: "Clear project data", ok: "Clear data", danger: true, typeToConfirm: p.code });
+      if (!ok) return;
+      await runWipe(s.audits, p.name);
+    }
     else if (b.dataset.act === "del") {
       const ok = await confirmBox(`Delete ${p.name}? This permanently removes its login, all its audits, findings, comments and photos.`, { title: "Delete project", ok: "Delete everything", danger: true, typeToConfirm: p.code });
       if (!ok) return;

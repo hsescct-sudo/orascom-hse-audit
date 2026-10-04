@@ -1,4 +1,4 @@
-import { esc, fmtDate, aRef, fRef, findingState, stateChip, riskChip, toast, dialog, confirmBox, saveBlob, pct } from "../ui.js";
+import { esc, fmtDate, aRef, fRef, findingState, stateChip, riskChip, toast, dialog, confirmBox, saveBlob, pct, busyOverlay, ICON } from "../ui.js";
 import { TOPICS, ITEM, topicName } from "../checklist.js";
 import { buildAuditReport, defaultScope, defaultConclusion } from "../report.js";
 
@@ -26,7 +26,8 @@ export async function render(root, ctx) {
         <h1>Audit ${aRef(a.ref)} ${a.status === "draft" ? `<span class="chip st-open">Draft</span>` : `<span class="chip st-closed">Submitted</span>`}</h1>
         <p class="muted">${esc(proj.name || "")} · ${fmtDate(a.audit_date)} · ${a.audit_type === "corporate" ? "Corporate audit" : "Project audit"} · ${a.source === "excel" ? "Imported from Excel" + (a.file_name ? " (" + esc(a.file_name) + ")" : "") : "Checklist"}</p></div>
         <div class="actions">
-          <button class="btn ghost" data-act="xlsx">Download F-HSE-0075</button>
+          <button class="btn ghost" data-act="xlsx" title="Download the F-HSE-0075 report as Excel">${ICON.xls} Excel F-HSE-0075</button>
+          <button class="btn ghost" data-act="pptx" title="Download the report as a PowerPoint deck">${ICON.ppt} PowerPoint</button>
           ${a.status === "draft" && a.source === "form" ? `<a class="btn ghost" href="#/form/${a.id}">Continue checklist</a>` : ""}
           ${canEdit() ? `<button class="btn ghost" data-act="edit">Edit details</button>` : ""}
           ${a.status === "draft" ? `<button class="btn primary" data-act="submit">Submit audit</button>` : isAdmin ? `<button class="btn ghost" data-act="reopen">Return to draft</button>` : ""}
@@ -62,7 +63,7 @@ export async function render(root, ctx) {
     const act = b.dataset.act;
     try {
       if (act === "xlsx") {
-        b.disabled = true; const label = b.textContent; b.textContent = "Preparing…";
+        b.disabled = true; const label = b.innerHTML; b.textContent = "Preparing…";
         try {
           const pb = {}; photos.forEach(p => { (pb[p.finding_id] = pb[p.finding_id] || []).push(p); });
           const allUrls = photos.length ? await api.urls(photos.map(p => p.path)) : {};
@@ -70,7 +71,20 @@ export async function render(root, ctx) {
           const slug = String(a.projects?.name || "Project").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
           saveBlob(blob, `HSE_Flash_Audit-_${slug}_${a.audit_date}.xlsx`);
           toast(failed ? `Report downloaded. ${failed} photo(s) couldn't be added.` : "Report downloaded.");
-        } finally { b.disabled = false; b.textContent = label; }
+        } finally { b.disabled = false; b.innerHTML = label; }
+      }
+      if (act === "pptx") {
+        b.disabled = true;
+        const busy = busyOverlay("Building the PowerPoint…");
+        try {
+          const pb = {}; photos.forEach(p => { (pb[p.finding_id] = pb[p.finding_id] || []).push(p); });
+          const allUrls = photos.length ? await api.urls(photos.map(p => p.path)) : {};
+          const { buildAuditPptx } = await import("../pptx.js");
+          const { blob, failed } = await buildAuditPptx({ audit: a, project: { name: a.projects?.name, pm: a.projects?.pm }, findings, photosByFinding: pb, urls: allUrls, onProgress: (d, n) => busy.set(`Adding photos ${d} of ${n}…`) });
+          const slug = String(a.projects?.name || "Project").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
+          saveBlob(blob, `HSE_Flash_Audit-_${slug}_${a.audit_date}.pptx`);
+          toast(failed ? `PowerPoint downloaded. ${failed} photo(s) couldn't be added.` : "PowerPoint downloaded.");
+        } finally { busy.done(); b.disabled = false; }
       }
       if (act === "submit") {
         if (!(await confirmBox(isAdmin ? "Submit this audit? The project can then only submit closures for its findings." : "Submit this audit to the administration? After submitting, findings can't be edited — only closed through “Submit closure”.", { ok: "Submit audit" }))) return;
