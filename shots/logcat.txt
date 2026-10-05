@@ -1,0 +1,23 @@
+--------- beginning of system
+W/ActivityTaskManager(  520): callingPackage for (uid=2000, pid=4550) has no WPC
+I/ActivityTaskManager(  520): START u0 {flg=0x10000000 cmp=com.orascom.hseaudit/.MainActivity} with LAUNCH_SINGLE_TASK from uid 2000 (BAL_ALLOW_PERMISSION) result code=0
+W/ActivityTaskManager(  520): takeTaskSnapshot: taskId=8 not found or not visible
+--------- beginning of main
+I/ActivityTaskManager(  520): Displayed com.orascom.hseaudit/.MainActivity for user 0: +2s607ms
+I/HSEAudit( 4554): page started https://hsescct-sudo.github.io/orascom-hse-audit/
+I/HSEAudit( 4554): page finished https://hsescct-sudo.github.io/orascom-hse-audit/
+I/HSEAudit( 4554): page started https://hsescct-sudo.github.io/orascom-hse-audit/
+I/HSEAudit( 4554): page finished https://hsescct-sudo.github.io/orascom-hse-audit/
+I/ActivityTaskManager(  520): Activity reported stop, but no longer stopping: ActivityRecord{bb37550 u0 com.google.android.apps.nexuslauncher/.NexusLauncherActivity t7} STOPPED
+W/ActivityTaskManager(  520): Force removing ActivityRecord{95caab6 u0 com.orascom.hseaudit/.MainActivity t8 f}}: app died, no saved state
+W/ActivityTaskManager(  520): callingPackage for (uid=2000, pid=5978) has no WPC
+I/ActivityTaskManager(  520): Add Task{6cc02af #8 type=standard A=10192:com.orascom.hseaudit} to hidden list because adding Task{51bdd74 #9 type=standard A=10192:com.orascom.hseaudit}
+I/ActivityTaskManager(  520): START u0 {flg=0x10000000 cmp=com.orascom.hseaudit/.MainActivity (has extras)} with LAUNCH_SINGLE_TASK from uid 2000 (BAL_ALLOW_PERMISSION) result code=0
+E/chromium( 5981): [ERROR:simple_backend_impl.cc(749)] Simple Cache Backend: cache directory inaccessible right after creation; path: /data/user/0/com.orascom.hseaudit/cache/WebView/Default/HTTP Cache/Code Cache/wasm
+E/chromium( 5981): [ERROR:disk_cache.cc(205)] Unable to create cache
+I/ActivityTaskManager(  520): Displayed com.orascom.hseaudit/.MainActivity for user 0: +1s970ms
+I/HSEAudit( 5981): page started https://hsescct-sudo.github.io/orascom-hse-audit/
+I/HSEAudit( 5981): page finished https://hsescct-sudo.github.io/orascom-hse-audit/
+I/ActivityTaskManager(  520): START u0 {act=android.intent.action.CHOOSER flg=0x1 cmp=com.android.intentresolver/.ChooserActivity clip={text/plain {U(content)}} (has extras)} with LAUNCH_MULTIPLE from uid 10192 (BAL_ALLOW_VISIBLE_WINDOW) result code=0
+I/HSEAudit( 5981): selftest finish=true
+I/ActivityTaskManager(  520): Displayed com.android.intentresolver/.ChooserActivity for user 0: +1s183ms

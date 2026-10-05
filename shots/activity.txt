@@ -1,0 +1,4 @@
+    topResumedActivity=ActivityRecord{95caab6 u0 com.orascom.hseaudit/.MainActivity t8}
+  ResumedActivity: ActivityRecord{95caab6 u0 com.orascom.hseaudit/.MainActivity t8}
+    topResumedActivity=ActivityRecord{56e3e2e u0 com.android.intentresolver/.ChooserActivity t9}
+  ResumedActivity: ActivityRecord{56e3e2e u0 com.android.intentresolver/.ChooserActivity t9}

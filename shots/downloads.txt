@@ -1,0 +1,2 @@
+total 8
+-rwxrwx--- 1 u0_a178 media_rw 23 2026-10-05 13:09 HSE_Audit_selftest.txt

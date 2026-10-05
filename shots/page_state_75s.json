@@ -1,0 +1,31 @@
+{
+ "pages": [
+  {
+   "type": "page",
+   "url": "https://hsescct-sudo.github.io/orascom-hse-audit/",
+   "title": "HSE Flash Audit · Orascom Construction"
+  }
+ ],
+ "href": "https://hsescct-sudo.github.io/orascom-hse-audit/",
+ "ready": "complete",
+ "title": "HSE Flash Audit · Orascom Construction",
+ "text": "HSE Flash Audit System\n\nCorporate HSE · audits, findings and closure tracking\n\nProject\nAdministration\nPROJECT\nChoose your project…\nEgyptian Railway Signaling System Modernization Project ( Nagaa Hamady - Luxor corridor) (signaling-nagaa-hamadi-luxor)\nFormwork Warehouse and Workshop (formwork-workshop)\nHAJAR (hajar)\nPROJECT PASSWORD\nYOUR NAME\nSign in",
+ "ua": "Mozilla/5.0 (Linux; Android 14; sdk_gphone64_x86_64 Build/UE1A.230829.050; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/113.0.5672.136 Mobile Safari/537.36 HSEAuditApp/1.0",
+ "bridge": "object",
+ "sw": "controlled",
+ "resources": [
+  "126ms https://hsescct-sudo.github.io/orascom-hse-audit/css/app.css",
+  "124ms https://hsescct-sudo.github.io/orascom-hse-audit/js/config.js",
+  "174ms https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js",
+  "283ms https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js",
+  "209ms https://hsescct-sudo.github.io/orascom-hse-audit/js/app.js",
+  "28ms https://hsescct-sudo.github.io/orascom-hse-audit/js/data.js",
+  "44ms https://hsescct-sudo.github.io/orascom-hse-audit/js/ui.js",
+  "39ms https://hsescct-sudo.github.io/orascom-hse-audit/js/settings.js",
+  "46ms https://hsescct-sudo.github.io/orascom-hse-audit/js/pwa.js",
+  "16ms https://hsescct-sudo.github.io/orascom-hse-audit/js/checklist.js",
+  "345ms https://weczibogscuosnjevdde.supabase.co/rest/v1/rpc/login_projects",
+  "37ms https://hsescct-sudo.github.io/orascom-hse-audit/assets/favicon.png",
+  "0ms https://hsescct-sudo.github.io/orascom-hse-audit/assets/orascom-logo.png"
+ ]
+}
