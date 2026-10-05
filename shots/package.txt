@@ -1,0 +1,4 @@
+    versionCode=1 minSdk=24 targetSdk=34
+    versionName=1.0
+    signatures=PackageSignatures{1a271a2 version:2, signatures:[5139dfef], past signatures:[]}
+    pkgFlags=[ HAS_CODE ALLOW_CLEAR_USER_DATA ]

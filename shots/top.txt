@@ -1,0 +1,1 @@
+    topResumedActivity=ActivityRecord{ad71399 u0 com.orascom.hseaudit/.MainActivity t8}
