@@ -5,7 +5,7 @@ name: Android app check
 on:
   push:
     branches: [main]
-    paths: ['downloads/HSE-Audit.apk', '.github/workflows/android-verify.yml']
+    paths: ['downloads/HSE-Audit.apk', '.github/workflows/android-verify.yml', 'android/ci/verify-signed.sh']
   workflow_dispatch:
 
 permissions:
