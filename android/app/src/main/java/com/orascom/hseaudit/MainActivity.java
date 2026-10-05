@@ -66,6 +66,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle saved) {
         super.onCreate(saved);
+        if (BuildConfig.DEBUG) WebView.setWebContentsDebuggingEnabled(true);
         FrameLayout root = new FrameLayout(this);
         root.setFitsSystemWindows(true);
         root.setBackgroundColor(0xFF003876);
@@ -166,11 +167,13 @@ public class MainActivity extends Activity {
 
         @Override
         public void onPageStarted(WebView view, String url, Bitmap favicon) {
+            Log.i(TAG, "page started " + url);
             progress.setVisibility(View.VISIBLE);
         }
 
         @Override
         public void onPageFinished(WebView view, String url) {
+            Log.i(TAG, "page finished " + url);
             progress.setVisibility(View.GONE);
             CookieManager.getInstance().flush();
             if (selfTest && !showingOffline) {
