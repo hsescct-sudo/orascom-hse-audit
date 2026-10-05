@@ -8,7 +8,8 @@
 - إقفال الملاحظات: المشروع يرفع الإجراء وصورة الإقفال، والإدارة توافق أو ترجّعها بتعليق.
 - Dashboard بشكل Power BI (فلاتر، تغطية المشاريع، أعمار الملاحظات، جدول أداء المشاريع، وضع العرض Full screen).
 - تنزيل تقرير أي أوديت Excel (F-HSE-0075) أو PowerPoint بالصور، وتنزيل ملخص الـ Dashboard كـ PowerPoint (charts قابلة للتعديل) أو Excel.
-- **أبلكيشن على الموبايل (PWA):** يتسطّب من اللينك على أندرويد وآيفون، يفتح full screen، والكاميرا تفتح منه مباشرة.
+- **أبلكيشن أندرويد (HSE-Audit.apk):** بيتنزّل من صفحة الدخول (Install the app on this phone ← Download the Android app) أو من `downloads/HSE-Audit.apk`. الكاميرا والمعرض ورفع الـ Excel شغالين، والتقارير بتتحفظ في Downloads ← HSE Audit.
+- **الآيفون (PWA):** Safari ← Share ← Add to Home Screen. يفتح full screen والكاميرا تفتح منه مباشرة.
 - **Settings من غير كود:** تعديل الـ Checklist (topics وبنود وخطورة)، قائمة الـ Root causes، الـ Dashboard (العنوان، الأهداف، الرسومات اللي تظهر)، وعناوين التقارير.
 - **رفع أي شيت Excel:** مش لازم فورمة F-HSE-0075؛ السيستم بيتعرف على الأعمدة من العناوين (عربي أو إنجليزي) وتقدر تعدّل التوصيل، والصور على الشيت أو جوه الخلايا (Excel 365 و WPS) بتتسحب، والتعليقات بتتضاف.
 - **صفحة Help** بالعربي والإنجليزي للإدارة والمشاريع.
@@ -115,5 +116,9 @@
 | `js/config.js` | Supabase URL + anon/publishable key (public by design) |
 | `supabase/schema.sql` | tables, RLS policies, triggers, workflow functions, storage bucket and policies (idempotent) |
 | `supabase/functions/admin-users/index.ts` | Edge Function for project passwords and administrator accounts |
+| `android/` | Android app (`com.orascom.hseaudit`): a WebView shell for the live site with camera/gallery pickers, Excel file picking and a download bridge (`window.HSEAndroid`, used by `saveBlob` in `js/ui.js`) |
+| `.github/workflows/android.yml` | builds the APKs on GitHub and opens the debug build on an emulator; results on the `apk-build` branch |
+| `downloads/HSE-Audit.apk` | the signed Android app. The release APK is signed (APK Signature Scheme v2) with the HSE Audit key, which is kept outside this repository; keep the same key for every update or phones will refuse to update |
+| `.github/workflows/android-verify.yml` | checks the published APK with Google's `apksigner` and installs it on an emulator; results on the `apk-verify` branch |
 
-**Tested** against Supabase Auth v2.180, PostgREST 12 and Postgres 16 (62 automated security/workflow checks, plus end-to-end browser runs for admin and project roles), including import of a real F-HSE-0075 report with 42 photos.
+**Tested** against Supabase Auth v2.180, PostgREST 12 and Postgres 16 (68 automated security/workflow checks, plus end-to-end browser runs for admin and project roles), including import of a real F-HSE-0075 report with 42 photos.

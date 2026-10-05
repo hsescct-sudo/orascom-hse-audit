@@ -175,7 +175,25 @@ export function busyOverlay(text) {
   document.body.appendChild(el);
   return { set(t) { el.querySelector(".busy-t").textContent = t; }, done() { el.remove(); } };
 }
+// Inside the Android app (android/): the file goes to the phone's Downloads through the app, in base64 chunks.
+async function saveInAndroidApp(blob, filename) {
+  const app = window.HSEAndroid;
+  const b64 = await new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(",")[1] || "");
+    r.onerror = () => reject(r.error || new Error("Couldn't read the file."));
+    r.readAsDataURL(blob);
+  });
+  const id = app.begin(filename, blob.type || "");
+  if (!id) throw new Error("The app couldn't save the file.");
+  const CHUNK = 512 * 1024; // a multiple of 4, so every chunk decodes on its own
+  for (let i = 0; i < b64.length; i += CHUNK) {
+    if (!app.append(id, b64.slice(i, i + CHUNK))) throw new Error("The app couldn't save the file.");
+  }
+  if (!app.finish(id)) throw new Error("The app couldn't save the file.");
+}
 export async function saveBlob(blob, filename) {
+  if (window.HSEAndroid && typeof window.HSEAndroid.begin === "function") return saveInAndroidApp(blob, filename);
   // Inside a Claude preview the page must ask the viewer to save; elsewhere a normal download link works.
   try {
     if (window.claude && typeof window.claude.use === "function") {

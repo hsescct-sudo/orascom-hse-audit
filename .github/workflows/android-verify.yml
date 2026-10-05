@@ -1,0 +1,59 @@
+# Checks the published, signed Android app (downloads/HSE-Audit.apk) with Google's
+# apksigner and installs it on an emulator. Results go to the "apk-verify" branch.
+name: Android app check
+
+on:
+  push:
+    branches: [main]
+    paths: ['downloads/HSE-Audit.apk', '.github/workflows/android-verify.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify the signature with apksigner
+        run: |
+          mkdir -p out
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" verify --verbose --print-certs downloads/HSE-Audit.apk 2>&1 | tee out/apksigner.txt
+          "$BT/aapt2" dump badging downloads/HSE-Audit.apk 2>&1 | head -20 | tee out/badging.txt
+
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install and open the signed app on an emulator
+        continue-on-error: true
+        timeout-minutes: 20
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash android/ci/verify-signed.sh
+
+      - name: Push the results to the apk-verify branch
+        if: always()
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p out
+          cp -r shots out/ 2>/dev/null || true
+          echo "${GITHUB_SHA}" > out/commit.txt
+          cd out
+          git init -q
+          git checkout -q -b apk-verify
+          git add -A
+          git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" commit -q -m "Signed app check for ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" apk-verify

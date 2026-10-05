@@ -1,7 +1,7 @@
 // Service worker: makes the site installable as a phone app and lets it open without signal.
 // App files: network first (so every deploy shows up at once), cached copy when offline.
 // Libraries from the CDN: cached after the first load. Supabase (data, photos, sign-in) is never cached.
-const VERSION = "2026-10-05-2";
+const VERSION = "2026-10-05-3";
 const CACHE = "hse-audit-" + VERSION;
 const SHELL = [
   "./", "index.html", "manifest.json", "css/app.css",
@@ -36,6 +36,7 @@ self.addEventListener("fetch", e => {
     return;
   }
   if (url.origin !== self.location.origin) return;
+  if (url.pathname.includes("/downloads/")) return; // the Android app file is downloaded fresh, never cached
   e.respondWith((async () => {
     const c = await caches.open(CACHE);
     try {

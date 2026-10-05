@@ -8,7 +8,7 @@ try:
     out['pages'] = [{k: p.get(k) for k in ('type', 'url', 'title')} for p in pages]
     page = next((p for p in pages if p.get('type') == 'page'), None)
     if page:
-        ws = websocket.create_connection(page['webSocketDebuggerUrl'], timeout=30)
+        ws = websocket.create_connection(page['webSocketDebuggerUrl'], timeout=30, suppress_origin=True)
         n = [0]
         def ev(expr):
             n[0] += 1
