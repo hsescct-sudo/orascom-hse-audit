@@ -1,5 +1,6 @@
 import { esc, fmtDate, todayISO, toast, ensureExcelJS, ensureJSZip, shrinkImage, riskChip } from "../ui.js";
 import { TOPICS, guessTopic } from "../checklist.js";
+import { formLabel } from "../settings.js";
 import { parseFlashAudit, analyzeSheet, extractRows, readHeaderInfo, collectImages, loadWorkbook, readNotes, FIELDS } from "../importer.js";
 
 // Category text from a sheet → one of our topics (by code, name or the first word of the name).
@@ -19,7 +20,7 @@ export async function render(root, ctx) {
 
   function step1() {
     root.innerHTML = `
-      <div class="page-head"><div><h1>Import Excel report</h1><p class="muted">Upload any Excel audit sheet with its photos. The corporate F-HSE-0075 form is read automatically; for other sheets you check which column is which before saving.</p></div></div>
+      <div class="page-head"><div><h1>Import Excel report</h1><p class="muted">Upload any Excel audit sheet with its photos. The ${esc(formLabel())} is read automatically; for other sheets you check which column is which before saving.</p></div></div>
       <div class="card narrow stack">
         ${isAdmin ? `<label class="fld"><span>Project</span><select id="i-project"><option value="">Choose the project…</option>${projects.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></label>
           <label class="fld"><span>Audit type</span><select id="i-type"><option value="corporate">Corporate HSE audit</option><option value="project">Project self-audit</option></select></label>`
@@ -91,7 +92,7 @@ export async function render(root, ctx) {
     const colOpts = sel => `<option value="">— not in this sheet —</option>` + an.cols.map(x => `<option value="${x.c}" ${+sel === x.c ? "selected" : ""}>${colName(x.c)}${x.label ? " · " + esc(x.label.slice(0, 40)) : ""}</option>`).join("");
     const imgCols = Object.keys(an.photoKinds).map(Number).sort((a, b) => a - b);
     return `<section class="card stack mapping">
-      <div><h2 class="h2">Which column is which</h2><p class="muted small">This file isn't the F-HSE-0075 form, so the columns were matched by their headings. Correct anything that's wrong — the table below updates straight away.</p></div>
+      <div><h2 class="h2">Which column is which</h2><p class="muted small">This file isn't the ${esc(formLabel())}, so the columns were matched by their headings. Correct anything that's wrong — the table below updates straight away.</p></div>
       <div class="form-grid three">
         ${generic.wb.worksheets.length > 1 ? `<label class="fld"><span>Sheet</span><select id="m-sheet">${generic.wb.worksheets.map((w, i) => `<option value="${i}" ${i === generic.sheetIndex ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select></label>` : `<div class="fld"><span>Sheet</span><b>${esc(ws.name)}</b></div>`}
         <label class="fld"><span>Headings are in row</span><select id="m-head"><option value="0" ${!an.headerRow ? "selected" : ""}>No heading row</option>${Array.from({ length: 30 }, (_, i) => i + 1).map(r => `<option value="${r}" ${an.headerRow === r ? "selected" : ""}>Row ${r}</option>`).join("")}</select></label>
@@ -107,7 +108,7 @@ export async function render(root, ctx) {
     const mismatch = h.project && proj && !proj.name.toLowerCase().includes(h.project.toLowerCase().slice(0, 6)) && !h.project.toLowerCase().includes(proj.code.replace(/-/g, " ").slice(0, 6));
     const nInc = parsed.findings.filter(x => x.include).length;
     root.innerHTML = `
-      <div class="page-head"><div><a class="back" href="#/import">‹ Choose another file</a><h1>Check before importing</h1><p class="muted">${esc(fileName)} → ${esc(proj?.name || "")}${parsed.generic ? " · general sheet" : " · F-HSE-0075 form"}</p></div>
+      <div class="page-head"><div><a class="back" href="#/import">‹ Choose another file</a><h1>Check before importing</h1><p class="muted">${esc(fileName)} → ${esc(proj?.name || "")}${parsed.generic ? " · general sheet" : " · " + esc(formLabel())}</p></div>
         <div class="actions"><button class="btn primary" id="do-import" ${nInc ? "" : "disabled"}>Import ${nInc} findings</button></div></div>
       ${mismatch ? `<div class="panel warn"><span>The file says the project is <b>${esc(h.project)}</b>. Make sure you chose the right project.</span></div>` : ""}
       ${parsed.warnings.map(w => `<div class="panel warn">${esc(w)}</div>`).join("")}

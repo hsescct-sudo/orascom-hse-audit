@@ -98,7 +98,7 @@ export async function buildAuditPptx({ audit, project, findings, photosByFinding
   cover(pptx, logo, {
     eyebrow: SETTINGS.report.title || "HSE Flash Audit Report", title: project.name || "Project", sub: `${typeLabel} · ${fmtDate(audit.audit_date)} · ${aRef(audit.ref)}`,
     rows: [["Auditor(s)", audit.auditor], ["Project Manager", audit.pm || project.pm], ["P.O.C.", audit.poc != null ? Math.round(audit.poc) + "%" : ""], ["Manpower", audit.manpower != null ? Number(audit.manpower).toLocaleString() : ""]],
-    foot: `Form ${SETTINGS.report.formRef || ""} · Rev. ${SETTINGS.report.formRev || ""} · generated ${fmtDate(todayISO())} by the ${SETTINGS.general.appName || "HSE Flash Audit"} system`,
+    foot: [SETTINGS.report.formRef && `Form ${SETTINGS.report.formRef}`, SETTINGS.report.formRev && `Rev. ${SETTINGS.report.formRev}`, `generated ${fmtDate(todayISO())} by the ${SETTINGS.general.appName || "HSE Flash Audit"} system`].filter(Boolean).join(" · "),
   });
 
   // summary

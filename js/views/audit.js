@@ -1,6 +1,7 @@
 import { esc, fmtDate, aRef, fRef, findingState, stateChip, riskChip, toast, dialog, confirmBox, saveBlob, pct, busyOverlay, ICON } from "../ui.js";
 import { ALL_TOPICS, ITEM, topicName } from "../checklist.js";
 import { buildAuditReport, defaultScope, defaultConclusion } from "../report.js";
+import { formRef, formLabel } from "../settings.js";
 
 export async function render(root, ctx) {
   const { api, store, isAdmin, params, go } = ctx;
@@ -26,7 +27,7 @@ export async function render(root, ctx) {
         <h1>Audit ${aRef(a.ref)} ${a.status === "draft" ? `<span class="chip st-open">Draft</span>` : `<span class="chip st-closed">Submitted</span>`}</h1>
         <p class="muted">${esc(proj.name || "")} · ${fmtDate(a.audit_date)} · ${a.audit_type === "corporate" ? "Corporate audit" : "Project audit"} · ${a.source === "excel" ? "Imported from Excel" + (a.file_name ? " (" + esc(a.file_name) + ")" : "") : "Checklist"}</p></div>
         <div class="actions">
-          <button class="btn ghost" data-act="xlsx" title="Download the F-HSE-0075 report as Excel">${ICON.xls} Excel F-HSE-0075</button>
+          <button class="btn ghost" data-act="xlsx" title="Download the ${esc(formLabel())} as Excel">${ICON.xls} Excel ${esc(formRef() || "report")}</button>
           <button class="btn ghost" data-act="pptx" title="Download the report as a PowerPoint deck">${ICON.ppt} PowerPoint</button>
           ${a.status === "draft" && a.source === "form" ? `<a class="btn ghost" href="#/form/${a.id}">Continue checklist</a>` : ""}
           ${canEdit() ? `<button class="btn ghost" data-act="edit">Edit details</button>` : ""}

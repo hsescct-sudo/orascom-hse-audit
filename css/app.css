@@ -125,6 +125,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand-2); outlin
 .tbl code { white-space: nowrap; }
 .tbl.imp td:last-child { min-width: 210px; }
 .row-actions { white-space: nowrap; text-align: right; } .row-actions .btn + .btn { margin-left: 4px; }
+.tbl td.pname { min-width: 190px; }
+@media (max-width: 1500px) { .tbl .row-actions { white-space: normal; min-width: 190px; } .tbl .row-actions .btn { margin: 2px 0 2px 4px; } }
 .empty-row { text-align: center; color: var(--muted); padding: 28px !important; }
 .more { padding: 10px; text-align: center; } .more:empty { display: none; }
 .filters, .slicers { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; padding: 12px 16px; }

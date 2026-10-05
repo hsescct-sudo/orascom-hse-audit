@@ -48,6 +48,9 @@ export async function saveSettings(api, key, value, by) {
   apply();
 }
 export const panelOn = id => !(SETTINGS.dashboard.hidden || []).includes(id);
+// The corporate form's reference (Settings › Reports & names). Blank = no form number shown anywhere.
+export const formRef = () => String(SETTINGS.report.formRef || "").trim();
+export const formLabel = () => (formRef() ? `${formRef()} form` : "corporate audit form");
 
 // The SQL an administrator runs once in Supabase (also in supabase/schema.sql).
 export const SETTINGS_SQL = `create table if not exists public.app_settings (

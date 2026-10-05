@@ -63,8 +63,8 @@ export async function buildAuditReport({ audit, project, findings, photosByFindi
   ws.mergeCells("C1:E2");
   const R = SETTINGS.report;
   put("C1", R.title || "HSE Flash Audit Report", F({ size: 16, bold: true }), { horizontal: "center", vertical: "middle" });
-  put("F1", "Form Ref.: " + (R.formRef || ""), F({ bold: true }), { vertical: "middle" });
-  put("F2", "Form Rev.: " + (R.formRev || ""), F({ bold: true }), { vertical: "middle" });
+  put("F1", R.formRef ? "Form Ref.: " + R.formRef : "", F({ bold: true }), { vertical: "middle" });
+  put("F2", R.formRev ? "Form Rev.: " + R.formRev : "", F({ bold: true }), { vertical: "middle" });
   put("A2", (R.dept || "") + " ", F({ size: 9 }), { vertical: "bottom" });
   for (let c = 1; c <= 6; c++) { const cell = ws.getCell(2, c); cell.border = Object.assign({}, cell.border, { bottom: { style: "medium", color: { argb: "FF4F81BD" } } }); }
 

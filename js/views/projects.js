@@ -28,7 +28,7 @@ export async function render(root, ctx) {
       ${store.projects.length ? `<div class="card table-card"><div class="tscroll"><table class="tbl">
         <thead><tr><th>Project</th><th>Code</th><th>Location</th><th>Project Manager</th><th class="num">Audits</th><th class="num">Not closed</th><th class="num">Overdue</th><th>Login</th><th>Status</th><th></th></tr></thead>
         <tbody>${store.projects.map(p => { const c = counts[p.id] || { audits: 0, open: 0, overdue: 0 }; return `<tr>
-          <td><b>${esc(p.name)}</b>${p.client ? `<div class="muted small">${esc(p.client)}</div>` : ""}</td>
+          <td class="pname"><b>${esc(p.name)}</b>${p.client ? `<div class="muted small">${esc(p.client)}</div>` : ""}</td>
           <td><code>${esc(p.code)}</code></td><td>${esc(p.location)}</td><td>${esc(p.pm)}</td>
           <td class="num">${c.audits}</td><td class="num">${c.open}</td><td class="num">${c.overdue ? `<b class="t-over">${c.overdue}</b>` : 0}</td>
           <td>${p.login_user_id ? `<span class="chip st-closed">Ready</span>` : `<span class="chip st-open">No password</span>`}</td>
