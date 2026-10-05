@@ -1,6 +1,7 @@
 // Dashboard: one filter bar scopes every figure, chart and table below it.
 import { esc, fmtDate, fRef, findingState, STATE_LABEL, RISK_LABEL, COLORS, todayISO, addDays, daysBetween, monthKey, monthLabel, pct, riskChip, stateChip, ensureExcelJS, saveBlob, toast, busyOverlay, ICON } from "../ui.js";
-import { TOPICS, ITEM, topicName } from "../checklist.js";
+import { TOPICS, ALL_TOPICS, ITEM, topicName } from "../checklist.js";
+import { SETTINGS, panelOn } from "../settings.js";
 
 const INK = "#1b2430", INK2 = "#3d4654", MUTED = "#6b7280", GRID = "#eceef1", AXIS = "#c9ced6", SURF = "#ffffff";
 const FONT = '"Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif';
@@ -15,7 +16,8 @@ const nf = n => (n == null ? "—" : Number(n).toLocaleString());
 export async function render(root, ctx) {
   const { store, isAdmin, me, query } = ctx;
   await store.load();
-  const f = { period: query.period || "all", from: query.from || "", to: query.to || "", location: query.location || "", project: query.project || "", type: query.type || "", risk: query.risk || "", topic: query.topic || "" };
+  const DS = SETTINGS.dashboard, defPeriod = DS.defaultPeriod || "all";
+  const f = { period: query.period || defPeriod, from: query.from || "", to: query.to || "", location: query.location || "", project: query.project || "", type: query.type || "", risk: query.risk || "", topic: query.topic || "" };
   const charts = [], tables = {};
   let showIdle = query.idle !== "0";
   let league = { key: "overdue", dir: -1 };
@@ -26,8 +28,8 @@ export async function render(root, ctx) {
     <div class="dash">
       <header class="dhead">
         <div class="dhead-t">
-          <p class="eyebrow">${isAdmin ? "Corporate HSE · Flash Audit" : "Project dashboard"}</p>
-          <h1>${isAdmin ? "HSE Performance Dashboard" : esc(me.project_name || "Project")}</h1>
+          <p class="eyebrow">${isAdmin ? esc(DS.eyebrow || "") : "Project dashboard"}</p>
+          <h1>${isAdmin ? esc(DS.title || "HSE Performance Dashboard") : esc(me.project_name || "Project")}</h1>
           <p class="dscope" id="scope"></p>
         </div>
         <div class="dhead-a">
@@ -107,7 +109,7 @@ export async function render(root, ctx) {
     findings.forEach(x => { const key = byProjectView ? x.project_id : ((x.area || "Not stated").trim() || "Not stated"); const g = groups[key] = groups[key] || { key, closed: 0, pending: 0, open: 0, overdue: 0, n: 0 }; g[findingState(x, today)]++; g.n++; });
     const glist = Object.values(groups).sort((a, b) => b.n - a.n).map(g => ({ ...g, name: byProjectView ? (store.project(g.key)?.name || "—") : g.key }));
 
-    const topics = TOPICS.map(t => ({ t, r: RISKS.map(r => findings.filter(x => x.topic === t.code && x.risk === r).length) })).map(x => ({ ...x, n: x.r.reduce((s, v) => s + v, 0) })).filter(x => x.n).sort((a, b) => b.n - a.n);
+    const topics = ALL_TOPICS.map(t => ({ t, r: RISKS.map(r => findings.filter(x => x.topic === t.code && x.risk === r).length) })).map(x => ({ ...x, n: x.r.reduce((s, v) => s + v, 0) })).filter(x => x.n).sort((a, b) => b.n - a.n);
     const rcs = {}; findings.forEach(x => (x.root_cause || "").split("\n").map(s => s.trim().replace(/\s+/g, " ")).filter(Boolean).forEach(r => { rcs[r] = (rcs[r] || 0) + 1; }));
     const rcTotal = Object.values(rcs).reduce((s, v) => s + v, 0);
     const rootCauses = Object.entries(rcs).sort((a, b) => b[1] - a[1]).slice(0, 8);
@@ -154,7 +156,7 @@ export async function render(root, ctx) {
   };
   const tileHtml = ({ label, value, note, href, tone = "", trend, icon }) =>
     `<a class="ktile ${tone}" href="${href}"><span class="kl">${label}</span><span class="krow"><b class="kv">${value}</b>${trend || ""}</span><span class="kn">${icon ? `<i class="ki">${icon}</i>` : ""}${note || "&nbsp;"}</span></a>`;
-  const card = (id, cls, title, sub, body, { table = true } = {}) =>
+  const card = (id, cls, title, sub, body, { table = true } = {}) => !panelOn(id) ? "" :
     `<section class="dcard ${cls}" data-card="${id}"><div class="dch"><div><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ""}</div>${table ? `<button class="icon-btn sm tbtn" data-tbl="${id}" aria-pressed="false" title="Show as table" aria-label="Show ${esc(title)} as a table">${ICON.table}</button>` : ""}</div>${body}<div class="ctable" id="t-${id}" hidden></div></section>`;
 
   // ---------------------------------------------------------------- draw
@@ -165,6 +167,8 @@ export async function render(root, ctx) {
     root.querySelector("#scope").textContent = `${scopeText(m)} · updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
     const has = m.findings.length > 0;
     const closeRate = has ? pct(m.st.closed, m.findings.length) : null;
+    const T = { closure: +DS.closureTarget || 90, compliance: +DS.complianceTarget || 90 };
+    const comp = m.ok + m.nc ? pct(m.ok, m.ok + m.nc) : null;
     const tiles = [
       { label: "Audits", value: nf(m.audits.length), note: `${m.audits.filter(a => a.audit_type === "corporate").length} corporate · ${m.audits.filter(a => a.audit_type === "project").length} project`, href: "#/audits", trend: spark(m.monthly.audits) },
       { label: "Findings", value: nf(m.findings.length), note: `${m.findings.filter(x => x.risk === "High").length} high risk`, href: regLink({}), trend: spark(m.monthly.raised) },
@@ -172,22 +176,22 @@ export async function render(root, ctx) {
       { label: "Overdue", value: nf(m.st.overdue), note: m.overdue.length ? `oldest ${m.overdue[0].d} days late` : "none late", href: regLink({ status: "overdue" }), tone: m.st.overdue ? "bad" : "good", icon: m.st.overdue ? ICON.warn : ICON.check },
       { label: "High risk not closed", value: nf(m.highOpen), note: m.highOpen ? "need priority action" : "none open", href: regLink({ status: "notclosed", risk: "High" }), tone: m.highOpen ? "bad" : "good", icon: m.highOpen ? ICON.warn : ICON.check },
       { label: "Average days to close", value: m.avgClose == null ? "—" : nf(m.avgClose), note: "excluding on-the-spot fixes", href: regLink({ status: "closed" }) },
-      { label: "Checklist compliance", value: m.ok + m.nc ? pct(m.ok, m.ok + m.nc) + "%" : "—", note: m.ok + m.nc ? `${nf(m.ok + m.nc)} checks rated` : "no checklist audits yet", href: "#/audits" },
+      { label: "Checklist compliance", value: comp == null ? "—" : comp + "%", note: comp == null ? "no checklist audits yet" : `${nf(m.ok + m.nc)} checks · target ${T.compliance}%`, href: "#/audits", tone: comp == null ? "" : comp >= T.compliance ? "good" : "warn" },
       isAdmin
         ? { label: "Projects audited", value: `${m.coverage.audited.length}<small> / ${m.coverage.audited.length + m.coverage.missing.length}</small>`, note: m.coverage.missing.length ? `${m.coverage.missing.length} not audited yet` : "all audited", href: "#cov", tone: m.coverage.missing.length ? "" : "good" }
         : { label: "Pending review", value: nf(m.st.pending), note: "closures sent to Corporate HSE", href: regLink({ status: "pending" }) },
     ];
     const dash = root.querySelector("#dash");
     dash.innerHTML = `
-      <div class="kgrid">
-        <a class="ktile hero" href="${regLink({ status: "closed" })}">
+      <div class="kgrid ${panelOn("hero") ? "" : "nohero"}" ${panelOn("hero") || panelOn("kpis") ? "" : "hidden"}>
+        ${panelOn("hero") ? `<a class="ktile hero ${closeRate == null ? "" : closeRate >= T.closure ? "good" : "warn"}" href="${regLink({ status: "closed" })}">
           <span class="kl">Closure rate</span>
           <b class="kv">${closeRate == null ? "—" : closeRate + "%"}</b>
-          <span class="meter" role="img" aria-label="${closeRate ?? 0}% of findings closed"><i style="width:${closeRate ?? 0}%"></i></span>
-          <span class="kn">${has ? `${nf(m.st.closed)} of ${nf(m.findings.length)} findings closed` : "No findings in this view yet"}</span>
+          <span class="meter tgt" role="img" aria-label="${closeRate ?? 0}% of findings closed, target ${T.closure}%"><i style="width:${closeRate ?? 0}%"></i><em style="left:${T.closure}%"></em></span>
+          <span class="kn">${has ? `${nf(m.st.closed)} of ${nf(m.findings.length)} findings closed · target ${T.closure}%` : `No findings in this view yet · target ${T.closure}%`}</span>
           <span class="hero-split">${STATES.map(s => `<span><i class="sw" style="background:${COLORS.state[s]}"></i>${STATE_LABEL[s]} <b>${nf(m.st[s])}</b></span>`).join("")}</span>
-        </a>
-        ${tiles.map(tileHtml).join("")}
+        </a>` : ""}
+        ${panelOn("kpis") ? tiles.map(tileHtml).join("") : ""}
       </div>
       ${has ? `
       <div class="dgrid">
@@ -205,12 +209,13 @@ export async function render(root, ctx) {
         ${has ? card("c-over", isAdmin ? "c7" : "c12", "Overdue findings", `${m.overdue.length} past target date · <a class="linkish" href="${regLink({ status: "overdue" })}">open the list ›</a>`, m.overdue.length ? `<div class="tscroll"><table class="tbl compact"><thead><tr><th>Ref</th>${isAdmin ? "<th>Project</th>" : ""}<th>Observation</th><th class="num">Days late</th></tr></thead><tbody>${m.overdue.slice(0, 6).map(({ x, d }) => `<tr class="click" data-href="#/finding/${x.id}"><td class="nowrap"><b>${fRef(x.ref)}</b><div>${riskChip(x.risk)}</div></td>${isAdmin ? `<td>${esc(x.projects?.name || "")}</td>` : ""}<td class="obs">${esc(x.observation.slice(0, 80))}${x.observation.length > 80 ? "…" : ""}${x.owner ? `<div class="muted small">Owner: ${esc(x.owner)}</div>` : ""}</td><td class="num"><b class="t-over">${d}</b></td></tr>`).join("")}</tbody></table></div>` : `<p class="okmsg">${ICON.check} No overdue findings.</p>`, { table: false }) : ""}
         ${has ? card("c-sup", isAdmin ? "c5" : "c6", "Needs management support", `${m.support.length} not closed`, `<div class="rank">${m.support.slice(0, 7).map(x => `<a class="rrow" href="#/finding/${x.id}"><span><b>${esc(x.support_title || topicName(x.topic))}</b><small class="muted">${esc(x.projects?.name || "")} · ${fRef(x.ref)}</small></span>${riskChip(x.risk)}</a>`).join("") || `<p class="okmsg">${ICON.check} Nothing waiting for management.</p>`}${m.support.length > 7 ? `<a class="linkish" href="${regLink({ support: "1", status: "notclosed" })}">All ${m.support.length} ›</a>` : ""}</div>`, { table: false }) : ""}
         ${has ? card("c-items", isAdmin && m.byProjectView ? "c6" : "c6", "Checks that fail most often", "checklist items raised as findings", `<div id="c-items" class="rank"></div>`, { table: false }) : ""}
-        ${isAdmin && m.byProjectView ? `<div id="cov" class="c6 covwrap">${card("c-cov", "", "Audit coverage by location", `${m.coverage.audited.length} of ${m.coverage.audited.length + m.coverage.missing.length} active projects audited in this period`, `<div class="chart" id="c-cov"></div>`)}</div>` : ""}
+        ${isAdmin && m.byProjectView && panelOn("c-cov") ? `<div id="cov" class="c6 covwrap">${card("c-cov", "", "Audit coverage by location", `${m.coverage.audited.length} of ${m.coverage.audited.length + m.coverage.missing.length} active projects audited in this period`, `<div class="chart" id="c-cov"></div>`)}</div>` : ""}
       </div>`;
 
     if (isAdmin && m.byProjectView) drawLeague(m);
     if (has) {
-      dash.querySelector("#c-items").innerHTML = m.repeated.map(([id, n]) => `<a class="rrow" href="${regLink({ item: id })}"><span><b>${esc(id)}</b> <small class="muted">${esc(ITEM[id]?.text.slice(0, 80) || "")}${(ITEM[id]?.text.length || 0) > 80 ? "…" : ""}</small><span class="hbar"><i style="width:${(100 * n) / m.repeated[0][1]}%"></i></span></span><b>${n}</b></a>`).join("") || `<p class="muted">Only checklist audits feed this list. Imported Excel findings have no check item.</p>`;
+      const itemsEl = dash.querySelector("#c-items");
+      if (itemsEl) itemsEl.innerHTML = m.repeated.map(([id, n]) => `<a class="rrow" href="${regLink({ item: id })}"><span><b>${esc(id)}</b> <small class="muted">${esc(ITEM[id]?.text.slice(0, 80) || "")}${(ITEM[id]?.text.length || 0) > 80 ? "…" : ""}</small><span class="hbar"><i style="width:${(100 * n) / m.repeated[0][1]}%"></i></span></span><b>${n}</b></a>`).join("") || `<p class="muted">Only checklist audits feed this list. Imported Excel findings have no check item.</p>`;
     }
     if (!window.echarts) { if (has) toast("The chart library didn't load. Check the internet connection.", "error"); return; }
     drawCharts(dash, m);
@@ -227,7 +232,7 @@ export async function render(root, ctx) {
     const meter = (v, good = 80, warn = 50) => v == null ? `<span class="muted">—</span>` : `<span class="mcell"><span class="meter sm ${v >= good ? "good" : v >= warn ? "mid" : "low"}"><i style="width:${v}%"></i></span><b>${v}%</b></span>`;
     el.innerHTML = `<table class="tbl compact league"><thead><tr>${th("name", "Project")}${th("location", "Location")}${th("audits", "Audits", 1)}${th("last", "Last audit")}${th("n", "Findings", 1)}${th("high", "High", 1)}${th("open", "Not closed", 1)}${th("overdue", "Overdue", 1)}${th("closure", "Closure rate")}${th("comp", "Compliance")}</tr></thead><tbody>
       ${rows.map(r => `<tr class="click${r.audits ? "" : " idle"}" data-p="${r.p.id}"><td><b>${esc(r.name)}</b></td><td>${esc(r.location)}</td><td class="num">${r.audits || `<span class="chip st-open">None</span>`}</td><td class="nowrap">${r.last ? fmtDate(r.last) : "—"}</td>
-      <td class="num">${r.n}</td><td class="num">${r.high || ""}</td><td class="num">${r.open || ""}</td><td class="num">${r.overdue ? `<b class="t-over">${r.overdue}</b>` : ""}</td><td>${meter(r.closure)}</td><td>${meter(r.comp, 90, 75)}</td></tr>`).join("") || `<tr><td colspan="10" class="empty-row">No projects in this view.</td></tr>`}</tbody></table>`;
+      <td class="num">${r.n}</td><td class="num">${r.high || ""}</td><td class="num">${r.open || ""}</td><td class="num">${r.overdue ? `<b class="t-over">${r.overdue}</b>` : ""}</td><td>${meter(r.closure, +DS.closureTarget || 90, (+DS.closureTarget || 90) - 30)}</td><td>${meter(r.comp, +DS.complianceTarget || 90, (+DS.complianceTarget || 90) - 15)}</td></tr>`).join("") || `<tr><td colspan="10" class="empty-row">No projects in this view.</td></tr>`}</tbody></table>`;
   }
 
   function drawCharts(dash, m) {
@@ -251,7 +256,8 @@ export async function render(root, ctx) {
 
     // 1. findings by project / area, stacked by status
     const gl = m.glist.slice(0, m.byProjectView ? 40 : 15);
-    const projEl = dash.querySelector("#c-proj"); projEl.style.height = Math.max(260, gl.length * 32 + 70) + "px";
+    const H = (id, px) => { const e = dash.querySelector("#" + id); if (e) e.style.height = px + "px"; return e; };
+    H("c-proj", Math.max(260, gl.length * 32 + 70));
     mk("c-proj", {
       grid: { left: 8, right: 40, top: LT, bottom: 8, containLabel: true }, legend: { ...legend, data: STATES.map(s => STATE_LABEL[s]) },
       tooltip: { ...tip, trigger: "axis", axisPointer: shadow, formatter: ps => rowsTip(gl[ps[0].dataIndex].name, [...ps].reverse().map(p => [p.seriesName, p.value, COLORS.state[STATES[p.seriesIndex]]]).concat([["Total", gl[ps[0].dataIndex].n, "transparent"]])) },
@@ -284,7 +290,7 @@ export async function render(root, ctx) {
 
     // 4. topics by risk
     const tl = m.topics;
-    dash.querySelector("#c-topic").style.height = Math.max(300, tl.length * 30 + 70) + "px";
+    H("c-topic", Math.max(300, tl.length * 30 + 70));
     mk("c-topic", {
       grid: { left: 8, right: 40, top: LT, bottom: 8, containLabel: true }, legend: { ...legend, data: RISKS.map(r => RISK_LABEL[r]) },
       tooltip: { ...tip, trigger: "axis", axisPointer: shadow, formatter: ps => rowsTip(tl[ps[0].dataIndex].t.name, ps.map(p => [p.seriesName + " risk", p.value, COLORS.risk[RISKS[p.seriesIndex]]])) },
@@ -296,21 +302,22 @@ export async function render(root, ctx) {
 
     // 5. root causes with share
     const rcl = m.rootCauses;
-    const rcEl = dash.querySelector("#c-rc"); rcEl.style.height = Math.max(300, rcl.length * 34 + 40) + "px";
+    const rcEl = H("c-rc", Math.max(300, rcl.length * 34 + 40));
     if (rcl.length) mk("c-rc", {
       grid: { left: 8, right: 70, top: 8, bottom: 8, containLabel: true },
       tooltip: { ...tip, trigger: "item", formatter: p => rowsTip(rcl[p.dataIndex][0], [["times recorded", p.value, SERIES.raised], ["of all root causes", pct(p.value, m.rcTotal) + "%", "transparent"]]) },
       xAxis: { type: "value", ...axisVal }, yAxis: { type: "category", inverse: true, data: rcl.map(x => x[0]), ...axisCat, axisLabel: { color: INK, fontSize: 12, width: 260, overflow: "truncate" } },
       series: [{ type: "bar", data: rcl.map(x => x[1]), barMaxWidth: 18, itemStyle: { color: SERIES.raised, borderRadius: [0, 4, 4, 0] }, label: { show: true, position: "right", color: INK2, fontSize: 12, formatter: p => `${p.value} · ${pct(p.value, m.rcTotal)}%` } }],
     }, p => { location.hash = regLink({ root: rcl[p.dataIndex][0] }); }, { cols: ["Root cause", "Times recorded", "Share"], rows: rcl.map(x => [x[0], x[1], pct(x[1], m.rcTotal) + "%"]) });
-    else rcEl.outerHTML = `<p class="muted">No root causes recorded yet.</p>`;
+    else if (rcEl) rcEl.outerHTML = `<p class="muted">No root causes recorded yet.</p>`;
 
     // 6. heat map project × topic (sequential blue)
     if (dash.querySelector("#c-heat")) {
+      const TOPICS = ALL_TOPICS.filter(t => t.active || m.findings.some(x => x.topic === t.code));
       const projs = m.glist.map(g => ({ id: g.key, name: g.name }));
       const cells = []; let max = 1;
       projs.forEach((p, yi) => TOPICS.forEach((t, xi) => { const n = m.findings.filter(x => x.project_id === p.id && x.topic === t.code).length; max = Math.max(max, n); cells.push([xi, yi, n]); }));
-      dash.querySelector("#c-heat").style.height = Math.max(240, projs.length * 34 + 96) + "px";
+      H("c-heat", Math.max(240, projs.length * 34 + 96));
       mk("c-heat", {
         grid: { left: 8, right: 16, top: 8, bottom: 52, containLabel: true },
         tooltip: { ...tip, formatter: p => rowsTip(projs[p.value[1]].name, [[TOPICS[p.value[0]].name, p.value[2], "transparent"]]) },
@@ -325,7 +332,7 @@ export async function render(root, ctx) {
     // 7. coverage by location: audited vs not yet
     if (dash.querySelector("#c-cov")) {
       const bl = m.coverage.byLoc;
-      dash.querySelector("#c-cov").style.height = Math.max(220, bl.length * 32 + 70) + "px";
+      H("c-cov", Math.max(220, bl.length * 32 + 70));
       mk("c-cov", {
         grid: { left: 8, right: 48, top: LT, bottom: 8, containLabel: true }, legend: { ...legend, data: ["Audited", "Not audited yet"] },
         tooltip: { ...tip, trigger: "axis", axisPointer: shadow, formatter: ps => rowsTip(bl[ps[0].dataIndex].l, ps.map(p => [p.seriesName, p.value, p.color])) },
@@ -340,7 +347,7 @@ export async function render(root, ctx) {
   }
 
   // ---------------------------------------------------------------- events
-  function sync() { const q = Object.entries(f).filter(([k, v]) => v && !(k === "period" && v === "all")); if (!showIdle) q.push(["idle", "0"]); history.replaceState(null, "", "#/dashboard?" + new URLSearchParams(q).toString()); }
+  function sync() { const q = Object.entries(f).filter(([k, v]) => v && !(k === "period" && v === defPeriod)); if (!showIdle) q.push(["idle", "0"]); history.replaceState(null, "", "#/dashboard?" + new URLSearchParams(q).toString()); }
   root.querySelector(".slicerbar").addEventListener("input", e => {
     const map = { "s-location": "location", "s-project": "project", "s-from": "from", "s-to": "to", "s-type": "type", "s-risk": "risk", "s-topic": "topic" };
     const k = map[e.target.id]; if (!k) return;
@@ -357,10 +364,10 @@ export async function render(root, ctx) {
       sync(); draw(); return;
     }
     if (e.target.id === "s-reset") {
-      Object.assign(f, { period: "all", from: "", to: "", location: "", project: "", type: "", risk: "", topic: "" });
+      Object.assign(f, { period: defPeriod, from: "", to: "", location: "", project: "", type: "", risk: "", topic: "" });
       root.querySelectorAll(".slicerbar select, .slicerbar input").forEach(i => { i.value = ""; });
-      root.querySelectorAll("[data-period]").forEach(x => x.setAttribute("aria-pressed", x.dataset.period === "all"));
-      root.querySelector("#w-from").hidden = root.querySelector("#w-to").hidden = true;
+      root.querySelectorAll("[data-period]").forEach(x => x.setAttribute("aria-pressed", x.dataset.period === defPeriod));
+      root.querySelector("#w-from").hidden = root.querySelector("#w-to").hidden = defPeriod !== "custom";
       fillProjects(); sync(); draw();
     }
   });
@@ -418,7 +425,7 @@ export async function render(root, ctx) {
     const closeRate = m.findings.length ? pct(m.st.closed, m.findings.length) : null;
     const top = m.topics[0];
     return {
-      title: isAdmin ? (f.project ? store.project(f.project)?.name || "Project" : "HSE Flash Audit Dashboard") : (me.project_name || "Project dashboard"),
+      title: isAdmin ? (f.project ? store.project(f.project)?.name || "Project" : (DS.title || "HSE Flash Audit Dashboard")) : (me.project_name || "Project dashboard"),
       scope: scopeText(m), asOf: fmtDate(todayISO()),
       coverRows: [["Audits", nf(m.audits.length)], ["Findings", nf(m.findings.length)], ["Closure rate", closeRate == null ? "—" : closeRate + "%"], ["Overdue", nf(m.st.overdue)]],
       kpis: [

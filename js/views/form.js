@@ -1,4 +1,4 @@
-import { esc, fmtDate, aRef, todayISO, toast, dialog, confirmBox, shrinkImage, lightbox, ICON, debounce, pct } from "../ui.js";
+import { esc, fmtDate, aRef, todayISO, toast, dialog, confirmBox, shrinkImage, lightbox, ICON, debounce, pct, photoInputs } from "../ui.js";
 import { TOPICS, TOPIC, ITEM, RC_LIST, TOTAL_CHECKS } from "../checklist.js";
 import { defaultScope, defaultConclusion } from "../report.js";
 
@@ -108,7 +108,7 @@ async function renderChecklist(root, ctx) {
     const up = uploads[f.id + ":" + kind] || 0;
     return `<div class="fld"><span>${label}</span><div class="shots">${list.map(p => `<span class="shot"><button type="button" data-view="${p.id}" aria-label="Open photo"><img src="${esc(urls[p.path] || "")}" alt="" loading="lazy"></button><button type="button" class="shot-x" data-delph="${p.id}" aria-label="Remove photo">${ICON.x}</button></span>`).join("")}
       ${Array.from({ length: up }, () => `<span class="shot up"><i class="spin"></i></span>`).join("")}
-      <label class="shot-add">${ICON.cam}<span>Photo</span><input type="file" accept="image/*" multiple data-up="${kind}" data-fid="${f.id}"></label></div></div>`;
+      ${photoInputs("shot-add", `data-up="${kind}" data-fid="${f.id}"`, "Photo")}</div></div>`;
   }
 
   function ncPanel(f) {

@@ -529,19 +529,55 @@ const RAW = [
  }
 ];
 
-export const TOPICS = RAW.map(t => ({
-  code: t.code, name: t.name, photo: t.photo,
-  items: t.items.map(([text, risk], i) => ({ id: `${t.code}-${String(i + 1).padStart(2, "0")}`, text, risk, topic: t.code }))
-}));
-export const TOPIC = Object.fromEntries(TOPICS.map(t => [t.code, t]));
-export const ITEM = Object.fromEntries(TOPICS.flatMap(t => t.items.map(i => [i.id, i])));
-export const ITEM_IDS = Object.keys(ITEM);
-export const TOTAL_CHECKS = ITEM_IDS.length;
-export const topicName = code => (TOPIC[code] && TOPIC[code].name) || code || "—";
-
-export const RC_LIST = ["Lack of Supervision", "Lack of Inspection", "Lack of Training / Competence", "Inadequate Planning / Risk Assessment",
+// ---------------------------------------------------------------------------
+// The checklist can be changed by administrators in Settings. These exports are kept
+// up to date in place, so every page sees the current checklist:
+//  TOPICS      active topics, each with its active items (new audits, filters, charts)
+//  ALL_TOPICS  every topic ever used, including switched-off ones (old audits still read)
+//  TOPIC/ITEM  lookups by code / item id, including switched-off ones
+export const DEFAULT_CHECKLIST = {
+  topics: RAW.map(t => ({ code: t.code, name: t.name, photo: t.photo, active: true, keywords: "",
+    items: t.items.map(([text, risk], i) => ({ id: `${t.code}-${String(i + 1).padStart(2, "0")}`, text, risk, active: true })) })),
+};
+export const TOPICS = [];
+export const ALL_TOPICS = [];
+export const TOPIC = {};
+export const ITEM = {};
+export let ITEM_IDS = [];
+export let TOTAL_CHECKS = 0;
+export const RC_LIST = [];
+export const DEFAULT_RC = ["Lack of Supervision", "Lack of Inspection", "Lack of Training / Competence", "Inadequate Planning / Risk Assessment",
   "Procedure Not Followed", "Inadequate Procedure", "Lack of Resources", "Lack of Coordination", "Management / Enforcement",
   "Equipment Defect / Maintenance", "Poor Housekeeping Discipline"];
+const clean = s => String(s == null ? "" : s).trim();
+
+export function applyChecklist(cfg) {
+  const src = cfg && Array.isArray(cfg.topics) && cfg.topics.length ? cfg : DEFAULT_CHECKLIST;
+  const all = src.topics.filter(t => t && clean(t.code)).map(t => ({
+    code: clean(t.code).toUpperCase(), name: clean(t.name) || clean(t.code), photo: clean(t.photo), active: t.active !== false, keywords: clean(t.keywords),
+    items: (t.items || []).filter(i => i && clean(i.id)).map(i => ({ id: clean(i.id), text: clean(i.text), risk: ["High", "Med", "Low"].includes(i.risk) ? i.risk : "Med", active: i.active !== false, topic: clean(t.code).toUpperCase() })),
+  }));
+  // keep the built-in topics resolvable for old audits even if they were removed from the list
+  DEFAULT_CHECKLIST.topics.forEach(d => { if (!all.some(t => t.code === d.code)) all.push({ ...d, active: false, items: d.items.map(i => ({ ...i, active: false, topic: d.code })) }); });
+  ALL_TOPICS.splice(0, ALL_TOPICS.length, ...all);
+  Object.keys(TOPIC).forEach(k => delete TOPIC[k]);
+  Object.keys(ITEM).forEach(k => delete ITEM[k]);
+  all.forEach(t => { t.items.forEach(i => { ITEM[i.id] = i; }); });
+  const act = all.filter(t => t.active).map(t => ({ ...t, items: t.items.filter(i => i.active) })).filter(t => t.items.length);
+  TOPICS.splice(0, TOPICS.length, ...act);
+  all.forEach(t => { TOPIC[t.code] = act.find(a => a.code === t.code) || t; });
+  ITEM_IDS = act.flatMap(t => t.items.map(i => i.id));
+  TOTAL_CHECKS = ITEM_IDS.length;
+}
+export function applyRootCauses(list) {
+  const l = Array.isArray(list) && list.map(clean).filter(Boolean).length ? list.map(clean).filter(Boolean) : DEFAULT_RC;
+  RC_LIST.splice(0, RC_LIST.length, ...l);
+}
+// The checklist as it is now, in the shape Settings saves.
+export function currentChecklist() {
+  return { topics: ALL_TOPICS.map(t => ({ code: t.code, name: t.name, photo: t.photo, active: t.active, keywords: t.keywords || "", items: t.items.map(i => ({ id: i.id, text: i.text, risk: i.risk, active: i.active })) })) };
+}
+export const topicName = code => (TOPIC[code] && TOPIC[code].name) || code || "—";
 
 // Best-guess topic for free text (used when importing Excel reports)
 const KEYWORDS = [
@@ -559,7 +595,16 @@ const KEYWORDS = [
   ["HKP", /housekeeping|debris|tripping|slipping|rebar|access route|obstruct|waste|eating|sleeping|hygiene/i],
   ["GEN", /ppe|helmet|hard hat|glove|goggle|toolbox|induction|supervis/i],
 ];
+const esc_re = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 export function guessTopic(text) {
-  for (const [code, re] of KEYWORDS) if (re.test(text || "")) return code;
-  return "GEN";
+  const t = text || "";
+  // words an administrator added to a topic in Settings come first
+  for (const tp of TOPICS) {
+    const words = (tp.keywords || "").split(/[,;\n]/).map(w => w.trim()).filter(Boolean);
+    if (words.length && new RegExp(words.map(esc_re).join("|"), "i").test(t)) return tp.code;
+  }
+  for (const [code, re] of KEYWORDS) if (TOPIC[code] && TOPICS.includes(TOPIC[code]) && re.test(t)) return code;
+  return TOPICS.some(x => x.code === "GEN") ? "GEN" : (TOPICS[0] ? TOPICS[0].code : "GEN");
 }
+applyChecklist(null);
+applyRootCauses(null);

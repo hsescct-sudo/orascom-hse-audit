@@ -159,6 +159,10 @@ export function createSupabaseApi(url, key) {
       return out;
     },
 
+    // settings (administrators change these in the app)
+    async getSettings() { return q(sb.from("app_settings").select("key, value, updated_at, updated_by")); },
+    async saveSetting(key, value, by) { return q(sb.from("app_settings").upsert({ key, value, updated_at: new Date().toISOString(), updated_by: by || "" }, { onConflict: "key" }).select().single()); },
+
     // comments
     commentsOf: id => q(sb.from("finding_comments").select("*").eq("finding_id", id).order("created_at")),
     addComment: (id, body, by) => q(sb.from("finding_comments").insert({ finding_id: id, body, author_name: by || "" }).select().single()),
@@ -282,6 +286,8 @@ export function createDemoApi() {
     async deletePhoto(photo) { S.photos = S.photos.filter(p => p.id !== photo.id); },
     async urls(paths) { const out = {}; paths.forEach(p => { out[p] = S.blobs[p] || demoPhoto(p); }); return out; },
 
+    async getSettings() { return clone(S.settings || []); },
+    async saveSetting(key, value, by) { need(me?.role === "admin"); S.settings = (S.settings || []).filter(r => r.key !== key); S.settings.push({ key, value: clone(value), updated_at: new Date().toISOString(), updated_by: by || "" }); return {}; },
     commentsOf: id => delay(S.comments.filter(c => c.finding_id === id).sort((a, b) => a.created_at.localeCompare(b.created_at))),
     async addComment(id, body, by) { comment(id, "comment", body, by); return {}; },
     async deleteComment(id) { S.comments = S.comments.filter(c => c.id !== id); },

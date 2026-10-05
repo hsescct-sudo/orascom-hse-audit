@@ -1,5 +1,5 @@
-import { esc, fmtDate, fmtDateTime, fRef, aRef, findingState, stateChip, riskChip, toast, dialog, confirmBox, shrinkImage, lightbox, ICON } from "../ui.js";
-import { TOPICS, ITEM, RC_LIST, topicName } from "../checklist.js";
+import { esc, fmtDate, fmtDateTime, fRef, aRef, findingState, stateChip, riskChip, toast, dialog, confirmBox, shrinkImage, lightbox, ICON, photoInputs } from "../ui.js";
+import { TOPICS, TOPIC, ITEM, RC_LIST, topicName } from "../checklist.js";
 import { askName } from "../app.js";
 
 const KIND_LABEL = { comment: "", submitted: "Submitted closure", approved: "Approved closure", rejected: "Returned closure", reopened: "Reopened", closed: "Closed" };
@@ -26,7 +26,7 @@ export async function render(root, ctx) {
     const canAdd = kind === "closure" ? canAddClosurePhoto() : canAddViolationPhoto();
     const canDel = p => isAdmin || (kind === "violation" ? auditDraft() : f.status !== "closed");
     return `<div class="gallery" data-kind="${kind}">${list.map((p, i) => `<figure class="ph"><button class="ph-open" data-open="${kind}" data-i="${i}" aria-label="Open photo"><img src="${esc(urls[p.path] || "")}" alt="" loading="lazy"></button>${canDel(p) ? `<button class="ph-del" data-delph="${p.id}" aria-label="Remove photo">${ICON.x}</button>` : ""}</figure>`).join("")}
-      ${canAdd ? `<label class="ph-add">${ICON.cam}<span>Add photo</span><input type="file" accept="image/*" multiple data-up="${kind}"></label>` : ""}
+      ${canAdd ? photoInputs("ph-add", `data-up="${kind}"`) : ""}
       ${!list.length && !canAdd ? `<p class="muted small">No photos.</p>` : ""}</div>`;
   }
 
@@ -146,7 +146,7 @@ export async function render(root, ctx) {
     const v = await dialog({
       title: "Edit " + fRef(f.ref), wide: true,
       body: `<div class="form-grid">
-        <label class="fld"><span>Topic</span><select id="e-topic">${TOPICS.map(t => opt([t.code, t.name], f.topic)).join("")}</select></label>
+        <label class="fld"><span>Topic</span><select id="e-topic">${[...TOPICS, ...(TOPICS.some(t => t.code === f.topic) ? [] : [{ code: f.topic, name: topicName(f.topic) }])].map(t => opt([t.code, t.name], f.topic)).join("")}</select></label>
         <label class="fld"><span>Risk</span><select id="e-risk">${[["High", "High"], ["Med", "Medium"], ["Low", "Low"]].map(o => opt(o, f.risk)).join("")}</select></label>
         <label class="fld"><span>Area</span><input id="e-area" value="${esc(f.area)}"></label>
         <label class="fld"><span>Owner</span><input id="e-owner" value="${esc(f.owner)}"></label>

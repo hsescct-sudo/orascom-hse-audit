@@ -1,6 +1,8 @@
 // App shell: config, sign-in, navigation, routing, shared data store.
 import { createSupabaseApi, createDemoApi } from "./data.js";
 import { $, esc, toast, ICON, dialog } from "./ui.js";
+import { loadSettings, SETTINGS } from "./settings.js";
+import { installAvailable, installApp, onInstallChange, registerServiceWorker, watchConnection } from "./pwa.js";
 
 const CFG = window.HSE_CONFIG || {};
 const useDemo = CFG.demo || !CFG.supabaseUrl || !CFG.supabaseKey;
@@ -67,8 +69,10 @@ const ROUTES = {
   import: () => import("./views/import.js"),
   projects: () => import("./views/projects.js"),
   admins: () => import("./views/admins.js"),
+  settings: () => import("./views/settings.js"),
+  help: () => import("./views/help.js"),
 };
-const ADMIN_ONLY = new Set(["projects", "admins"]);
+const ADMIN_ONLY = new Set(["projects", "admins", "settings"]);
 export function go(hash) { if (location.hash === hash) route(); else location.hash = hash; }
 export function parseHash() {
   const h = location.hash.replace(/^#\/?/, "");
@@ -108,7 +112,8 @@ async function route() {
 const NAV = [
   ["dashboard", "Dashboard", ICON.dash], ["register", "Findings register", ICON.list], ["audits", "Audits", ICON.clip],
   ["new", "New audit", ICON.plus], ["import", "Import Excel report", ICON.upload],
-  ["projects", "Projects", ICON.building, true], ["admins", "Administrators", ICON.users, true],
+  ["projects", "Projects", ICON.building, true], ["admins", "Administrators", ICON.users, true], ["settings", "Settings", ICON.gear, true],
+  ["help", "Help", ICON.help],
 ];
 function renderChrome(active) {
   const app = $("#app");
@@ -116,13 +121,16 @@ function renderChrome(active) {
     app.innerHTML = `<div class="shell">
       <header class="topbar">
         <button class="icon-btn menu-btn" id="menu-btn" aria-label="Menu">${ICON.menu}</button>
-        <a class="brand" href="#/dashboard"><img src="assets/orascom-logo.png" alt="Orascom Construction"><span class="brand-t"><b>HSE Flash Audit</b><small>Corporate HSE</small></span></a>
+        <a class="brand" href="#/dashboard"><img src="assets/orascom-logo.png" alt="Orascom Construction"><span class="brand-t"><b id="brand-name"></b><small id="brand-unit"></small></span></a>
         <div class="grow"></div>
+        <button class="btn sm install-btn" id="inst-btn" hidden>${ICON.phone}<span>Install app</span></button>
         <div class="who" id="who"></div>
         <button class="icon-btn" id="pw-btn" title="Change my password" aria-label="Change my password" hidden>${ICON.key}</button>
         <button class="icon-btn" id="signout" title="Sign out" aria-label="Sign out">${ICON.out}</button>
       </header>
       ${api.mode === "demo" ? `<div class="demo-bar">Demo mode — sample data only. Nothing here is real and nothing is saved.</div>` : ""}
+      <div class="net-bar" id="net-bar" hidden>No connection. You can look around, but nothing can be saved until you are back online.</div>
+      <div class="upd-bar" id="upd-bar" hidden>A new version of the app is ready. <button class="linkish" onclick="location.reload()">Reload now</button></div>
       <div class="body">
         <nav class="side" id="side" aria-label="Main"></nav>
         <main class="view" id="view"></main>
@@ -133,7 +141,13 @@ function renderChrome(active) {
     $("#menu-btn").addEventListener("click", () => document.body.classList.toggle("nav-open"));
     $("#side").addEventListener("click", e => { if (e.target.closest("a")) document.body.classList.remove("nav-open"); });
     $("#who").addEventListener("click", e => { if (e.target.closest("[data-name]")) askName(); });
+    $("#inst-btn").addEventListener("click", installApp);
+    onInstallChange(() => { const b = $("#inst-btn"); if (b) b.hidden = !installAvailable(); });
+    watchConnection(on => { const b = $("#net-bar"); if (b) b.hidden = on; });
   }
+  $("#inst-btn").hidden = !installAvailable();
+  $("#brand-name").textContent = SETTINGS.general.appName || "HSE Flash Audit";
+  $("#brand-unit").textContent = SETTINGS.general.unitName || "";
   $("#pw-btn").hidden = !isAdmin();
   const cur = active || parseHash().name;
   $("#side").innerHTML = NAV.filter(n => !n[3] || isAdmin()).map(([k, label, icon]) =>
@@ -171,8 +185,11 @@ async function renderLogin() {
         <button class="btn primary wide" type="submit">Sign in</button>
       </form>
       <p class="login-err" id="lerr" role="alert"></p>
+      <button class="btn ghost wide install-login" id="inst-login" ${installAvailable() ? "" : "hidden"}>${ICON.phone} Install the app on this phone</button>
     </div>
   </div>`;
+  $("#inst-login").addEventListener("click", installApp);
+  onInstallChange(() => { const b = $("#inst-login"); if (b) b.hidden = !installAvailable(); });
   const err = m => { $("#lerr").textContent = m || ""; };
   app.querySelector(".tabs").addEventListener("click", e => {
     const t = e.target.closest("[data-tab]"); if (!t) return;
@@ -204,6 +221,7 @@ async function afterSignIn() {
   if (!w) { await api.signOut(); throw new Error("This account isn't linked to a project or to the administration."); }
   Object.assign(me, w);
   me.name = me.name || savedName() || (w.role === "admin" ? (w.display_name || "Administration") : "");
+  await loadSettings(api);
   $("#app").innerHTML = "";
   store.loaded = false; store.stale = true;
   if (!location.hash || location.hash === "#/login") location.hash = "#/dashboard";
@@ -222,6 +240,7 @@ export async function signOut() {
 // ---------- boot ----------
 window.addEventListener("hashchange", () => { if (me.role) route(); });
 window.addEventListener("unhandledrejection", e => { const m = e.reason && e.reason.message; if (m) toast(m, "error"); });
+registerServiceWorker(() => { const b = $("#upd-bar"); if (b) b.hidden = false; });
 (async function boot() {
   try {
     const s = await api.session();

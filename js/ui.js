@@ -47,6 +47,15 @@ export const COLORS = {
   brand: "#003876",
 };
 
+// Phones and tablets get a direct "Camera" button next to "Gallery"; desktops get one "Add photo".
+export const isTouch = () => { try { return matchMedia("(pointer: coarse)").matches; } catch (e) { return false; } };
+export function photoInputs(cls, attrs, label = "Add photo") {
+  const inp = extra => `<input type="file" accept="image/*" ${extra} ${attrs}>`;
+  return isTouch()
+    ? `<label class="${cls} cam">${ICON.cam}<span>Camera</span>${inp('capture="environment"')}</label><label class="${cls}">${ICON.img}<span>Gallery</span>${inp("multiple")}</label>`
+    : `<label class="${cls}">${ICON.cam}<span>${label}</span>${inp("multiple")}</label>`;
+}
+
 export function debounce(fn, ms = 600) {
   let t = null;
   const d = (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
@@ -152,6 +161,11 @@ export async function ensurePptx() {
   for (const s of srcs) { try { await loadScript(s); if (window.PptxGenJS) return window.PptxGenJS; } catch (e) { /* next */ } }
   throw new Error("The PowerPoint library couldn't load. Check the internet connection and try again.");
 }
+export async function ensureJSZip() {
+  if (window.JSZip) return window.JSZip;
+  for (const s of ["https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js", "https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"]) { try { await loadScript(s); if (window.JSZip) return window.JSZip; } catch (e) { /* next */ } }
+  return null; // pictures placed inside cells are then skipped; floating pictures still import
+}
 // A blocking progress note for long jobs (bulk delete, PowerPoint with photos).
 export function busyOverlay(text) {
   const el = document.createElement("div");
@@ -189,6 +203,12 @@ export const ICON = {
   cam: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 4h6l1.5 2H20a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3.5zm3 4a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z" fill="currentColor"/></svg>',
   menu: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z" fill="currentColor"/></svg>',
   dl: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M11 3h2v9l3-3 1.4 1.4L12 15.8 6.6 10.4 8 9l3 3zM5 18h14v2H5z" fill="currentColor"/></svg>',
+  img: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1 2v8.6l3.5-3.5 3 3 4.5-4.5 3 3V7zm4 1.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z" fill="currentColor"/></svg>',
+  phone: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 3v13h10V5zm5 14.2a1 1 0 1 0 0 2 1 1 0 0 0 0-2zM11 7h2v5l1.6-1.6L16 11.8 12 15.8l-4-4 1.4-1.4L11 12z" fill="currentColor"/></svg>',
+  help: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm-1 11h2v2h-2zm1-9a4 4 0 0 1 2.2 7.3c-.8.6-1.2 1-1.2 1.7h-2c0-1.6.9-2.4 1.8-3A2 2 0 1 0 10 10H8a4 4 0 0 1 4-4z" fill="currentColor"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10.3 2h3.4l.5 2.6c.6.2 1.2.5 1.7.9l2.5-.9 1.7 3-2 1.7c.1.6.1 1.3 0 1.9l2 1.7-1.7 3-2.5-.9c-.5.4-1.1.7-1.7.9l-.5 2.6h-3.4l-.5-2.6c-.6-.2-1.2-.5-1.7-.9l-2.5.9-1.7-3 2-1.7a5.6 5.6 0 0 1 0-1.9l-2-1.7 1.7-3 2.5.9c.5-.4 1.1-.7 1.7-.9zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" fill="currentColor"/></svg>',
+  up: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 7l-6 6 1.4 1.4L12 9.8l4.6 4.6L18 13z" fill="currentColor"/></svg>',
+  down: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 17l6-6-1.4-1.4-4.6 4.6-4.6-4.6L6 11z" fill="currentColor"/></svg>',
   trash: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4zm-3 6h12l-1 12H7zm4 2v8h2v-8zm4 0v8h2v-8z" fill="currentColor"/></svg>',
   ppt: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-7v2h3v2H8v-2h3v-2H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 2v9h14V6zm2 7l3-4 2 2 2-3 3 5z" fill="currentColor"/></svg>',
   xls: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 3h11l5 5v13H4zm10 1.5V9h4.5zM7.5 11l2.2 3.2L7.4 17.5h2l1.3-2 1.3 2h2l-2.3-3.3L14 11h-2l-1.3 1.9L9.5 11z" fill="currentColor"/></svg>',

@@ -1,5 +1,5 @@
 import { esc, fmtDate, aRef, fRef, findingState, stateChip, riskChip, toast, dialog, confirmBox, saveBlob, pct, busyOverlay, ICON } from "../ui.js";
-import { TOPICS, ITEM, topicName } from "../checklist.js";
+import { ALL_TOPICS, ITEM, topicName } from "../checklist.js";
 import { buildAuditReport, defaultScope, defaultConclusion } from "../report.js";
 
 export async function render(root, ctx) {
@@ -19,7 +19,7 @@ export async function render(root, ctx) {
   function draw() {
     const checks = a.checks || {};
     const vals = Object.values(checks), ok = vals.filter(v => v === "ok").length, nc = vals.filter(v => v === "nc").length;
-    const byTopic = TOPICS.map(t => { const ids = t.items.map(i => i.id); const o = ids.filter(i => checks[i] === "ok").length, n = ids.filter(i => checks[i] === "nc").length, na = ids.filter(i => checks[i] === "na").length; return { t, o, n, na, c: pct(o, o + n) }; });
+    const byTopic = ALL_TOPICS.filter(t => t.active || t.items.some(i => checks[i.id])).map(t => { const ids = t.items.map(i => i.id); const o = ids.filter(i => checks[i] === "ok").length, n = ids.filter(i => checks[i] === "nc").length, na = ids.filter(i => checks[i] === "na").length; return { t, o, n, na, c: pct(o, o + n) }; });
     const proj = { name: a.projects?.name, pm: a.projects?.pm };
     root.innerHTML = `
       <div class="page-head"><div><a class="back" href="#/audits">‹ Audits</a>

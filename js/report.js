@@ -1,6 +1,7 @@
 // Excel outputs: F-HSE-0075 report for one audit, and the findings register.
 import { ensureExcelJS, fmtDate, fRef, aRef, findingState, STATE_LABEL, RISK_LABEL } from "./ui.js";
 import { TOPICS, TOTAL_CHECKS, topicName, ITEM } from "./checklist.js";
+import { SETTINGS } from "./settings.js";
 
 const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const nLines = (s, cpl) => String(s || "").split("\n").reduce((n, p) => n + Math.max(1, Math.ceil(p.length / cpl)), 0);
@@ -60,10 +61,11 @@ export async function buildAuditReport({ audit, project, findings, photosByFindi
   ws.getRow(1).height = 22; ws.getRow(2).height = 22;
   ws.addImage(wb.addImage({ base64: await logoData(), extension: "png" }), { tl: { nativeCol: 0, nativeColOff: 3 * EMU, nativeRow: 0, nativeRowOff: 3 * EMU }, ext: { width: 150, height: 34 }, editAs: "oneCell" });
   ws.mergeCells("C1:E2");
-  put("C1", "HSE Flash Audit Report", F({ size: 16, bold: true }), { horizontal: "center", vertical: "middle" });
-  put("F1", "Form Ref.: F-HSE-0075", F({ bold: true }), { vertical: "middle" });
-  put("F2", "Form Rev.: 01", F({ bold: true }), { vertical: "middle" });
-  put("A2", "HSE Dept. ", F({ size: 9 }), { vertical: "bottom" });
+  const R = SETTINGS.report;
+  put("C1", R.title || "HSE Flash Audit Report", F({ size: 16, bold: true }), { horizontal: "center", vertical: "middle" });
+  put("F1", "Form Ref.: " + (R.formRef || ""), F({ bold: true }), { vertical: "middle" });
+  put("F2", "Form Rev.: " + (R.formRev || ""), F({ bold: true }), { vertical: "middle" });
+  put("A2", (R.dept || "") + " ", F({ size: 9 }), { vertical: "bottom" });
   for (let c = 1; c <= 6; c++) { const cell = ws.getCell(2, c); cell.border = Object.assign({}, cell.border, { bottom: { style: "medium", color: { argb: "FF4F81BD" } } }); }
 
   const dt = isoToDate(audit.audit_date);

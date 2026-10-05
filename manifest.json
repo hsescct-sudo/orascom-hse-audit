@@ -1,0 +1,24 @@
+{
+  "name": "HSE Flash Audit · Orascom Construction",
+  "short_name": "HSE Audit",
+  "description": "Corporate HSE flash audits, findings and close-outs for every project.",
+  "id": "./",
+  "start_url": "./#/dashboard",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#003876",
+  "theme_color": "#003876",
+  "lang": "en",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "New audit", "url": "./#/new", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Findings register", "url": "./#/register", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Import Excel report", "url": "./#/import", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

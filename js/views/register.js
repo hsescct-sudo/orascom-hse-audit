@@ -1,5 +1,5 @@
 import { esc, fmtDate, fRef, findingState, stateChip, riskChip, toast, saveBlob, todayISO, confirmBox, busyOverlay, ICON } from "../ui.js";
-import { TOPICS, topicName } from "../checklist.js";
+import { ALL_TOPICS, topicName } from "../checklist.js";
 import { buildRegister } from "../report.js";
 
 const STATES = [["", "All statuses"], ["notclosed", "Not closed"], ["open", "Open"], ["overdue", "Overdue"], ["pending", "Pending review"], ["closed", "Closed"]];
@@ -39,7 +39,7 @@ export async function render(root, ctx) {
       ${isAdmin ? `<label class="fld"><span>Project</span>${sel("f-project", [["", "All projects"], ...store.projects.map(p => [p.id, p.name])], q.project)}</label>` : ""}
       <label class="fld"><span>Status</span>${sel("f-status", STATES, q.status)}</label>
       <label class="fld"><span>Risk</span>${sel("f-risk", [["", "All"], ["High", "High"], ["Med", "Medium"], ["Low", "Low"]], q.risk)}</label>
-      <label class="fld"><span>Topic</span>${sel("f-topic", [["", "All topics"], ...TOPICS.map(t => [t.code, t.name])], q.topic)}</label>
+      <label class="fld"><span>Topic</span>${sel("f-topic", [["", "All topics"], ...ALL_TOPICS.filter(t => t.active || store.findings.some(x => x.topic === t.code)).map(t => [t.code, t.name])], q.topic)}</label>
       <label class="fld"><span>Audit type</span>${sel("f-type", [["", "All"], ["corporate", "Corporate"], ["project", "Project"]], q.type)}</label>
       <label class="fld"><span>From</span><input type="date" id="f-from" value="${esc(q.from || "")}"></label>
       <label class="fld"><span>To</span><input type="date" id="f-to" value="${esc(q.to || "")}"></label>

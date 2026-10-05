@@ -1,8 +1,9 @@
 // PowerPoint outputs: one audit as a report deck, and the dashboard as a summary deck.
 // Charts are native PowerPoint charts, so they stay editable after download.
 import { ensurePptx, fmtDate, fRef, aRef, findingState, STATE_LABEL, RISK_LABEL, todayISO } from "./ui.js";
-import { TOPICS, ITEM, topicName } from "./checklist.js";
+import { TOPICS, ALL_TOPICS, ITEM, topicName } from "./checklist.js";
 import { logoData, imageData, defaultScope, defaultConclusion, actionText } from "./report.js";
+import { SETTINGS } from "./settings.js";
 
 const W = 13.333, H = 7.5, FONT = "Segoe UI";
 const C = {
@@ -28,7 +29,7 @@ async function newDeck(title) {
       { rect: { x: 0, y: 0, w: W, h: 0.08, fill: { color: C.navy } } },
       ...(logo ? [{ image: { x: W - 1.88, y: 0.3, w: 1.38, h: 0.31, data: logo } }] : []),
       { line: { x: 0.5, y: 6.98, w: W - 1, h: 0, line: { color: C.line, width: 0.75 } } },
-      { text: { text: "HSE Flash Audit · Orascom Construction · Corporate HSE", options: { x: 0.5, y: 7.02, w: 8, h: 0.3, fontFace: FONT, fontSize: 9, color: C.muted } } },
+      { text: { text: SETTINGS.report.footer || "", options: { x: 0.5, y: 7.02, w: 8, h: 0.3, fontFace: FONT, fontSize: 9, color: C.muted } } },
     ],
     slideNumber: { x: W - 1.0, y: 7.02, w: 0.5, h: 0.3, fontFace: FONT, fontSize: 9, color: C.muted, align: "right" },
   });
@@ -95,9 +96,9 @@ export async function buildAuditPptx({ audit, project, findings, photosByFinding
   const { pptx, logo } = await newDeck(`HSE Flash Audit – ${project.name || ""} – ${audit.audit_date}`);
   const typeLabel = audit.audit_type === "corporate" ? "Corporate audit" : "Project audit";
   cover(pptx, logo, {
-    eyebrow: "HSE Flash Audit Report", title: project.name || "Project", sub: `${typeLabel} · ${fmtDate(audit.audit_date)} · ${aRef(audit.ref)}`,
+    eyebrow: SETTINGS.report.title || "HSE Flash Audit Report", title: project.name || "Project", sub: `${typeLabel} · ${fmtDate(audit.audit_date)} · ${aRef(audit.ref)}`,
     rows: [["Auditor(s)", audit.auditor], ["Project Manager", audit.pm || project.pm], ["P.O.C.", audit.poc != null ? Math.round(audit.poc) + "%" : ""], ["Manpower", audit.manpower != null ? Number(audit.manpower).toLocaleString() : ""]],
-    foot: `Form F-HSE-0075 · generated ${fmtDate(todayISO())} by the HSE Flash Audit System`,
+    foot: `Form ${SETTINGS.report.formRef || ""} · Rev. ${SETTINGS.report.formRev || ""} · generated ${fmtDate(todayISO())} by the ${SETTINGS.general.appName || "HSE Flash Audit"} system`,
   });
 
   // summary
@@ -112,7 +113,7 @@ export async function buildAuditPptx({ audit, project, findings, photosByFinding
   tiles.forEach((t, i) => tile(pptx, s, 0.5 + i * (tw + 0.15), 1.4, tw, 1.3, t[0], t[1], t[2], t[3]));
   s.addText([{ text: "PURPOSE & SCOPE", options: { fontSize: 10, bold: true, color: C.muted, breakLine: true } }, { text: audit.scope || defaultScope(audit, project.name), options: { fontSize: 12, color: C.ink } }],
     { x: 0.5, y: 3.0, w: 5.6, h: 3.8, fontFace: FONT, valign: "top", margin: 0, paraSpaceAfter: 6, fit: "shrink" });
-  const topics = TOPICS.map(t => ({ t, r: ["High", "Med", "Low"].map(r => findings.filter(f => f.topic === t.code && f.risk === r).length) })).filter(x => x.r.some(Boolean));
+  const topics = ALL_TOPICS.map(t => ({ t, r: ["High", "Med", "Low"].map(r => findings.filter(f => f.topic === t.code && f.risk === r).length) })).filter(x => x.r.some(Boolean));
   if (topics.length) {
     s.addChart(pptx.ChartType.bar, ["High", "Med", "Low"].map((r, i) => ({ name: RISK_LABEL[r], labels: topics.map(x => x.t.name), values: topics.map(x => x.r[i]) })), {
       x: 6.5, y: 3.0, w: 6.33, h: 3.85, barDir: "bar", barGrouping: "stacked", chartColors: [C.risk.High, C.risk.Med, C.risk.Low], barGapWidthPct: 55,
@@ -125,7 +126,7 @@ export async function buildAuditPptx({ audit, project, findings, photosByFinding
     s = pptx.addSlide({ masterName: "BODY" });
     heading(s, "Checklist results", `${checks.length} checks rated · compliance ${ok + nc ? Math.round(100 * ok / (ok + nc)) + "%" : "—"}`);
     const rows = [[th("Topic"), th("OK"), th("Not compliant"), th("N/A"), th("Compliance")]];
-    TOPICS.forEach(t => { const ids = t.items.map(i => i.id); const o = ids.filter(i => audit.checks[i] === "ok").length, n = ids.filter(i => audit.checks[i] === "nc").length, na = ids.filter(i => audit.checks[i] === "na").length; if (o + n + na) rows.push([t.name, String(o), { text: String(n), options: n ? { bold: true, color: C.state.overdue } : {} }, String(na), o + n ? Math.round(100 * o / (o + n)) + "%" : "—"]); });
+    ALL_TOPICS.forEach(t => { const ids = t.items.map(i => i.id); const o = ids.filter(i => audit.checks[i] === "ok").length, n = ids.filter(i => audit.checks[i] === "nc").length, na = ids.filter(i => audit.checks[i] === "na").length; if (o + n + na) rows.push([t.name, String(o), { text: String(n), options: n ? { bold: true, color: C.state.overdue } : {} }, String(na), o + n ? Math.round(100 * o / (o + n)) + "%" : "—"]); });
     table(s, rows, { x: 0.5, y: 1.4, w: W - 1, colW: [5.6, 1.5, 1.9, 1.5, 1.833], fontSize: 12, rowH: 0.36, align: "left" });
   }
 
