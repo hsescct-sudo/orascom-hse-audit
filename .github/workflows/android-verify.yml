@@ -25,6 +25,19 @@ jobs:
           "$BT/apksigner" verify --verbose --print-certs downloads/HSE-Audit.apk 2>&1 | tee out/apksigner.txt
           "$BT/aapt2" dump badging downloads/HSE-Audit.apk 2>&1 | head -20 | tee out/badging.txt
 
+      - name: Check the file people download from the site
+        run: |
+          URL="https://hsescct-sudo.github.io/orascom-hse-audit/downloads/HSE-Audit.apk"
+          WANT=$(sha256sum downloads/HSE-Audit.apk | cut -d' ' -f1)
+          for i in $(seq 1 30); do
+            GOT=$(curl -sfL "$URL" | sha256sum | cut -d' ' -f1)
+            [ "$GOT" = "$WANT" ] && break
+            sleep 20
+          done
+          curl -sIL "$URL" | grep -iE "^HTTP|content-type|content-length" > out/site_download.txt
+          echo "repo=$WANT site=$GOT" >> out/site_download.txt
+          cat out/site_download.txt
+
       - name: Enable KVM for the emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
