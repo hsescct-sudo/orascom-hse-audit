@@ -50,7 +50,7 @@ export async function render(root, ctx) {
     ${isAdmin ? `<div class="selbar" id="selbar" hidden><span><b id="sel-n">0</b> selected</span><button class="linkish" id="sel-clear">Clear selection</button><span class="grow"></span><button class="btn sm danger" id="sel-del">${ICON.trash} Delete selected</button></div>` : ""}
     <div class="card table-card"><div class="tscroll"><table class="tbl reg">
       <thead><tr>
-        ${isAdmin ? `<th class="selcol"><input type="checkbox" id="sel-all" aria-label="Select every finding that matches the filters"></th>` : ""}<th data-k="ref">Ref</th><th data-k="date">Audit date</th>${isAdmin ? `<th data-k="project">Project</th>` : ""}<th data-k="area">Area</th><th data-k="topic">Topic</th>
+        ${isAdmin ? `<th class="selcol"><input type="checkbox" id="sel-all" aria-label="Select every finding that matches the filters"></th>` : ""}<th data-k="ref">Ref</th><th data-k="date">Audit date</th>${isAdmin ? `<th data-k="project" class="pcol">Project</th>` : ""}<th data-k="area">Area</th><th data-k="topic">Topic</th>
         <th>Observation</th><th data-k="risk">Risk</th><th data-k="state">Status</th><th data-k="owner">Owner</th><th data-k="target">Target</th><th class="num" title="Photos">Photos</th></tr></thead>
       <tbody id="rows"></tbody></table></div><div class="more" id="more"></div></div>`;
 
@@ -65,13 +65,14 @@ export async function render(root, ctx) {
     root.querySelector("#chips").innerHTML = extra.length ? `<div class="filter-chips">${extra.map(t => `<span class="chip st-pending">${esc(t)}</span>`).join("")}<button class="linkish" id="x-extra">Remove</button></div>` : "";
     root.querySelector("#rows").innerHTML = rows.slice(0, limit).map(f => {
       const pc = store.photoCount?.[f.id]; const n = pc ? pc.violation + pc.closure : 0;
-      return `<tr class="click${picked.has(f.id) ? " picked" : ""}" data-id="${f.id}">${isAdmin ? `<td class="selcol"><input type="checkbox" class="rsel" data-id="${f.id}" ${picked.has(f.id) ? "checked" : ""} aria-label="Select ${fRef(f.ref)}"></td>` : ""}<td><a href="#/finding/${f.id}"><b>${fRef(f.ref)}</b></a></td><td class="nowrap">${fmtDate(f.audits?.audit_date)}</td>
-        ${isAdmin ? `<td>${esc(f.projects?.name || "")}</td>` : ""}<td>${esc(f.area)}</td><td>${esc(topicName(f.topic))}</td>
+      return `<tr class="click${picked.has(f.id) ? " picked" : ""}" data-id="${f.id}">${isAdmin ? `<td class="selcol"><input type="checkbox" class="rsel" data-id="${f.id}" ${picked.has(f.id) ? "checked" : ""} aria-label="Select ${fRef(f.ref)}"></td>` : ""}<td class="nowrap"><a href="#/finding/${f.id}"><b>${fRef(f.ref)}</b></a></td><td class="nowrap">${fmtDate(f.audits?.audit_date)}</td>
+        ${isAdmin ? `<td class="pcol">${esc(f.projects?.name || "")}</td>` : ""}<td>${esc(f.area)}</td><td>${esc(topicName(f.topic))}</td>
         <td class="obs">${esc(f.observation.length > 140 ? f.observation.slice(0, 140) + "…" : f.observation)}</td><td>${riskChip(f.risk)}</td><td>${stateChip(f)}</td>
         <td>${esc(f.owner)}</td><td class="nowrap">${f.fixed_on_spot ? "Immediately" : fmtDate(f.target_date)}</td><td class="num">${n || ""}</td></tr>`;
     }).join("") || `<tr><td colspan="12" class="empty-row">No findings match these filters.</td></tr>`;
     root.querySelector("#more").innerHTML = rows.length > limit ? `<button class="btn ghost" id="more-btn">Show ${Math.min(100, rows.length - limit)} more of ${rows.length - limit}</button>` : "";
     root.querySelectorAll("th[data-k]").forEach(th => th.classList.toggle("sorted", th.dataset.k === sort.key));
+    root.querySelector("table.reg").classList.toggle("hide-proj", !!q.project); // one project chosen: its name on every row adds nothing
     if (isAdmin) { const vis = new Set(rows.map(f => f.id)); [...picked].forEach(id => { if (!vis.has(id)) picked.delete(id); }); selUi(); }
   }
   function selUi() {

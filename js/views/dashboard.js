@@ -246,8 +246,8 @@ export async function render(root, ctx) {
       if (table) tables[id] = table;
       return c;
     };
-    const axisCat = { axisLine: { lineStyle: { color: AXIS } }, axisTick: { show: false }, axisLabel: { color: MUTED, fontSize: 12 } };
-    const axisVal = { splitLine: { lineStyle: { color: GRID } }, axisLine: { show: false }, axisLabel: { color: MUTED, fontSize: 12 }, minInterval: 1 };
+    const axisCat = { axisLine: { lineStyle: { color: AXIS } }, axisTick: { show: false }, axisLabel: { color: MUTED, fontSize: 12, fontFamily: FONT } };
+    const axisVal = { splitLine: { lineStyle: { color: GRID } }, axisLine: { show: false }, axisLabel: { color: MUTED, fontSize: 12, fontFamily: FONT }, minInterval: 1 };
     const tip = { backgroundColor: SURF, borderColor: "#d9dde3", padding: [8, 12], textStyle: { color: INK, fontSize: 12.5 }, extraCssText: "box-shadow:0 8px 24px rgba(16,24,40,.14);border-radius:8px;" };
     const legend = { top: 0, left: 0, icon: "roundRect", itemWidth: 12, itemHeight: 12, itemGap: 16, textStyle: { color: INK2, fontSize: 12 } };
     const shadow = { type: "shadow", shadowStyle: { color: "rgba(0,56,118,.05)" } };
@@ -261,7 +261,7 @@ export async function render(root, ctx) {
     mk("c-proj", {
       grid: { left: 8, right: 40, top: LT, bottom: 8, containLabel: true }, legend: { ...legend, data: STATES.map(s => STATE_LABEL[s]) },
       tooltip: { ...tip, trigger: "axis", axisPointer: shadow, formatter: ps => rowsTip(gl[ps[0].dataIndex].name, [...ps].reverse().map(p => [p.seriesName, p.value, COLORS.state[STATES[p.seriesIndex]]]).concat([["Total", gl[ps[0].dataIndex].n, "transparent"]])) },
-      xAxis: { type: "value", ...axisVal }, yAxis: { type: "category", inverse: true, data: gl.map(g => g.name), ...axisCat, axisLabel: { color: INK, fontSize: 12, width: narrow ? 110 : 240, overflow: "truncate" } },
+      xAxis: { type: "value", ...axisVal }, yAxis: { type: "category", inverse: true, data: gl.map(g => g.name), ...axisCat, axisLabel: { color: INK, fontSize: 12, fontFamily: FONT, width: narrow ? 110 : 240, overflow: "truncate" } },
       series: STATES.map((s, i) => ({ name: STATE_LABEL[s], type: "bar", stack: "s", barMaxWidth: 20, data: gl.map(g => g[s]), itemStyle: { color: COLORS.state[s], borderColor: SURF, borderWidth: 1, borderRadius: i === STATES.length - 1 ? [0, 4, 4, 0] : 0 }, emphasis: { focus: "series" },
         ...(i === STATES.length - 1 ? { label: { show: true, position: "right", color: INK2, fontSize: 12, formatter: p => gl[p.dataIndex].n } } : {}) })),
     }, p => { const g = gl[p.dataIndex]; location.hash = regLink(m.byProjectView ? { project: g.key, status: STATES[p.seriesIndex] } : { q: g.key, status: STATES[p.seriesIndex] }); },
@@ -284,7 +284,7 @@ export async function render(root, ctx) {
     mk("c-age", {
       grid: { left: 8, right: 8, top: 28, bottom: 8, containLabel: true },
       tooltip: { ...tip, trigger: "item", formatter: p => rowsTip(p.name, [["not closed", p.value, AGE_COLORS[p.dataIndex]]]) },
-      xAxis: { type: "category", data: AGE.map(a => a[0].replace(" days", "")), ...axisCat, axisLabel: { color: MUTED, fontSize: 11.5, interval: 0 } }, yAxis: { type: "value", ...axisVal },
+      xAxis: { type: "category", data: AGE.map(a => a[0].replace(" days", "")), ...axisCat, axisLabel: { color: MUTED, fontSize: 11.5, fontFamily: FONT, interval: 0 } }, yAxis: { type: "value", ...axisVal },
       series: [{ type: "bar", barMaxWidth: 24, data: m.aging.map((a, i) => ({ value: a.n, itemStyle: { color: AGE_COLORS[i], borderRadius: [4, 4, 0, 0] } })), label: { show: true, position: "top", color: INK2, fontWeight: 600, formatter: p => (p.value ? p.value : "") } }],
     }, () => { location.hash = regLink({ status: "notclosed" }); }, { cols: ["Days since audit", "Not closed"], rows: m.aging.map(a => [a.label, a.n]) });
 
@@ -294,7 +294,7 @@ export async function render(root, ctx) {
     mk("c-topic", {
       grid: { left: 8, right: 40, top: LT, bottom: 8, containLabel: true }, legend: { ...legend, data: RISKS.map(r => RISK_LABEL[r]) },
       tooltip: { ...tip, trigger: "axis", axisPointer: shadow, formatter: ps => rowsTip(tl[ps[0].dataIndex].t.name, ps.map(p => [p.seriesName + " risk", p.value, COLORS.risk[RISKS[p.seriesIndex]]])) },
-      xAxis: { type: "value", ...axisVal }, yAxis: { type: "category", inverse: true, data: tl.map(x => x.t.name), ...axisCat, axisLabel: { color: INK, fontSize: 12 } },
+      xAxis: { type: "value", ...axisVal }, yAxis: { type: "category", inverse: true, data: tl.map(x => x.t.name), ...axisCat, axisLabel: { color: INK, fontSize: 12, fontFamily: FONT } },
       series: RISKS.map((r, i) => ({ name: RISK_LABEL[r], type: "bar", stack: "r", barMaxWidth: 18, data: tl.map(x => x.r[i]), itemStyle: { color: COLORS.risk[r], borderColor: SURF, borderWidth: 1, borderRadius: i === 2 ? [0, 4, 4, 0] : 0 },
         ...(i === 2 ? { label: { show: true, position: "right", color: INK2, fontSize: 12, formatter: p => tl[p.dataIndex].n } } : {}) })),
     }, p => { location.hash = regLink({ topic: tl[p.dataIndex].t.code, risk: RISKS[p.seriesIndex] }); },
@@ -306,7 +306,7 @@ export async function render(root, ctx) {
     if (rcl.length) mk("c-rc", {
       grid: { left: 8, right: 70, top: 8, bottom: 8, containLabel: true },
       tooltip: { ...tip, trigger: "item", formatter: p => rowsTip(rcl[p.dataIndex][0], [["times recorded", p.value, SERIES.raised], ["of all root causes", pct(p.value, m.rcTotal) + "%", "transparent"]]) },
-      xAxis: { type: "value", ...axisVal }, yAxis: { type: "category", inverse: true, data: rcl.map(x => x[0]), ...axisCat, axisLabel: { color: INK, fontSize: 12, width: 260, overflow: "truncate" } },
+      xAxis: { type: "value", ...axisVal }, yAxis: { type: "category", inverse: true, data: rcl.map(x => x[0]), ...axisCat, axisLabel: { color: INK, fontSize: 12, fontFamily: FONT, formatter: v => v.length > 42 ? v.slice(0, 41) + "…" : v } },
       series: [{ type: "bar", data: rcl.map(x => x[1]), barMaxWidth: 18, itemStyle: { color: SERIES.raised, borderRadius: [0, 4, 4, 0] }, label: { show: true, position: "right", color: INK2, fontSize: 12, formatter: p => `${p.value} · ${pct(p.value, m.rcTotal)}%` } }],
     }, p => { location.hash = regLink({ root: rcl[p.dataIndex][0] }); }, { cols: ["Root cause", "Times recorded", "Share"], rows: rcl.map(x => [x[0], x[1], pct(x[1], m.rcTotal) + "%"]) });
     else if (rcEl) rcEl.outerHTML = `<p class="muted">No root causes recorded yet.</p>`;
@@ -321,8 +321,8 @@ export async function render(root, ctx) {
       mk("c-heat", {
         grid: { left: 8, right: 16, top: 8, bottom: 52, containLabel: true },
         tooltip: { ...tip, formatter: p => rowsTip(projs[p.value[1]].name, [[TOPICS[p.value[0]].name, p.value[2], "transparent"]]) },
-        xAxis: { type: "category", data: TOPICS.map(t => t.code), ...axisCat, axisLabel: { color: INK, fontSize: 12, fontWeight: 600 }, splitArea: { show: false } },
-        yAxis: { type: "category", inverse: true, data: projs.map(p => p.name), ...axisCat, axisLabel: { color: INK, fontSize: 12, width: 240, overflow: "truncate" } },
+        xAxis: { type: "category", data: TOPICS.map(t => t.code), ...axisCat, axisLabel: { color: INK, fontSize: 12, fontFamily: FONT, fontWeight: 600 }, splitArea: { show: false } },
+        yAxis: { type: "category", inverse: true, data: projs.map(p => p.name), ...axisCat, axisLabel: { color: INK, fontSize: 12, fontFamily: FONT, width: 240, overflow: "truncate" } },
         visualMap: { min: 0, max, calculable: false, orient: "horizontal", left: "center", bottom: 4, itemWidth: 12, itemHeight: 180, text: ["More findings", "Fewer"], textStyle: { color: MUTED }, inRange: { color: ["#f3f7fd", "#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"] } },
         series: [{ type: "heatmap", data: cells.map(c => ({ value: c, label: { color: c[2] > max * 0.5 ? "#ffffff" : INK } })), label: { show: true, fontSize: 12, fontWeight: 600, formatter: p => (p.value[2] ? p.value[2] : "") }, itemStyle: { borderColor: SURF, borderWidth: 2, borderRadius: 4 }, emphasis: { itemStyle: { borderColor: INK, borderWidth: 1 } } }],
       }, p => { if (p.value[2]) location.hash = regLink({ project: projs[p.value[1]].id, topic: TOPICS[p.value[0]].code }); },
@@ -336,7 +336,7 @@ export async function render(root, ctx) {
       mk("c-cov", {
         grid: { left: 8, right: 48, top: LT, bottom: 8, containLabel: true }, legend: { ...legend, data: ["Audited", "Not audited yet"] },
         tooltip: { ...tip, trigger: "axis", axisPointer: shadow, formatter: ps => rowsTip(bl[ps[0].dataIndex].l, ps.map(p => [p.seriesName, p.value, p.color])) },
-        xAxis: { type: "value", ...axisVal }, yAxis: { type: "category", inverse: true, data: bl.map(b => b.l), ...axisCat, axisLabel: { color: INK, fontSize: 12 } },
+        xAxis: { type: "value", ...axisVal }, yAxis: { type: "category", inverse: true, data: bl.map(b => b.l), ...axisCat, axisLabel: { color: INK, fontSize: 12, fontFamily: FONT } },
         series: [
           { name: "Audited", type: "bar", stack: "c", barMaxWidth: 18, data: bl.map(b => b.done), itemStyle: { color: "#2a78d6", borderColor: SURF, borderWidth: 1 } },
           { name: "Not audited yet", type: "bar", stack: "c", barMaxWidth: 18, data: bl.map(b => b.total - b.done), itemStyle: { color: "#d5dae1", borderColor: SURF, borderWidth: 1, borderRadius: [0, 4, 4, 0] }, label: { show: true, position: "right", color: INK2, fontSize: 12, formatter: p => `${bl[p.dataIndex].done}/${bl[p.dataIndex].total}` } },

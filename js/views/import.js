@@ -109,7 +109,7 @@ export async function render(root, ctx) {
     root.innerHTML = `
       <div class="page-head"><div><a class="back" href="#/import">‹ Choose another file</a><h1>Check before importing</h1><p class="muted">${esc(fileName)} → ${esc(proj?.name || "")}${parsed.generic ? " · general sheet" : " · F-HSE-0075 form"}</p></div>
         <div class="actions"><button class="btn primary" id="do-import" ${nInc ? "" : "disabled"}>Import ${nInc} findings</button></div></div>
-      ${mismatch ? `<div class="panel warn">The file says the project is <b>${esc(h.project)}</b>. Make sure you chose the right project.</div>` : ""}
+      ${mismatch ? `<div class="panel warn"><span>The file says the project is <b>${esc(h.project)}</b>. Make sure you chose the right project.</span></div>` : ""}
       ${parsed.warnings.map(w => `<div class="panel warn">${esc(w)}</div>`).join("")}
       ${mappingPanel()}
       <div class="card form-grid">

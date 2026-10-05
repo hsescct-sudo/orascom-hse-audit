@@ -119,6 +119,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand-2); outlin
 .tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
 .tbl tr.click { cursor: pointer; } .tbl tr.click:hover td { background: #f5f8fc; }
 .tbl td.obs { min-width: 260px; max-width: 460px; }
+.tbl.reg td.pcol { min-width: 130px; } .tbl.reg.hide-proj .pcol { display: none; }
 .tbl.compact td, .tbl.compact th { padding: 7px 10px; }
 .tbl.compact td.obs { min-width: 180px; }
 .tbl code { white-space: nowrap; }

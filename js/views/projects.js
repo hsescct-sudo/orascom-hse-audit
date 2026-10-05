@@ -165,7 +165,7 @@ export async function render(root, ctx) {
   async function wipeDialog(presetProject = "") {
     const count = w => {
       const s = scopeOf(w.querySelector("#w-project").value, w.querySelector("#w-from").value, w.querySelector("#w-to").value);
-      w.querySelector("#w-sum").innerHTML = s.audits.length ? `This deletes <b>${s.audits.length}</b> audit${s.audits.length === 1 ? "" : "s"}, <b>${s.findings.length}</b> finding${s.findings.length === 1 ? "" : "s"} and <b>${s.photos}</b> photo${s.photos === 1 ? "" : "s"}, with all their comments. Projects, logins and administrators are kept.` : "Nothing matches — no audits in this selection.";
+      w.querySelector("#w-sum").innerHTML = s.audits.length ? `<span>This deletes <b>${s.audits.length}</b> audit${s.audits.length === 1 ? "" : "s"}, <b>${s.findings.length}</b> finding${s.findings.length === 1 ? "" : "s"} and <b>${s.photos}</b> photo${s.photos === 1 ? "" : "s"}, with all their comments. Projects, logins and administrators are kept.</span>` : "<span>Nothing matches — no audits in this selection.</span>";
       return s;
     };
     const v = await dialog({
