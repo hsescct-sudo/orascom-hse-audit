@@ -3,7 +3,7 @@
 set -x
 mkdir -p shots
 pip install -q websocket-client || pip install -q --user websocket-client
-for i in $(seq 1 30); do adb shell ping -c 1 -W 3 hsescct-sudo.github.io >/dev/null 2>&1 && break; sleep 4; done
+sleep 20
 adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 adb logcat -c
 adb shell am start -W -n com.orascom.hseaudit/.MainActivity
