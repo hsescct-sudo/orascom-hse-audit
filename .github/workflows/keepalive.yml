@@ -1,0 +1,56 @@
+# Keeps the free Supabase project awake.
+# Supabase pauses a free project after about a week with little use.
+# This runs one small database query every day, so that never happens.
+# If the server does not answer, the run fails and GitHub sends an e-mail.
+
+name: Keep database awake
+
+on:
+  schedule:
+    - cron: "17 3 * * *"   # every day, 06:17 Saudi time
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [".github/workflows/keepalive.yml"]
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: js/config.js
+          sparse-checkout-cone-mode: false
+
+      - name: Ask the database for the project list
+        run: |
+          URL=$(grep -oP 'supabaseUrl:\s*"\K[^"]+' js/config.js)
+          KEY=$(grep -oP 'supabaseKey:\s*"\K[^"]+' js/config.js)
+          echo "Server: $URL"
+          for try in 1 2 3; do
+            CODE=$(curl -sS -o body.json -w "%{http_code}" -m 30 -X POST \
+              "$URL/rest/v1/rpc/login_projects" \
+              -H "apikey: $KEY" -H "Content-Type: application/json" -d '{}' || echo 000)
+            if [ "$CODE" = "200" ]; then
+              echo "OK: database answered. Projects on the login page: $(grep -o '"id"' body.json | wc -l)"
+              exit 0
+            fi
+            echo "Try $try: got $CODE, waiting 60 s"
+            sleep 60
+          done
+          echo "::error::The database did not answer. Open the Supabase dashboard and check if the project is paused."
+          exit 1
+
+      - name: Keep this daily run switched on
+        # GitHub switches off daily runs in repos with no changes for 60 days.
+        # Re-enabling it here keeps it running.
+        if: github.event_name == 'schedule'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/keepalive.yml/enable"
