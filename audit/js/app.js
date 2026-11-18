@@ -41,6 +41,7 @@ function parse() {
 const defaultPage = () => (M.me() && M.me().role === "auditor" ? "home" : "dashboard");
 
 async function boot() {
+  registerSW(); // save the app on the device from the first visit, even before sign-in
   try { await S.openStore(); }
   catch (e) { $("#root").innerHTML = `<div class="empty" style="padding-top:20vh"><h3>This browser can't save data</h3><p>${esc(e.message)}</p></div>`; return; }
   try { const saved = localStorage.getItem("oc-audit-module"); if (MODULE_IDS.includes(saved)) state.module = saved; } catch (e) { /* private mode */ }
@@ -64,7 +65,6 @@ async function startSession(mode) {
   S.on(debounce(e => { if (e.fromServer || e.type === "bulk") refreshLive(); updateBadges(); }, 350));
   Sync.on(updateSync);
   route();
-  registerSW();
 }
 
 // ---------- gate: sign in or try with sample data ----------
