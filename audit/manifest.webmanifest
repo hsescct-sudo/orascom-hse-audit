@@ -1,0 +1,15 @@
+{
+  "name": "OC HSE Audit",
+  "short_name": "HSE Audit",
+  "description": "Corporate HSE audits for Orascom Construction projects.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#00264f",
+  "theme_color": "#00264f",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
