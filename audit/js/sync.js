@@ -25,19 +25,25 @@ async function getClient() {
 
 const nice = e => {
   const m = String((e && (e.message || e.error_description)) || e || "");
+  const code = (e && e.code) || "";
   if (/Invalid login credentials/i.test(m)) return "Wrong e-mail or password.";
+  if (/Email not confirmed/i.test(m)) return "This e-mail is not confirmed yet. Confirm it in Supabase (Authentication, Users).";
   if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return "No connection to the server. Check the internet and try again.";
-  if (/ha_me|ha_push|ha_docs|does not exist|schema cache/i.test(m)) return "The audit tables are not set up on the server yet. Run supabase/audit-schema.sql once.";
-  if (/JWT|refresh token|not authenticated/i.test(m)) return "Your sign-in has ended. Sign in again to send your changes.";
-  return m || "Something went wrong.";
+  if (code === "PGRST202" || code === "42P01" || /Could not find the function public\.ha_|relation "public\.ha_[a-z]+" does not exist/i.test(m)) return "The audit tables are not set up on the server yet. Run supabase/audit-schema.sql once.";
+  if (/JWT expired|refresh token|not authenticated|invalid claim/i.test(m)) return "Your sign-in has ended. Sign in again to send your changes.";
+  return "Server message: " + (m || "unknown error") + (code ? ` (${code})` : "");
 };
 
 export async function signIn(email, password) {
   const c = await getClient();
   const { error } = await c.auth.signInWithPassword({ email, password });
   if (error) throw new Error(nice(error));
-  const { data, error: e2 } = await c.rpc("ha_me");
-  if (e2) { await c.auth.signOut(); throw new Error(nice(e2)); }
+  let { data, error: e2 } = await c.rpc("ha_me");
+  if (e2 && e2.code === "PGRST202") { // the server may still be loading new tables: try once more
+    await new Promise(r => setTimeout(r, 3000));
+    ({ data, error: e2 } = await c.rpc("ha_me"));
+  }
+  if (e2) { console.error("ha_me", e2); await c.auth.signOut(); throw new Error(nice(e2)); }
   const me = Array.isArray(data) ? data[0] : data;
   if (!me) { await c.auth.signOut(); throw new Error("This e-mail is not in the audit system. Ask Corporate HSE to add you under Auditors and users."); }
   const member = { id: me.id, kind: "member", name: me.name, email: me.email, role: me.role, position: me.position || "", active: true };
