@@ -78,7 +78,7 @@ async function planItem(mod, pl) {
       ${admin ? `<div class="grid2"><label class="fld"><span>Month</span><select id="pi-m">${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${i + 1 === pl.month ? "selected" : ""}>${monthName(i + 1)}</option>`).join("")}</select></label>
         <label class="fld"><span>Lead auditor</span><select id="pi-l">${auditors.map(m => `<option value="${esc(m.id)}" ${m.id === pl.lead_id ? "selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label></div>`
         : `<p>Lead auditor: <b>${esc((M.member(pl.lead_id) || {}).name || "")}</b></p>`}
-      ${a ? `<p>Audit: <b>${esc(a.ref)}</b> · ${esc(a.date)}</p>` : ""}`,
+      ${a ? `<p>Audit: <b>${esc(a.ref)}</b> · ${esc(a.date)}</p>` : ""}${pl.exception_reason ? `<p class="small muted">Fewer audits on this project (P-20 §7.2): ${esc(pl.exception_reason)}</p>` : ""}`,
     actions: [
       ...(admin && !a ? [{ label: "Remove from plan", kind: "ghost", value: "del" }] : []),
       ...(admin ? [{ label: "Save", kind: "ghost", value: w => ({ save: true, month: +w.querySelector("#pi-m").value, lead: w.querySelector("#pi-l").value }) }] : []),
@@ -98,21 +98,31 @@ async function buildPlan(mod, year) {
   const auditors = M.auditors().filter(m => m.role === "auditor");
   if (!auditors.length) { toast("Add auditors first (Auditors and users).", "error"); return; }
   const existing = M.plans(mod).filter(p => p.year === year);
+  const projs = M.activeProjects().filter(p => !existing.some(x => x.project_id === p.id));
+  const excep = projs.filter(M.planException), normal = projs.filter(p => !M.planException(p));
   const r = await dialog({
     title: `Build the ${year} plan · ${def.short}`,
     body: `<p>Plans every active project${existing.length ? `. Projects that already have a plan in ${year} are left as they are` : ""}. Lead auditors take turns so the work is shared.</p>
-      <label class="fld"><span>Audits per project in ${year}</span><select id="bp-n">${mod === "full" ? `<option value="6" selected>6 (one every 2 months, P-20 §7.2)</option><option value="12">12 (monthly, extra follow-up)</option><option value="4">4 (exception only: JV / outside Egypt, record reason)</option><option value="2">2 (exception only: JV / outside Egypt, record reason)</option>` : `<option value="1" selected>1</option><option value="2">2 (every 6 months)</option>`}</select></label>`,
-    actions: [{ label: "Cancel", value: null }, { label: "Build plan", kind: "primary", value: w => +w.querySelector("#bp-n").value }],
+      ${mod === "full" ? `<div class="grid2">
+        <label class="fld"><span>Projects in Egypt, not JV (${normal.length})</span><select id="bp-n"><option value="6" selected>6 a year (every 2 months, P-20 §7.2)</option><option value="12">12 a year (monthly, extra follow-up)</option></select></label>
+        <label class="fld"><span>JV and outside Egypt (${excep.length})</span><select id="bp-x"><option value="6" selected>6 a year (same as the rest)</option><option value="4">4 a year (exception)</option><option value="2">2 a year (exception)</option></select></label></div>
+        <label class="fld" id="bp-rw" hidden><span>Reason for fewer audits (kept on each planned audit)</span><input id="bp-r" placeholder="e.g. JV partner runs the HSE system; site outside Egypt"></label>`
+      : `<label class="fld"><span>Audits per project in ${year}</span><select id="bp-n"><option value="1" selected>1</option><option value="2">2 (every 6 months)</option></select></label>`}`,
+    onMount: w => { const x = w.querySelector("#bp-x"); if (x) x.onchange = () => { w.querySelector("#bp-rw").hidden = +x.value >= 6; }; },
+    actions: [{ label: "Cancel", value: null }, { label: "Build plan", kind: "primary",
+      validate: w => { const x = w.querySelector("#bp-x"); return x && +x.value < 6 && excep.length && w.querySelector("#bp-r").value.trim().length < 3 ? "Write the reason for fewer audits." : null; },
+      value: w => ({ n: +w.querySelector("#bp-n").value, x: w.querySelector("#bp-x") ? +w.querySelector("#bp-x").value : +w.querySelector("#bp-n").value, why: w.querySelector("#bp-r") ? w.querySelector("#bp-r").value.trim() : "" }) }],
   });
   if (!r) return;
-  const projs = M.activeProjects().filter(p => !existing.some(x => x.project_id === p.id));
   const docs = []; let k = 0;
   projs.forEach((p, i) => {
-    const gap = 12 / r;
-    for (let j = 0; j < r; j++) {
+    const ex = mod === "full" && M.planException(p);
+    const per = ex ? r.x : r.n;
+    const gap = 12 / per;
+    for (let j = 0; j < per; j++) {
       const month = 1 + ((i % gap) + j * gap) % 12;
       const lead = auditors[k++ % auditors.length];
-      docs.push({ id: S.uid("pln"), kind: "plan", module: mod, year, month: Math.round(month), project_id: p.id, lead_id: lead.id, team_ids: [] });
+      docs.push({ id: S.uid("pln"), kind: "plan", module: mod, year, month: Math.round(month), project_id: p.id, lead_id: lead.id, team_ids: [], ...(ex && per < 6 ? { exception_reason: r.why } : {}) });
     }
   });
   await S.putMany(docs);

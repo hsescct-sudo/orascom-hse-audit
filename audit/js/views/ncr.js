@@ -3,9 +3,9 @@ import * as S from "../store.js";
 import * as M from "../model.js";
 import { setTitle, setActions, go, link } from "../app.js";
 import { esc, ICON, fmtDate, toast, todayISO, debounce, dialog } from "../ui.js";
-import { sigBlockHTML, mountSigPads, readSigPads } from "../sign.js";
+import { sigBlockHTML, mountSigPads, readSigPads, serverSigsHTML } from "../sign.js";
 import { sevChip, ncrChip, repChip } from "../components.js";
-import { photoStrip, editNCR } from "../widgets.js";
+import { photoStrip, editNCR, projectLink } from "../widgets.js";
 
 export async function render(ctx) {
   const { view } = ctx;
@@ -18,7 +18,8 @@ export async function render(ctx) {
   const canFollow = M.canEdit();
   const canEditBody = M.canEdit() && a && (a.status === "draft" || M.isAdmin());
   setTitle(n.ref, `NCR · ${p.name}`);
-  setActions(`<a class="btn sm" href="${a ? link("report", a.id, n.module) + "?type=ncr&ncr=" + n.id : "#"}">${ICON.print}<span>NCR form</span></a>${canEditBody ? `<button class="btn sm" id="edit" type="button">${ICON.edit}<span>Edit NCR</span></button>` : ""}`);
+  setActions(`<a class="btn sm" href="${a ? link("report", a.id, n.module) + "?type=ncr&ncr=" + n.id : "#"}">${ICON.print}<span>NCR form</span></a>${canFollow ? `<button class="btn sm" id="plink" type="button">${ICON.ext}<span>Project link</span></button>` : ""}${canEditBody ? `<button class="btn sm" id="edit" type="button">${ICON.edit}<span>Edit NCR</span></button>` : ""}`);
+  const pl = document.getElementById("plink"); if (pl) pl.onclick = () => projectLink(n.module, n.project_id);
   const ed = document.getElementById("edit"); if (ed) ed.onclick = async () => { const r = await editNCR(a, n); if (r === "deleted") go(link("ncrs")); else if (r) location.reload(); };
   const save = debounce(async () => { n = await S.put({ ...n }); }, 400);
   const prev = (n.repeat_of || n.repeat_link) ? S.getAny(n.repeat_of || n.repeat_link) : null;
@@ -44,8 +45,10 @@ export async function render(ctx) {
       <div class="panel-h" style="margin-top:14px"><h3>Corrective / preventive action required</h3></div><p>${esc(n.action_required || "–")}</p>
       <div class="panel-h" style="margin-top:14px"><h3>Photos from the audit</h3></div><div id="ph"></div>
     </section>
-    <section class="panel"><div class="panel-h"><h2>Follow up</h2><span class="muted">Filled by the auditor when the project sends evidence</span></div>
+    <section class="panel"><div class="panel-h"><h2>Follow up</h2><span class="muted">Filled by the project through its link, or by the auditor</span></div>
       <div class="stack">
+        ${n.submitted_by ? `<p class="small" style="background:#e1ecfb;border-radius:8px;padding:8px 10px;margin:0">Evidence sent from the project link by <b>${esc(n.submitted_by.name || "")}</b>${n.submitted_by.position ? ` (${esc(n.submitted_by.position)})` : ""}${n.submitted_by.at ? ` on ${esc(fmtDate(n.submitted_by.at.slice(0, 10)))}` : ""}.${(n.sigs || {}).responsible && n.sigs.responsible.img ? " Signed as the person responsible." : ""}</p>` : ""}
+        <div id="sigrec"></div>
         <label class="fld"><span>Corrective action taken</span><textarea data-f="ca_text" placeholder="What the project did">${esc(n.ca_text || "")}</textarea></label>
         <label class="fld"><span>Evidence photos</span><div id="caph"></div></label>
         <div class="grid3">
@@ -113,4 +116,5 @@ export async function render(ctx) {
     };
   };
   drawBtns();
+  serverSigsHTML(n.id).then(h => { const el = view.querySelector("#sigrec"); if (el && h) el.innerHTML = h; });
 }

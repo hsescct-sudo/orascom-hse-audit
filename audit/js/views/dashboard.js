@@ -5,7 +5,7 @@ import { setTitle, link, go } from "../app.js";
 import { tag, mtag, chart, watchResize, axisStyle, gradeColor, projectOptions, monthName } from "../components.js";
 import { esc, todayISO, COLORS, pct } from "../ui.js";
 import { GRADES } from "../templates.js";
-import { gradeOf, fmtScore } from "../scoring.js";
+import { fmtScore } from "../scoring.js";
 
 const FKEY = "oc-audit-dash-filters";
 export async function render(ctx) {
@@ -67,7 +67,7 @@ export async function render(ctx) {
       <section class="panel hero span-7" aria-label="Company score">
         ${tag(avg, { size: "xl", white: true, sub: scored.length ? `${scored.length} audit${scored.length > 1 ? "s" : ""}` : "" })}
         <div class="hero-txt">
-          <h2>${avg == null ? "No scored audits yet" : `${esc(gradeOf(avg).appraisal)}`}</h2>
+          <h2>${avg == null ? "No scored audits yet" : `${esc(M.grade(avg).appraisal)}`}</h2>
           <p>Average ${esc(def.scoreLabel.toLowerCase())} of ${scored.length} ${esc(def.short)} audit${scored.length === 1 ? "" : "s"} in ${f.year}${f.country ? " in " + esc(f.country) : ""}. The bar shows each project's latest grade.</p>
           <div class="gradebar" role="img" aria-label="Projects by grade">${GRADES.map(g => byGrade[g.code] ? `<span class="${g.code}" style="flex:${byGrade[g.code]}" title="${esc(g.label)}: ${byGrade[g.code]} project${byGrade[g.code] > 1 ? "s" : ""}">${byGrade[g.code]}</span>` : "").join("")}</div>
           <div class="gradekey">${GRADES.map(g => `<span><i style="background:${COLORS.grade[g.code]}"></i>${esc(g.label)} ${g.min === 0 ? "below 65%" : g.min + "%+"}</span>`).join("")}</div>

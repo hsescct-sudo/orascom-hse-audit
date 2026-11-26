@@ -5,7 +5,7 @@ import * as M from "../model.js";
 import { setTitle, setActions, link } from "../app.js";
 import { esc, ICON, fmtDate, COLORS } from "../ui.js";
 import { GRADES, ROOT_CAUSES } from "../templates.js";
-import { fmtScore, gradeOf } from "../scoring.js";
+import { fmtScore } from "../scoring.js";
 import { sigCell, changeLogHTML } from "../sign.js";
 
 export async function render(ctx) {
@@ -46,7 +46,7 @@ function history(a) {
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" role="img" aria-label="Project score history">
     ${[0, 25, 50, 65, 75, 85, 100].map(v => `<line x1="${L}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="${[65, 75, 85].includes(v) ? "#9fb0c4" : "#e3e9f1"}" ${[65, 75, 85].includes(v) ? 'stroke-dasharray="4 4"' : ""}/><text x="${L - 6}" y="${y(v) + 4}" font-size="10" text-anchor="end" fill="#5a6b82">${v}%</text>`).join("")}
     <polyline fill="none" stroke="${COLORS.navy}" stroke-width="2.5" points="${pts.map((p, i) => `${x(i)},${y(p.s)}`).join(" ")}"/>
-    ${pts.map((p, i) => `<circle cx="${x(i)}" cy="${y(p.s)}" r="5" fill="${COLORS.grade[gradeOf(p.s).code]}"/><text x="${x(i)}" y="${y(p.s) - 9}" font-size="11" font-weight="700" text-anchor="middle">${Math.round(p.s * 10) / 10}%</text><text x="${x(i)}" y="${H - 8}" font-size="10" text-anchor="middle" fill="#5a6b82">${esc(fmtDate(p.date))}</text>`).join("")}
+    ${pts.map((p, i) => `<circle cx="${x(i)}" cy="${y(p.s)}" r="5" fill="${COLORS.grade[M.grade(p.s).code]}"/><text x="${x(i)}" y="${y(p.s) - 9}" font-size="11" font-weight="700" text-anchor="middle">${Math.round(p.s * 10) / 10}%</text><text x="${x(i)}" y="${H - 8}" font-size="10" text-anchor="middle" fill="#5a6b82">${esc(fmtDate(p.date))}</text>`).join("")}
   </svg>`;
 }
 function violations(a, urls) {
@@ -68,8 +68,8 @@ function appraisal(a, d, sc) {
 function conclusion(d, sc) {
   const rows = sc.parts.map(p => `<tr><td>${esc(d.id === "full" ? `${p.code} ${p.name} (${p.share}%)` : `${p.code}- ${p.name}`)}</td><td>${p.score == null ? "N/A" : ((p.score * 100) * p.share / 100).toFixed(1) + "%"}</td></tr>`).join("");
   return `<table><thead><tr><th>Conclusion</th><th style="width:140px">Result</th></tr></thead><tbody>${rows}
-    <tr><td>Serious violations (${d.deductions.serious}% deduction once, ${sc.seriousCount} found)</td><td>${sc.serious ? "−" + sc.serious + "%" : "0"}</td></tr>
-    <tr><td>Repeated violations (${d.deductions.repeated}% each, ${sc.repeatedCount} found)</td><td>${sc.repeated ? "−" + sc.repeated + "%" : "0"}</td></tr>
+    <tr><td>Serious violations (${esc(M.ruleText(d).serious)}, ${sc.seriousCount} found)</td><td>${M.minus(sc.serious)}</td></tr>
+    <tr><td>Repeated violations (${esc(M.ruleText(d).repeated)}, ${sc.repeatedCount} found)</td><td>${M.minus(sc.repeated)}</td></tr>
     <tr><th>Total project score</th><th style="background:${sc.grade ? COLORS.grade[sc.grade.code] : "#eee"};color:${sc.grade && ["orange", "yellow"].includes(sc.grade.code) ? "#2b1700" : "#fff"}">${fmtScore(sc.total)} · ${esc(sc.grade ? sc.grade.label : "")}</th></tr></tbody></table>
     <p class="small">Items marked N/A are not part of this audit; their weight is shared by the other items.</p>`;
 }

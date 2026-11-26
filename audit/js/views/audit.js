@@ -5,7 +5,7 @@ import * as M from "../model.js";
 import { setTitle, setActions, go, link } from "../app.js";
 import { esc, ICON, debounce, toast, confirmBox, dialog, fmtDate, addDays, todayISO, isTouch } from "../ui.js";
 import { tag, mtag, sevChip, ncrChip, repChip, auditChip } from "../components.js";
-import { photoStrip, editNCR, editGood } from "../widgets.js";
+import { photoStrip, editNCR, editGood, projectLink, linkOf, linkUrl } from "../widgets.js";
 import { NA, isRated, fmtScore } from "../scoring.js";
 import { historyViewHTML, mountHistory } from "../sign.js";
 
@@ -87,7 +87,7 @@ export async function render(ctx) {
       <div class="small muted">${sc.ratedCount} of ${sc.itemCount} items rated</div>
       <div class="lb-rows">${rows}
         ${sc.base != null ? `<div><span>Before deductions</span><b>${fmtScore(sc.base)}</b></div>` : ""}
-        <div><span>Serious NCRs (${sc.seriousCount})</span><b style="color:${sc.serious ? "var(--g-red)" : "inherit"}">${sc.serious ? "−" + sc.serious + "%" : "0"}</b></div>
+        <div><span>Serious NCRs (${sc.seriousCount})</span><b style="color:${sc.serious ? "var(--g-red)" : "inherit"}">${M.minus(sc.serious)}</b></div>
         <div><span>Repeated NCRs (${sc.repeatedCount})</span><b style="color:${sc.repeated ? "var(--g-red)" : "inherit"}">${sc.repeated ? "−" + sc.repeated + "%" : "0"}</b></div>
       </div>
       <button class="btn sm ghost" type="button" id="how">How is this calculated?</button>`;
@@ -199,7 +199,7 @@ export async function render(ctx) {
     const decided = id => (a.carry || []).find(c => c.ncr_id === id);
     el.innerHTML = `<section class="panel">
       <div class="panel-h"><h2>Open NCRs from the last audit</h2><span class="muted">${esc(prev.ref)} · ${esc(fmtDate(prev.date))}</span></div>
-      <p class="muted" style="max-width:75ch">Check each one on site. If it is still not closed, it becomes a <b>repeated NCR</b> in this audit and takes ${d.deductions.repeated}% off the score.</p>
+      <p class="muted" style="max-width:75ch">Check each one on site. If it is still not closed, it becomes a <b>repeated NCR</b> in this audit and takes ${esc(M.ruleText(d).repeated)} off the score.</p>
       <div>${cand.map(n => { const c = decided(n.id); return `<div class="carry-row" data-n="${esc(n.id)}">
         <div><div class="row" style="gap:6px">${sevChip(n.severity)}<span class="ref num" style="font-weight:700;color:var(--navy)">${esc(n.ref)}</span><span class="muted small">${esc(n.classification)}</span></div>
           <div style="margin-top:4px">${esc(n.description)}</div><div class="muted small">${esc(n.location || "")}${n.due_date ? ` · deadline ${esc(fmtDate(n.due_date))}` : ""}</div></div>
@@ -340,7 +340,7 @@ export async function render(ctx) {
   }
 
   // ---------- finish ----------
-  function stepHistory(el) { el.innerHTML = historyViewHTML(a); mountHistory(el); }
+  function stepHistory(el) { el.innerHTML = historyViewHTML(a); mountHistory(el, a); }
   function stepFinish(el) {
     const sc = M.score(a); const list = M.auditNCRs(a);
     const missing = list.filter(n => !n.responsible_name || !n.due_date).length;
@@ -374,7 +374,9 @@ export async function render(ctx) {
         <p class="muted small">Send F/HSE/078 and F/HSE/003 through Corporate HSE within 7 days of the audit date. Record it here.</p>
         <div class="grid3"><label class="fld"><span>Date sent</span><input type="date" data-sf="date" value="${esc((a.sent || {}).date || "")}"></label>
         <label class="fld"><span>Sent to (names or distribution list)</span><input data-sf="to" value="${esc((a.sent || {}).to || "")}"></label>
-        <label class="fld"><span>Email or reference</span><input data-sf="ref" value="${esc((a.sent || {}).ref || "")}"></label></div></section>` : ""}
+        <label class="fld"><span>Email or reference</span><input data-sf="ref" value="${esc((a.sent || {}).ref || "")}"></label></div>
+        ${M.canEdit() ? `<div class="row" style="margin-top:12px"><a class="btn" id="mailrep" href="${esc(reportMail(a).href)}">${ICON.out}<span>E-mail the report</span></a><button class="btn ghost" type="button" id="plink">${ICON.ext}<span>Project link</span></button>
+          <span class="muted small">${M.project(a.project_id).contact_emails ? `To: ${esc(M.project(a.project_id).contact_emails)}` : "Add the project e-mails under Projects."} Attach the PDF report to the e-mail.</span></div>` : ""}</section>` : ""}
       ${a.status === "draft" && M.canEdit() ? `<div class="row">${isLead && M.isAdmin()
         ? `<button class="btn primary lg" type="button" id="approve-now">Approve and lock</button><button class="btn lg" type="button" id="submit">Send for approval</button>`
         : `<button class="btn primary lg" type="button" id="submit">Send for approval</button>`}</div>` : ""}
@@ -385,6 +387,17 @@ export async function render(ctx) {
       const x = e.target.closest("[data-x]");
       if (x) { const mod = await import("../report/export.js"); return x.dataset.x === "xlsx" ? mod.excelReport(a) : mod.pptReport(a); }
     });
+    const mr = el.querySelector("#mailrep");
+    if (mr) mr.addEventListener("click", () => setTimeout(async () => {
+      const m = reportMail(a);
+      const ok = await dialog({ title: "Did you send the e-mail?", body: `<p>If you sent it, the system records the date, who it went to and the subject as the proof of sending (P-20 7.4).</p>`, actions: [{ label: "Not yet", value: false }, { label: "Yes, record it", kind: "primary", value: true }] });
+      if (!ok) return;
+      a.sent = { ...(a.sent || {}), date: (a.sent || {}).date || todayISO(), to: (a.sent || {}).to || m.to, ref: (a.sent || {}).ref || m.subject, by: me.name };
+      if (!(a.history || []).some(h => h.what === "Report sent to project")) a.history = [...(a.history || []), { at: new Date().toISOString(), by: me.name, what: "Report sent to project" }];
+      await saveNow(); toast("Sending recorded.", "ok"); goStep("finish");
+    }, 400));
+    const plk = el.querySelector("#plink");
+    if (plk) plk.onclick = async () => { await projectLink(a.module, a.project_id); goStep("finish"); };
     el.querySelectorAll("[data-sf]").forEach(i => {
       i.disabled = !M.canEdit();
       i.addEventListener("input", () => {
@@ -416,8 +429,24 @@ function howDialog(d, sc) {
     body: `<p class="small">Each part's score is the weighted average of its items (weight × rating). Items marked N/A are left out, and their weight goes to the other items. A rating of 0% counts as zero. Parts are combined by their share. Then one or more Serious NCRs take off ${d.deductions.serious}% once, and each repeated NCR takes off ${d.deductions.repeated}%.</p>
       <div class="tscroll"><table class="tbl calc"><thead><tr><th>Item</th><th>Weight</th><th>Rating</th><th>Share of final</th><th>Points</th></tr></thead><tbody>${rows}
       <tr><th colspan="4">Before deductions</th><th class="num">${fmtScore(sc.base)}</th></tr>
-      <tr><td colspan="4">Serious NCRs (${sc.seriousCount})</td><td class="num">${sc.serious ? "−" + sc.serious : 0}</td></tr>
-      <tr><td colspan="4">Repeated NCRs (${sc.repeatedCount})</td><td class="num">${sc.repeated ? "−" + sc.repeated : 0}</td></tr>
+      <tr><td colspan="4">Serious NCRs (${sc.seriousCount})</td><td class="num">${M.minus(sc.serious)}</td></tr>
+      <tr><td colspan="4">Repeated NCRs (${sc.repeatedCount})</td><td class="num">${M.minus(sc.repeated)}</td></tr>
       <tr><th colspan="4">${esc(d.scoreLabel)}</th><th class="num">${fmtScore(sc.total)}</th></tr></tbody></table></div>`,
   });
+}
+
+// The e-mail that sends the report to the project (the PDF is attached by hand).
+function reportMail(a) {
+  const d = M.def(a.module), p = M.project(a.project_id), sc = M.score(a), list = M.auditNCRs(a);
+  const l = linkOf(a.module, a.project_id);
+  const subject = `${d.short} report ${a.ref} · ${p.name} · ${fmtDate(a.date)}`;
+  const counts = ["Serious", "Major", "Minor"].map(s => `${list.filter(n => n.severity === s).length} ${s.toLowerCase()}`).join(", ");
+  const body = [`Dear ${p.name} team,`, "",
+    `Please find attached the Corporate HSE ${d.short} report ${a.ref} of ${fmtDate(a.date)}.`, "",
+    `Score: ${fmtScore(sc.total)}${sc.grade ? ` (${sc.grade.label})` : ""}`,
+    `NCRs: ${list.length} (${counts}${sc.repeatedCount ? `, ${sc.repeatedCount} repeated` : ""}). The deadlines are in the NCR forms.`, "",
+    ...(l ? ["Send the evidence of the corrective actions through this link (no sign-in needed):", linkUrl(l), ""] : []),
+    "Corporate HSE"].join("\n");
+  const to = p.contact_emails || "";
+  return { to, subject, href: `mailto:${to.replace(/\s+/g, "")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}` };
 }

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>NCR follow-up · OC HSE Audit</title>
+  <meta name="description" content="Send evidence for Corporate HSE audit NCRs of your project.">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#00264f">
+  <link rel="icon" href="assets/icon-64.png">
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    .lk-top { background: var(--navy-deep); color: #fff; padding: 14px 16px 18px; }
+    .lk-top .brand { padding: 0 0 14px; }
+    .lk-top h1 { font-size: 26px; color: #fff; }
+    .lk-top p { margin: 4px 0 0; color: #c3d2e6; font-size: 14px; }
+    .lk-wrap { max-width: 760px; margin: 0 auto; padding: 16px 16px 60px; }
+    .lk-intro { margin: 0 0 16px; color: var(--muted); max-width: 62ch; }
+    .lk-ncr { margin-bottom: 16px; }
+    .lk-ncr h2 { font-size: 19px; margin: 8px 0 4px; }
+    .lk-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 16px; font-size: 14px; margin: 10px 0; }
+    .lk-meta span { display: block; color: var(--muted); font-size: 12.5px; }
+    .lk-late { color: var(--g-red); font-weight: 700; }
+    .lk-form { border-top: 1px solid var(--line-soft); margin-top: 14px; padding-top: 14px; }
+    .lk-note { background: #fff1e3; color: #6e3800; border-radius: var(--r-md); padding: 10px 12px; font-size: 14px; }
+    .lk-done { background: #e1ecfb; color: #183f78; border-radius: var(--r-md); padding: 10px 12px; font-size: 14px; }
+    .lk-sig canvas { width: 100%; max-width: 360px; height: 110px; border: 1px dashed var(--line); border-radius: 8px; background: #fff; touch-action: none; display: block; }
+    .lk-err { color: var(--g-red); font-size: 14px; }
+    .chip.st-review { background: #e1ecfb; color: #1c4f96; }
+    @media (max-width: 560px) { .lk-wrap .grid2 { grid-template-columns: 1fr; } }
+  </style>
+  <script src="js/config.js"></script>
+</head>
+<body>
+  <header class="lk-top">
+    <div class="brand"><span class="brand-logo"><img src="assets/orascom-logo.png" alt="Orascom Construction"></span><span class="brand-name">Corporate HSE<span>Audit system</span></span></div>
+    <h1 id="lk-title">NCR follow-up</h1>
+    <p id="lk-sub">Loading…</p>
+  </header>
+  <main class="lk-wrap" id="lk-main"><div class="empty">Loading the NCRs…</div></main>
+  <noscript>This page needs JavaScript turned on.</noscript>
+  <script type="module" src="js/close.js"></script>
+</body>
+</html>

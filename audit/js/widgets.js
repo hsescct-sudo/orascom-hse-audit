@@ -198,3 +198,57 @@ export async function editGood(audit, gp = null) {
   if (res === "delete") { await S.remove(g.id); toast("Good practice deleted."); return "deleted"; }
   return S.put({ ...g, ...res, photos: photoCtl ? photoCtl.get() : g.photos });
 }
+
+// ---------- project link (P-20 7.10: the project sends NCR evidence) ----------
+export const appUrl = () => (window.HSE_AUDIT_CONFIG || {}).publicUrl || new URL(".", location.href).href;
+export const linkOf = (mod, projectId) => S.all("link").find(l => l.module === mod && l.project_id === projectId && !l.revoked) || null;
+export const linkUrl = l => `${appUrl()}close.html#t=${l.token}`;
+function newToken() {
+  const a = new Uint8Array(24); crypto.getRandomValues(a);
+  return btoa(String.fromCharCode(...a)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+export async function projectLink(mod, projectId = "") {
+  if (!M.canEdit()) return;
+  const d = M.def(mod);
+  if (!projectId) {
+    const pick = await dialog({
+      title: "Project link", body: `<label class="fld"><span>Project</span><select id="pl-p">${projectOptions("", { all: "" , list: M.activeProjects() })}</select></label>`,
+      actions: [{ label: "Cancel", value: null }, { label: "Next", kind: "primary", value: w => w.querySelector("#pl-p").value }],
+    });
+    if (!pick) return; projectId = pick;
+  }
+  const p = M.project(projectId);
+  const cloud = (await S.meta("mode")) === "cloud";
+  let l = linkOf(mod, projectId);
+  if (!l) {
+    const ok = await dialog({
+      title: `Project link · ${p.name}`,
+      body: `<p>The project opens this link to see its ${esc(d.short)} NCRs and send evidence: what was done, photos and a signature. No sign-in is needed. The NCR then waits for you under "Evidence under review".</p>
+        <p class="muted small">Anyone who has the link can send evidence for this project. Share it only with the project HSE team. You can turn it off at any time.</p>
+        ${cloud ? "" : `<p class="small" style="color:var(--g-red)">Links work only when the system is connected to the server, not with sample data.</p>`}`,
+      actions: [{ label: "Cancel", value: null }, { label: "Make link", kind: "primary", value: true }],
+    });
+    if (!ok) return;
+    l = await S.put({ id: S.uid("lnk"), kind: "link", module: mod, project_id: projectId, token: newToken(), revoked: false, created_by: M.me().name });
+    toast("Link made. It works once it reaches the server.", "ok");
+  }
+  const url = linkUrl(l);
+  const to = p.contact_emails || "";
+  const mail = `mailto:${encodeURIComponent(to).replace(/%2C/g, ",").replace(/%40/g, "@")}?subject=${encodeURIComponent(`${d.short} NCRs · ${p.name}: send your evidence here`)}&body=${encodeURIComponent(`Dear project HSE team,\n\nUse this link to see the open ${d.short} NCRs of ${p.name} and send the evidence of the corrective actions (text and photos):\n${url}\n\nNo sign-in is needed. Please don't share the link outside the project.\n\nCorporate HSE`)}`;
+  const r = await dialog({
+    title: `Project link · ${p.name}`, wide: true,
+    body: `<p class="small">${esc(d.short)} NCRs only. Made${l.created_by ? ` by ${esc(l.created_by)}` : ""}${l.created_at ? ` on ${esc(l.created_at.slice(0, 10))}` : ""}.</p>
+      <label class="fld"><span>Link</span><input id="lk-u" value="${esc(url)}" readonly></label>
+      <div class="row" style="margin-top:10px"><button type="button" class="btn" id="lk-copy">Copy link</button><a class="btn" href="${esc(mail)}">E-mail to the project</a><a class="btn ghost" href="${esc(url)}" target="_blank" rel="noopener">Open</a></div>
+      ${to ? `<p class="muted small">E-mail goes to: ${esc(to)}</p>` : `<p class="muted small">No project e-mails yet. Add them under Projects so the e-mail and the reminders find the right people.</p>`}`,
+    onMount: w => { w.querySelector("#lk-copy").onclick = async () => { try { await navigator.clipboard.writeText(url); } catch (e) { w.querySelector("#lk-u").select(); document.execCommand("copy"); } toast("Link copied.", "ok"); }; },
+    actions: [{ label: "Turn off link", kind: "ghost", value: "off" }, { label: "New link", kind: "ghost", value: "new" }, { label: "Close", kind: "primary", value: null }],
+  });
+  if (r === "off" || r === "new") {
+    const sure = await confirmBox(r === "off" ? "The project can't use this link any more. NCRs and evidence already sent stay." : "The old link stops working and a new one is made. Send the new link to the project.", { title: r === "off" ? "Turn off the link?" : "Make a new link?", ok: r === "off" ? "Turn off" : "Make new link", danger: r === "off" });
+    if (!sure) return;
+    await S.put({ ...l, revoked: true, revoked_by: M.me().name, revoked_at: S.nowISO() });
+    if (r === "new") return projectLink(mod, projectId);
+    toast("Link turned off.", "ok");
+  }
+}

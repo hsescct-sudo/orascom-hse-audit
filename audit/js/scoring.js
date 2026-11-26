@@ -4,15 +4,18 @@
 // Part score = sum(weight x rating) / sum(weight) over the items that apply.
 // Base score = parts combined by their share (90/10, or A..G for lifting).
 // Then: one or more Serious NCRs take off 15% once; each repeated NCR takes off 3%.
+// Settings (Corporate HSE decides): Serious once or for each one, deductions as points
+// off the score or as a percent of it, and grading on the score as shown (one decimal)
+// or rounded to a whole number.
 import { GRADES } from "./templates.js";
 
 export const NA = "na";
 export const isNA = v => v === NA;
 export const isRated = v => v === NA || (typeof v === "number" && isFinite(v));
 
-export function gradeOf(score) {
+export function gradeOf(score, gradeOn = "shown") {
   if (score == null || !isFinite(score)) return null;
-  const s = Math.round(score * 10) / 10;
+  const s = gradeOn === "whole" ? Math.round(score) : Math.round(score * 10) / 10;
   return GRADES.find(g => s >= g.min) || GRADES[GRADES.length - 1];
 }
 
@@ -45,12 +48,16 @@ export function scoreAudit(def, audit, ncrs = [], opts = {}) {
   const live_ncrs = ncrs.filter(n => !n.deleted);
   const seriousCount = live_ncrs.filter(n => n.severity === "Serious").length;
   const repeatedCount = live_ncrs.filter(n => n.repeated).length;
-  const serious = seriousCount ? def.deductions.serious : 0;
-  const repeated = repeatedCount * def.deductions.repeated;
+  // the deduction rates in %, then the points they take off
+  const seriousPct = seriousCount ? def.deductions.serious * (opts.seriousEach ? seriousCount : 1) : 0;
+  const repeatedPct = repeatedCount * def.deductions.repeated;
+  const pctOfScore = opts.deductFrom === "percent";
+  const serious = base == null ? 0 : pctOfScore ? base * seriousPct / 100 : seriousPct;
+  const repeated = base == null ? 0 : pctOfScore ? base * repeatedPct / 100 : repeatedPct;
   const total = base == null ? null : clamp(base - serious - repeated, 0, 100);
   return {
-    parts, base, serious, seriousCount, repeated, repeatedCount, total,
-    grade: gradeOf(total), itemCount, ratedCount, complete: ratedCount === itemCount,
+    parts, base, serious, seriousCount, seriousPct, repeated, repeatedCount, repeatedPct, total,
+    grade: gradeOf(total, opts.gradeOn), itemCount, ratedCount, complete: ratedCount === itemCount,
   };
 }
 

@@ -1,7 +1,7 @@
 // Domain rules: refs, previous audits, carried NCRs, plan status, NCR state.
 import * as S from "./store.js";
 import { moduleDef } from "./templates.js";
-import { scoreAudit } from "./scoring.js";
+import { scoreAudit, gradeOf } from "./scoring.js";
 import { todayISO, daysBetween } from "./ui.js";
 
 export const def = m => moduleDef(m, S.settings());
@@ -11,6 +11,8 @@ export const project = id => S.get(id) || { id, name: "Unknown project", code: "
 export const members = () => S.all("member").sort((a, b) => (a.role === "admin" ? -1 : 0) - (b.role === "admin" ? -1 : 0) || a.name.localeCompare(b.name));
 export const auditors = () => members().filter(m => m.active !== false && (m.role === "auditor" || m.role === "admin"));
 export const member = id => S.get(id);
+// P-20 7.2 exception: JV projects and projects outside Egypt
+export const planException = p => !!p && (!!p.jv || (!!p.country && !/egypt|مصر/i.test(p.country)));
 
 let current = null;
 export const me = () => current;
@@ -26,9 +28,18 @@ export const plans = m => S.all("plan").filter(p => p.module === m);
 export const auditNCRs = a => S.all("ncr").filter(n => n.audit_id === a.id).sort((x, y) => (x.seq || 0) - (y.seq || 0));
 export const auditGoods = a => S.all("good").filter(g => g.audit_id === a.id).sort((x, y) => (x.created_at || "").localeCompare(y.created_at || ""));
 
+export const scoreOpts = () => { const st = S.settings(); return { zeroIsNA: !!st.zeroIsNA, seriousEach: !!st.seriousEach, deductFrom: st.deductFrom === "percent" ? "percent" : "points", gradeOn: st.gradeOn === "whole" ? "whole" : "shown" }; };
 export function score(a) {
-  return scoreAudit(def(a.module), a, auditNCRs(a), { zeroIsNA: !!S.settings().zeroIsNA });
+  return scoreAudit(def(a.module), a, auditNCRs(a), scoreOpts());
 }
+export const grade = s => gradeOf(s, scoreOpts().gradeOn);
+// How the deductions work, in words for the screens and reports.
+export function ruleText(d) {
+  const o = scoreOpts(); const of = o.deductFrom === "percent" ? " of the score" : "";
+  return { serious: `${d.deductions.serious}%${of} ${o.seriousEach ? "for each one" : "once"}`, repeated: `${d.deductions.repeated}%${of} each` };
+}
+const r1 = v => Math.round(v * 10) / 10;
+export const minus = v => (v ? "−" + r1(v) + "%" : "0");
 export const finished = a => a.status === "submitted" || a.status === "approved";
 
 // The last audit of the same type on the same project, before this one.

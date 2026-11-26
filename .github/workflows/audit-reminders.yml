@@ -1,0 +1,39 @@
+# Daily e-mail reminders of the OC HSE Audit system (see audit/tools/send_reminders.py).
+# Sends nothing until the administrator turns reminders on in Settings and the
+# mail account secrets (SMTP_USER, SMTP_PASSWORD) are added to this repository.
+name: Audit reminders
+
+on:
+  schedule:
+    - cron: "17 3 * * *"   # every day 06:17 Saudi time; the script checks the chosen days
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Test run: ignore the on/off switch and the day"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: audit/tools
+      - name: Send reminders
+        env:
+          SUPABASE_URL: https://weczibogscuosnjevdde.supabase.co
+          SUPABASE_KEY: sb_publishable_C3sMKfEyOhhK5LDI9RYGqw__Y3kZe-3
+          APP_URL: https://hsescct-sudo.github.io/orascom-hse-audit/audit/
+          REMINDER_KEY: ${{ secrets.REMINDER_KEY }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          FORCE: ${{ github.event.inputs.force == 'true' && '1' || '0' }}
+        run: python3 audit/tools/send_reminders.py

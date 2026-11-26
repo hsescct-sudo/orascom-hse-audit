@@ -35,6 +35,11 @@ export async function render(ctx) {
   draw();
 }
 
+// "a@x.com; b@y.com" -> "a@x.com, b@y.com"
+export const emailList = v => String(v || "").split(/[\s,;]+/).map(x => x.trim().toLowerCase()).filter(Boolean);
+const cleanEmails = v => emailList(v).join(", ");
+const badEmails = v => emailList(v).find(x => !/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(x)) || "";
+
 async function edit(p = null) {
   const x = p || { id: S.uid("prj"), kind: "project", name: "", code: "", city: "", country: "", bu: "", director: "", manager: "", active: true };
   const r = await dialog({
@@ -42,11 +47,14 @@ async function edit(p = null) {
     body: `<div class="grid2"><label class="fld"><span>Project name</span><input id="p-n" value="${esc(x.name)}"></label><label class="fld"><span>Code</span><input id="p-c" value="${esc(x.code)}" placeholder="e.g. EG-42"></label></div>
       <div class="grid2"><label class="fld"><span>City / area</span><input id="p-ci" value="${esc(x.city)}"></label><label class="fld"><span>Country</span><input id="p-co" value="${esc(x.country)}" list="cl"><datalist id="cl"><option>Egypt</option><option>KSA</option><option>UAE</option><option>Jordan</option></datalist></label></div>
       <div class="grid3"><label class="fld"><span>Business unit</span><input id="p-b" value="${esc(x.bu || "")}"></label><label class="fld"><span>Project director</span><input id="p-d" value="${esc(x.director || "")}"></label><label class="fld"><span>Project manager</span><input id="p-m" value="${esc(x.manager || "")}"></label></div>
-      <label class="tick"><input type="checkbox" id="p-a" ${x.active !== false ? "checked" : ""}>Active project</label>`,
+      <label class="fld"><span>E-mails for audit reports and NCR reminders (project HSE manager, PM). Separate with commas.</span><input id="p-e" type="text" inputmode="email" value="${esc(x.contact_emails || "")}" placeholder="name@orascom.com, name2@orascom.com"></label>
+      <div class="row" style="gap:18px"><label class="tick"><input type="checkbox" id="p-a" ${x.active !== false ? "checked" : ""}>Active project</label>
+        <label class="tick"><input type="checkbox" id="p-jv" ${x.jv ? "checked" : ""}>Joint venture (JV)</label></div>
+      <p class="muted small">JV projects and projects outside Egypt can have fewer HSE audits a year (P-20 §7.2). The plan builder asks how many.</p>`,
     actions: [{ label: "Cancel", value: null }, {
       label: "Save", kind: "primary",
-      validate: w => (!w.querySelector("#p-n").value.trim() ? "Enter the project name." : !w.querySelector("#p-c").value.trim() ? "Enter a short code." : M.projects().some(o => o.id !== x.id && o.code.toLowerCase() === w.querySelector("#p-c").value.trim().toLowerCase()) ? "Another project already uses this code." : null),
-      value: w => ({ name: w.querySelector("#p-n").value.trim(), code: w.querySelector("#p-c").value.trim().toUpperCase(), city: w.querySelector("#p-ci").value.trim(), country: w.querySelector("#p-co").value.trim(), bu: w.querySelector("#p-b").value.trim(), director: w.querySelector("#p-d").value.trim(), manager: w.querySelector("#p-m").value.trim(), active: w.querySelector("#p-a").checked }),
+      validate: w => (!w.querySelector("#p-n").value.trim() ? "Enter the project name." : badEmails(w.querySelector("#p-e").value) ? `Check this e-mail: ${badEmails(w.querySelector("#p-e").value)}` : !w.querySelector("#p-c").value.trim() ? "Enter a short code." : M.projects().some(o => o.id !== x.id && o.code.toLowerCase() === w.querySelector("#p-c").value.trim().toLowerCase()) ? "Another project already uses this code." : null),
+      value: w => ({ name: w.querySelector("#p-n").value.trim(), code: w.querySelector("#p-c").value.trim().toUpperCase(), city: w.querySelector("#p-ci").value.trim(), country: w.querySelector("#p-co").value.trim(), bu: w.querySelector("#p-b").value.trim(), director: w.querySelector("#p-d").value.trim(), manager: w.querySelector("#p-m").value.trim(), active: w.querySelector("#p-a").checked, jv: w.querySelector("#p-jv").checked, contact_emails: cleanEmails(w.querySelector("#p-e").value) }),
     }],
   });
   if (!r) return;

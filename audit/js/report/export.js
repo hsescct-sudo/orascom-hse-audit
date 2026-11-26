@@ -93,7 +93,7 @@ export async function excelReport(a) {
     r++;
     // grade legend
     GRADES.forEach(g => { const c = ws.getCell(r, 1); c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GC[g.code] } }; c.border = border; ws.mergeCells(r, 2, r, 5); const t = ws.getCell(r, 2); t.value = `${g.min === 85 ? "From 85% and above" : g.min === 75 ? "From 75% to 84%" : g.min === 65 ? "From 65% to 74%" : "From 0% to 64%"}: ${g.label}.`; cellStyle(t); r++; });
-    ws.mergeCells(r, 1, r, 9); ws.getCell(r, 1).value = `Serious NCR: ${d.deductions.serious}% deducted once. Each repeated NCR: ${d.deductions.repeated}% deducted.`; ws.getCell(r, 1).font = { italic: true, size: 9 }; r += 2;
+    ws.mergeCells(r, 1, r, 9); ws.getCell(r, 1).value = `Serious NCR: ${M.ruleText(d).serious}. Repeated NCR: ${M.ruleText(d).repeated}.`; ws.getCell(r, 1).font = { italic: true, size: 9 }; r += 2;
     if (d.hasEquipment) {
       ws.mergeCells(r, 1, r, 9); const t = ws.getCell(r, 1); t.value = "Lifting equipment statistics"; cellStyle(t, { bold: true, fill: NAVY, color: "FFFFFFFF" }); r++;
       headerRow(ws, r, ["Ser.", "Lifting equipment description", "No.", "Owned / rental"]); r++;
@@ -149,8 +149,14 @@ export async function excelReport(a) {
     const shareSum = partCells.map(pc => `IF(ISNUMBER(${pc.cell}),${pc.share},0)`).join("+");
     const weighted = partCells.map(pc => `IF(ISNUMBER(${pc.cell}),${pc.cell}*${pc.share},0)`).join("+");
     const concl = [["Before deductions (%)", { formula: `IFERROR((${weighted})/(${shareSum}),"")`, result: sc.base == null ? "" : Math.round(sc.base * 10) / 10 }],
-      [`Serious violations (${sc.seriousCount}): ${d.deductions.serious}% once`, sc.serious], [`Repeated violations (${sc.repeatedCount}): ${d.deductions.repeated}% each`, sc.repeated]];
-    concl.forEach(([k, v]) => { ap.mergeCells(q, 1, q, 4); const c = ap.getCell(q, 1); c.value = k; cellStyle(c, { bold: true }); const e = ap.getCell(q, 5); e.value = v; cellStyle(e, { align: "center" }); e.numFmt = "0.0"; q++; });
+      [`Serious violations (${sc.seriousCount}): ${M.ruleText(d).serious}`, sc.serious, sc.seriousPct], [`Repeated violations (${sc.repeatedCount}): ${M.ruleText(d).repeated}`, sc.repeated, sc.repeatedPct]];
+    const baseRow = q, pctMode = M.scoreOpts().deductFrom === "percent";
+    concl.forEach(([k, v, pct], i) => {
+      ap.mergeCells(q, 1, q, 4); const c = ap.getCell(q, 1); c.value = k; cellStyle(c, { bold: true }); const e = ap.getCell(q, 5);
+      // with "percent of the score" the deduction is a live formula on the score before deductions
+      e.value = i > 0 && pctMode ? { formula: `IF(E${baseRow}="",0,E${baseRow}*${pct}/100)`, result: Math.round(v * 10) / 10 } : v;
+      cellStyle(e, { align: "center" }); e.numFmt = "0.0"; q++;
+    });
     ap.mergeCells(q, 1, q, 4); const tt = ap.getCell(q, 1); tt.value = `Total project score (%) · ${sc.grade ? sc.grade.label : ""}`; cellStyle(tt, { bold: true, fill: sc.grade ? GC[sc.grade.code] : HEAD, color: sc.grade && ["green", "red"].includes(sc.grade.code) ? "FFFFFFFF" : undefined });
     const tv = ap.getCell(q, 5); tv.value = { formula: `IF(E${q - 3}="","",MAX(0,MIN(100,E${q - 3}-E${q - 2}-E${q - 1})))`, result: sc.total == null ? "" : Math.round(sc.total * 10) / 10 }; cellStyle(tv, { bold: true, fill: sc.grade ? GC[sc.grade.code] : HEAD, align: "center", color: sc.grade && ["green", "red"].includes(sc.grade.code) ? "FFFFFFFF" : undefined }); tv.numFmt = "0.0";
     // Sheet 3/4: registers for this audit
@@ -181,6 +187,8 @@ function addRegisterSheet(wb, d, list, name = "Register") {
   ws.getRow(1).height = 42;
   list.forEach((n, i) => { regRow(n, i).forEach((v, j) => { const c = ws.getCell(i + 2, j + 1); c.value = v; cellStyle(c, { fill: j === 18 ? (v === "Closed" ? "FFDDF3E6" : v === "Overdue" ? "FFFDE8E7" : null) : null }); }); });
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: REG_COLS.length } };
+  const ref = S.settings().findingsFormRef;
+  ws.headerFooter = { oddHeader: `&L${d.short} NCR register${ref ? `&RForm Ref.: ${ref}` : ""}`, oddFooter: "&LPrinted &D&RPage &P of &N" };
   return ws;
 }
 function addGoodSheet(wb, list) {

@@ -79,7 +79,7 @@ function plain(c) {
 }
 // Everything that happened on one audit: field changes from the change log plus status steps.
 export function logsFor(a) {
-  const logs = S.all("log").filter(l => l.audit_id === a.id).map(l => ({ at: l.at, by: l.by || "Unknown", rec: l.target_ref || l.target_kind, action: l.action, what: (l.changes || []).map(plain).filter(Boolean).join("; ") }))
+  const logs = S.all("log").filter(l => l.audit_id === a.id).map(l => ({ id: l.id, at: l.at, by: l.by || "Unknown", rec: l.target_ref || l.target_kind, action: l.action, what: (l.changes || []).map(plain).filter(Boolean).join("; ") }))
     .filter(l => l.action !== "Edited" || l.what);
   const hist = (a.history || []).map(h => ({ at: h.at, by: h.by || "Unknown", rec: a.ref, action: "Status", what: h.what }));
   return [...logs, ...hist].sort((x, y) => String(y.at).localeCompare(String(x.at)));
@@ -90,16 +90,52 @@ export function historyViewHTML(a) {
   const rows = logsFor(a);
   const by = {}; rows.forEach(r => { by[r.by] = (by[r.by] || 0) + 1; });
   return `<section class="panel"><div class="panel-h"><h2>Who did what</h2><span class="muted">${rows.length} ${rows.length === 1 ? "entry" : "entries"}</span></div>
+    <p class="small muted" data-srv style="margin:-4px 0 10px"></p>
     <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px"><button type="button" class="btn sm primary" data-who="">All <span class="num">${rows.length}</span></button>${Object.entries(by).map(([k, v]) => `<button type="button" class="btn sm" data-who="${esc(k)}">${esc(k)} <span class="num">${v}</span></button>`).join("")}</div>
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;border-bottom:2px solid var(--line)"><th style="padding:6px">When</th><th style="padding:6px">Who</th><th style="padding:6px">Record</th><th style="padding:6px">Action</th><th style="padding:6px">What changed</th></tr></thead><tbody>
-    ${rows.map(r => `<tr data-by="${esc(r.by)}" style="border-bottom:1px solid var(--line-soft)"><td style="padding:6px;white-space:nowrap">${esc(fmtWhen(r.at))}</td><td style="padding:6px">${esc(r.by)}</td><td style="padding:6px">${esc(r.rec)}</td><td style="padding:6px">${esc(r.action)}</td><td style="padding:6px">${esc(r.what)}</td></tr>`).join("") || `<tr><td colspan="5" class="muted" style="padding:10px">No changes recorded yet.</td></tr>`}
+    ${rows.map(r => `<tr data-by="${esc(r.by)}" ${r.id ? `data-log="${esc(r.id)}"` : ""} style="border-bottom:1px solid var(--line-soft)"><td style="padding:6px;white-space:nowrap">${esc(fmtWhen(r.at))}</td><td style="padding:6px">${esc(r.by)}</td><td style="padding:6px">${esc(r.rec)}</td><td style="padding:6px">${esc(r.action)}</td><td style="padding:6px">${esc(r.what)}</td></tr>`).join("") || `<tr><td colspan="5" class="muted" style="padding:10px">No changes recorded yet.</td></tr>`}
     </tbody></table></div></section>`;
 }
-export function mountHistory(el) {
+export function mountHistory(el, a) {
   el.querySelectorAll("[data-who]").forEach(b => { b.onclick = () => {
     el.querySelectorAll("[data-who]").forEach(x => x.classList.toggle("primary", x === b));
     el.querySelectorAll("tr[data-by]").forEach(r => { r.hidden = !!b.dataset.who && r.dataset.by !== b.dataset.who; });
   }; });
+  if (a) checkServer(el, a);
+}
+
+// Compare the history on this device with the copy on the server, which can't be changed.
+async function checkServer(el, a) {
+  const note = el.querySelector("[data-srv]"); if (!note) return;
+  if ((await S.meta("mode")) !== "cloud") return;
+  let rows;
+  try { const Sync = await import("./sync.js"); rows = await Sync.call("ha_history", { p_audit_id: a.id }); }
+  catch (e) { note.textContent = /internet/i.test(e.message) ? "Offline: the server copy of this history is checked when you are online." : e.message; return; }
+  const srv = new Map((rows || []).map(r => [r.doc_id, r]));
+  const local = S.all("log").filter(l => l.audit_id === a.id);
+  let same = 0, waiting = 0, differs = 0;
+  for (const l of local) {
+    const tr = el.querySelector(`tr[data-log="${CSS.escape(l.id)}"]`);
+    const s = srv.get(l.id);
+    let mark = "", bad = false;
+    if (!s || l.dirty) { waiting++; mark = s ? "Latest change not sent yet" : "Not on the server yet"; }
+    else if (JSON.stringify(s.data.changes || []) !== JSON.stringify(l.changes || []) || (s.data.by || "") !== (l.by || "")) { differs++; bad = true; mark = `Differs from the server copy (server: ${(s.data.changes || []).join("; ").slice(0, 120)})`; }
+    else same++;
+    if (tr && mark) tr.lastElementChild.insertAdjacentHTML("beforeend", `<br><span class="small" style="color:${bad ? "var(--g-red)" : "var(--muted)"}">${esc(mark)}</span>`);
+  }
+  note.innerHTML = `Server copy: ${same + differs} of ${local.length} lines are kept on the server, where nobody can change or delete them${waiting ? `. ${waiting} still waiting to be sent` : ""}.${differs ? ` <b style="color:var(--g-red)">${differs} line${differs === 1 ? "" : "s"} on this device differ from the server copy.</b>` : ""}`;
+}
+
+// Signatures kept on the server for one NCR (who sent each one, and when).
+export async function serverSigsHTML(id) {
+  if ((await S.meta("mode")) !== "cloud" || !navigator.onLine) return "";
+  try {
+    const Sync = await import("./sync.js");
+    const rows = await Sync.call("ha_sigs", { p_doc_id: id });
+    if (!rows || !rows.length) return "";
+    const label = k => (SIG_SLOTS.find(s => s.key === k) || { label: k }).label;
+    return `<p class="small muted" style="margin:0">Signatures kept on the server (can't be changed): ${rows.map(r => `${esc(label(r.slot))}${r.name ? " · " + esc(r.name) : ""} · ${esc(fmtWhen(r.pushed_at))} by ${esc(r.pushed_by || "")}`).join("; ")}.</p>`;
+  } catch (e) { return ""; }
 }
 
 export function changeLogHTML(a) {

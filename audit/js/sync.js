@@ -46,10 +46,40 @@ export async function signIn(email, password) {
   if (e2) { console.error("ha_me", e2); await c.auth.signOut(); throw new Error(nice(e2)); }
   const me = Array.isArray(data) ? data[0] : data;
   if (!me) { await c.auth.signOut(); throw new Error("This e-mail is not in the audit system. Ask Corporate HSE to add you under Auditors and users."); }
-  const member = { id: me.id, kind: "member", name: me.name, email: me.email, role: me.role, position: me.position || "", active: true };
+  const member = { id: me.id, kind: "member", name: me.name, email: me.email, role: me.role, position: me.position || "", active: true, must_change: !!me.must_change };
   await S.meta("me", member);
   if (!S.get(member.id)) await S.putMany([{ ...member, updated_at: new Date(0).toISOString() }], { fromServer: true, silent: true });
   return member;
+}
+
+// The person sets their own password (first sign-in, or from Settings).
+export async function setOwnPassword(pw) {
+  const c = await getClient();
+  const { error } = await c.auth.updateUser({ password: pw });
+  if (error) throw new Error(/same|different from the old/i.test(error.message || "") ? "Choose a password different from the temporary one." : nice(error));
+  const { error: e2 } = await c.rpc("ha_password_set");
+  if (e2) throw new Error(nice(e2));
+  const me = await S.meta("me"); if (me) await S.meta("me", { ...me, must_change: false });
+}
+
+// A server function, with plain error messages. Needs internet.
+export async function call(fn, args = {}) {
+  if (!navigator.onLine) throw new Error("This needs the internet. Try again when you are online.");
+  const c = await getClient();
+  const { data, error } = await c.rpc(fn, args);
+  if (error) {
+    const m = String(error.message || "");
+    if (error.code === "PGRST202" || /Could not find the function/i.test(m)) throw new Error("The server needs the update (supabase/audit-update-2.sql). Ask the administrator to run it once.");
+    throw new Error(error.code === "P0001" ? m : nice(error));
+  }
+  return data;
+}
+
+// Administrator: make or reset a sign-in. The person must be on the server first.
+export async function adminSetLogin(email, pw) {
+  await syncNow();
+  if (st.pending) throw new Error("Some changes are not on the server yet. Check the internet and try again.");
+  return call("ha_admin_set_login", { p_email: email, p_password: pw });
 }
 
 // Back to the last session on this device, even with no internet.

@@ -57,6 +57,8 @@ async function startSession(mode) {
   } else {
     const who = await Sync.resume();
     if (!who) { await S.meta("mode", null); return gate(); }
+    const saved = await S.meta("me");
+    if (saved && saved.must_change && navigator.onLine) { gate(); await newPassword(who); }
     M.setMe(who);
   }
   Sync.init(mode);
@@ -112,11 +114,36 @@ function gate() {
     btn.disabled = true; btn.textContent = "Signing in…";
     try {
       const who = await Sync.signIn(f.email.value.trim(), f.password.value);
+      if (who.must_change) await newPassword(who);
       M.setMe(who);
       await S.meta("mode", "cloud");
       await startSession("cloud");
     } catch (err) { msg.textContent = err.message; msg.style.color = "var(--g-red)"; btn.disabled = false; btn.textContent = "Sign in"; }
   };
+}
+
+// First sign-in with a temporary password: the person sets their own before going on.
+function newPassword(who) {
+  return new Promise(done => {
+    const card = $("#signin");
+    card.innerHTML = `<h2>Set your own password</h2>
+      <p class="muted small">Welcome, ${esc(who.name)}. You signed in with a temporary password. Choose your own now. Use at least 8 characters.</p>
+      <label class="fld"><span>New password</span><input name="p1" type="password" autocomplete="new-password" minlength="8" required></label>
+      <label class="fld"><span>New password again</span><input name="p2" type="password" autocomplete="new-password" minlength="8" required></label>
+      <button class="btn primary lg" type="submit">Save and continue</button>
+      <p class="muted small" id="pw-msg"></p>`;
+    card.onsubmit = async e => {
+      e.preventDefault();
+      const msg = $("#pw-msg"); const btn = card.querySelector("button[type=submit]");
+      const p1 = card.p1.value, p2 = card.p2.value;
+      const err = p1.length < 8 ? "Use at least 8 characters." : p1 !== p2 ? "The two passwords are not the same." : "";
+      if (err) { msg.textContent = err; msg.style.color = "var(--g-red)"; return; }
+      btn.disabled = true; btn.textContent = "Saving…";
+      try { await Sync.setOwnPassword(p1); who.must_change = false; done(); }
+      catch (ex) { msg.textContent = ex.message; msg.style.color = "var(--g-red)"; btn.disabled = false; btn.textContent = "Save and continue"; }
+    };
+    card.p1.focus();
+  });
 }
 
 export async function loadSample() {

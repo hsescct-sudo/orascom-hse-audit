@@ -1,4 +1,5 @@
 // NCR register for one audit type. HSE Audit NCRs and Lifting NCRs are separate registers.
+import * as S from "../store.js";
 import * as M from "../model.js";
 import { setTitle, setActions, go, link } from "../app.js";
 import { esc, ICON, fmtDate, todayISO, daysBetween } from "../ui.js";
@@ -6,15 +7,16 @@ import { sevChip, ncrChip, repChip, projectOptions, optionList } from "../compon
 
 export async function render(ctx) {
   const { module: mod, def, view, query } = ctx;
-  setTitle("NCR register", `${def.name} · NCR form ${def.ncrFormRef}`);
+  const fref = S.settings().findingsFormRef;
+  setTitle("NCR register", `${def.name} · NCR form ${def.ncrFormRef}${fref ? ` · Register ${fref}` : ""}`);
   const today = todayISO();
   const all = M.ncrs(mod).sort((a, b) => (b.date || "").localeCompare(a.date || "") || (a.ref || "").localeCompare(b.ref || ""));
   const years = [...new Set(all.map(n => String(n.date).slice(0, 4)))].sort().reverse();
   const classes = [...new Set(all.map(n => n.classification).filter(Boolean))].sort();
   let f = { q: "", project: query.project || "", state: query.state || "", sev: "", cls: "", year: "" };
-  setActions(`<button class="btn" type="button" id="xl">${ICON.xls}<span>Export to Excel</span></button>`).querySelector("#xl").onclick = async () => {
-    const m = await import("../report/export.js"); m.registerExcel(mod, filtered());
-  };
+  const act = setActions(`${M.canEdit() ? `<button class="btn" type="button" id="plink">${ICON.ext}<span>Project link</span></button>` : ""}<button class="btn" type="button" id="xl">${ICON.xls}<span>Export to Excel</span></button>`);
+  act.querySelector("#xl").onclick = async () => { const m = await import("../report/export.js"); m.registerExcel(mod, filtered()); };
+  if (act.querySelector("#plink")) act.querySelector("#plink").onclick = async () => { const w = await import("../widgets.js"); w.projectLink(mod, f.project); };
   const counts = st => all.filter(n => M.ncrState(n, today) === st).length;
   view.innerHTML = `
     <div class="row" style="margin-bottom:12px;gap:8px" id="states">

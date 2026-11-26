@@ -13,11 +13,14 @@ Live: https://hsescct-sudo.github.io/orascom-hse-audit/audit/
 
 - Annual audit plan by project and month, with lead auditor and status (done, in progress, this month, overdue).
 - Audits on site **with or without internet**. Everything saves on the device as you type and is sent when there is a connection.
-- Scoring with the company weights. Any rating from 0 to 100%. N/A takes the item out. One or more Serious NCRs take off 15% once. Each NCR from the last audit that is still open becomes a repeated NCR and takes off 3%.
+- Scoring with the company weights. Any rating from 0 to 100%. N/A takes the item out. One or more Serious NCRs take off 15% once. Each repeated NCR takes off 3%. Settings can change: Serious once or for each one, points off or percent of the score, grade on the score as shown or on the whole number.
 - NCRs with photos from the camera, root causes, responsible person and deadline. Follow-up and closure with evidence.
 - Reports made on the device: printable report and NCR forms (save as PDF), Excel in the form layout with live formulas, PowerPoint summary.
 - Dashboard: company grade, projects by grade, weakest areas, ratings by element for every project, score by month, plan progress, NCRs by type, root causes, open NCRs by project.
-- Roles: administrator, auditor, viewer.
+- Roles: administrator, auditor, viewer. The administrator makes each person's sign-in from the app; the person sets their own password at the first sign-in.
+- Project link: the project opens a link (no sign-in) to see its NCRs and send evidence with photos and a signature. The NCR then waits for the auditor's review.
+- History and signatures are also kept on the server in a record that nobody can change or delete.
+- E-mail: "E-mail the report" opens Outlook with the project e-mails, score, NCR counts and the project link, and records the sending. Reminders by e-mail every chosen day (see below).
 
 ## Scoring fixes compared with the Excel forms
 
@@ -38,15 +41,31 @@ Live: https://hsescct-sudo.github.io/orascom-hse-audit/audit/
 | `js/model.js` | Rules: previous audit, repeated NCRs, plan status |
 | `js/views/*.js` | Pages |
 | `js/report/export.js` | Excel and PowerPoint |
+| `close.html`, `js/close.js` | Project link page: NCR evidence without sign-in |
+| `tools/send_reminders.py` | Daily e-mail reminders (run by GitHub, `.github/workflows/audit-reminders.yml`) |
 | `sw.js` | Offline support (made by `tools/build-sw.py`) |
 | `vendor/`, `fonts/` | Chart, Excel, PowerPoint, database libraries and fonts, saved locally for offline use |
 | `../supabase/audit-schema.sql` | Server tables. Run once in Supabase |
+| `../supabase/audit-update-2.sql` | Update 2 (sign-ins, project links, kept history, reminders). Run once |
 
 ## Server setup (once)
 
 1. Open `supabase/audit-schema.sql`, put the administrator e-mail in the last part.
 2. Supabase, SQL Editor, paste, Run. It only adds new tables (`ha_*`) and a private photo bucket.
 3. Sign in at the audit system with that e-mail. The company project list loads on the first sign-in.
-4. Add auditors under Auditors and users (with e-mail), then create their sign-in in Supabase, Authentication, Users.
+4. Run `supabase/audit-update-2.sql` the same way (once).
+5. Add auditors under Auditors and users with their work e-mail. The app offers **Make sign-in** with a temporary password. Send it to them privately. At the first sign-in they set their own password. Someone who already has a Flash Audit sign-in uses the same password.
+
+## E-mail reminders (once)
+
+The job runs every morning on GitHub and sends nothing until both are done:
+
+1. In the app, Settings, E-mail reminders: tick "Send reminders by e-mail", pick the days, Save.
+2. In GitHub, the repository, Settings, Secrets and variables, Actions, add:
+   - `SMTP_USER`: the sending mailbox, for example a Gmail account made for this.
+   - `SMTP_PASSWORD`: for Gmail, an App password (Google account, Security, 2-Step Verification on, App passwords). Not the normal password.
+   - Optional `SMTP_HOST`, `SMTP_PORT` (default `smtp.gmail.com`, `465`) and `MAIL_FROM`.
+   - `REMINDER_KEY`: in the app, Settings, E-mail reminders, **Make the GitHub key**, copy it.
+3. Test: GitHub, Actions, Audit reminders, Run workflow, tick "Test run". The log shows only counts.
 
 After changing any file, run `python3 audit/tools/build-sw.py` so phones get the new version.
