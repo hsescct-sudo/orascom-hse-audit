@@ -16,6 +16,7 @@ const mem = { get: k => { try { return localStorage.getItem("oc-link-" + k) || "
 const plainErr = e => {
   const m = String((e && e.message) || e || "");
   if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return "No connection. Check the internet and try again.";
+  if ((e && e.code === "PGRST202") || /Could not find the function/i.test(m)) return "Project links are not switched on yet. Ask Corporate HSE.";
   return m || "Something went wrong. Try again.";
 };
 
