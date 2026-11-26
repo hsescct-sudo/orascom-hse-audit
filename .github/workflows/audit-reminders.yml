@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: "Test run: ignore the on/off switch and the day"
+        description: "Test run: send everything to the sending mailbox only"
         type: boolean
         default: false
 

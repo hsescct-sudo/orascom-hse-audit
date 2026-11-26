@@ -18,7 +18,8 @@ Settings come from environment variables:
   MAIL_FROM                       default SMTP_USER
   APP_URL                         address of the audit system (for links)
   DRY_RUN=1                       build but don't send
-  FORCE=1                         ignore the on/off switch and the day (for a test run)
+  FORCE=1                         test run: ignore the on/off switch and the day, and send
+                                  every e-mail to the sending mailbox only (SMTP_USER)
   PRINT=1                         print the e-mails (only for a local test, never in GitHub)
 """
 import datetime as dt
@@ -74,13 +75,13 @@ def emails(text):
     return out
 
 
-def build(data, app_url):
+def build(data, app_url, test=False):
     """Returns the list of e-mails: dicts with to, cc, subject, text, kind."""
     st = (data.get("settings") or {}).get("reminders") or {}
     today = day(data["today"])
     weekday = int(data.get("weekday", 0))
     days = st.get("days") or [0, 3]
-    first_day = weekday == sorted(days)[0]
+    first_day = weekday == sorted(days)[0] or test
     members = {m["id"]: m for m in data.get("members") or []}
     projects = {p["id"]: p for p in data.get("projects") or []}
     links = {(l["project_id"], l["module"]): l["token"] for l in data.get("links") or []}
@@ -223,7 +224,7 @@ def main():
         print("Today is not a reminder day. Nothing sent.")
         return 0
     app_url = env("APP_URL", "https://hsescct-sudo.github.io/orascom-hse-audit/audit/")
-    mails = build(data, app_url)
+    mails = build(data, app_url, test=force)
     kinds = {k: sum(1 for m in mails if m["kind"] == k) for k in ("project", "auditor", "admin")}
     print(f"E-mails to send: projects {kinds['project']}, auditors {kinds['auditor']}, administrators {kinds['admin']}.")
     if env("PRINT") == "1":
@@ -234,6 +235,10 @@ def main():
         print("Dry run: no mail account set, so nothing was sent.")
         return 0
     sender = env("MAIL_FROM", user)
+    if force:  # test run: nothing reaches the auditors or projects
+        mails = [{**m, "to": [user], "cc": [], "subject": "[TEST] " + m["subject"],
+                  "text": f"TEST RUN. This e-mail would go to: {', '.join(m['to'])}" + (f" (copy: {', '.join(m['cc'])})" if m["cc"] else "") + "\n\n" + m["text"]} for m in mails]
+        print("Test run: every e-mail goes to the sending mailbox only.")
     sent = failed = 0
     ctx = ssl.create_default_context()
     with smtplib.SMTP_SSL(env("SMTP_HOST", "smtp.gmail.com"), int(env("SMTP_PORT", "465")), context=ctx, timeout=60) as s:
