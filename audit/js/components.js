@@ -14,7 +14,7 @@ export function mtag(score) {
 }
 export const sevChip = s => `<span class="chip sev-${esc(s)}">${esc(s)}</span>`;
 export const ncrChip = n => { const s = M.ncrState(n); return `<span class="chip st-${s}">${esc(M.NCR_STATE[s])}</span>`; };
-export const repChip = n => (n.repeated ? `<span class="chip rep" title="Still open from the last audit">Repeated</span>` : "");
+export const repChip = n => (n.repeated ? `<span class="chip rep" title="Found before on this project">Repeated</span>` : "");
 export const planChip = p => { const s = M.planStatus(p); return `<span class="chip pl-${s}">${esc(M.PLAN_STATE[s])}</span>`; };
 export const AUDIT_STATUS = { draft: "In progress", submitted: "Waiting approval", approved: "Approved" };
 export const auditChip = a => `<span class="chip au-${esc(a.status)}">${esc(AUDIT_STATUS[a.status] || a.status)}</span>`;

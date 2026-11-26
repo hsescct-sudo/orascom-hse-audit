@@ -7,6 +7,7 @@ import { esc, ICON, debounce, toast, confirmBox, dialog, fmtDate, addDays, today
 import { tag, mtag, sevChip, ncrChip, repChip, auditChip } from "../components.js";
 import { photoStrip, editNCR, editGood } from "../widgets.js";
 import { NA, isRated, fmtScore } from "../scoring.js";
+import { historyViewHTML, mountHistory } from "../sign.js";
 
 const QUICK = [100, 90, 80, 70, 60, 50, 0];
 
@@ -53,6 +54,7 @@ export async function render(ctx) {
       { id: "good", label: "Good practice" },
       { id: "close", label: d.hasMeetings ? "Photos and close meeting" : "Photos and summary" },
       { id: "finish", label: "Finish" },
+      { id: "history", label: "History" },
     ];
   }
   function stepDone(id) {
@@ -130,7 +132,7 @@ export async function render(ctx) {
     // a fresh element each time, so listeners from the last step don't pile up
     const old = view.querySelector("#step"); const el = old.cloneNode(false); old.replaceWith(el);
     const ro = locked();
-    ({ info: stepInfo, last: stepLast, score: stepScore, ncrs: stepNcrs, good: stepGood, close: stepClose, finish: stepFinish }[step] || stepInfo)(el, ro);
+    ({ info: stepInfo, last: stepLast, score: stepScore, ncrs: stepNcrs, good: stepGood, close: stepClose, finish: stepFinish, history: stepHistory }[step] || stepInfo)(el, ro);
     if (ro) el.querySelectorAll("input, textarea, select, .rate button, [data-ro]").forEach(x => { if (!x.closest(".allow-ro")) x.disabled = true; });
   }
 
@@ -338,6 +340,7 @@ export async function render(ctx) {
   }
 
   // ---------- finish ----------
+  function stepHistory(el) { el.innerHTML = historyViewHTML(a); mountHistory(el); }
   function stepFinish(el) {
     const sc = M.score(a); const list = M.auditNCRs(a);
     const missing = list.filter(n => !n.responsible_name || !n.due_date).length;
@@ -367,6 +370,11 @@ export async function render(ctx) {
           <button class="btn allow-ro" type="button" data-x="xlsx">${ICON.xls}<span>Excel report</span></button>
           <button class="btn allow-ro" type="button" data-x="pptx">${ICON.ppt}<span>PowerPoint</span></button>
         </div></section>
+      ${M.finished(a) ? `<section class="panel allow-ro" id="sentbox"><div class="panel-h"><h2>Report sent to the project (P-20 7.4)</h2>${M.sendOverdue(a) ? `<span class="chip st-overdue">Not sent after 7 days</span>` : ""}</div>
+        <p class="muted small">Send F/HSE/078 and F/HSE/003 through Corporate HSE within 7 days of the audit date. Record it here.</p>
+        <div class="grid3"><label class="fld"><span>Date sent</span><input type="date" data-sf="date" value="${esc((a.sent || {}).date || "")}"></label>
+        <label class="fld"><span>Sent to (names or distribution list)</span><input data-sf="to" value="${esc((a.sent || {}).to || "")}"></label>
+        <label class="fld"><span>Email or reference</span><input data-sf="ref" value="${esc((a.sent || {}).ref || "")}"></label></div></section>` : ""}
       ${a.status === "draft" && M.canEdit() ? `<div class="row">${isLead && M.isAdmin()
         ? `<button class="btn primary lg" type="button" id="approve-now">Approve and lock</button><button class="btn lg" type="button" id="submit">Send for approval</button>`
         : `<button class="btn primary lg" type="button" id="submit">Send for approval</button>`}</div>` : ""}
@@ -376,6 +384,14 @@ export async function render(ctx) {
       const g = e.target.closest("[data-go]"); if (g) return goStep(g.dataset.go);
       const x = e.target.closest("[data-x]");
       if (x) { const mod = await import("../report/export.js"); return x.dataset.x === "xlsx" ? mod.excelReport(a) : mod.pptReport(a); }
+    });
+    el.querySelectorAll("[data-sf]").forEach(i => {
+      i.disabled = !M.canEdit();
+      i.addEventListener("input", () => {
+        a.sent = { ...(a.sent || {}), [i.dataset.sf]: i.value, by: me.name };
+        if (a.sent.date && !(a.history || []).some(h => h.what === "Report sent to project")) a.history = [...(a.history || []), { at: new Date().toISOString(), by: me.name, what: "Report sent to project" }];
+        save();
+      });
     });
     const sub = el.querySelector("#submit");
     if (sub) sub.onclick = async () => {

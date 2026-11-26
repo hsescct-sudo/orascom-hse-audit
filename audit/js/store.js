@@ -39,12 +39,62 @@ export function all(kind, { withDeleted = false } = {}) {
   for (const d of cache.values()) if (d.kind === kind && (withDeleted || !d.deleted)) out.push(d);
   return out;
 }
-export const get = id => { const d = cache.get(id); return d && !d.deleted ? d : null; };
-export const getAny = id => cache.get(id) || null;
+const seed = (id, d) => { if (d && !snaps.has(id) && (d.kind === "audit" || d.kind === "ncr")) { try { snaps.set(id, structuredClone(d)); } catch (e) { /* ignore */ } } };
+export const get = id => { const d = cache.get(id); seed(id, d); return d && !d.deleted ? d : null; };
+export const getAny = id => { const d = cache.get(id); seed(id, d); return d || null; };
 
 // Save a record. Pass the full record; updated_at and dirty are set here.
+// Change log: who changed an audit or NCR, when, and which fields.
+let _actor = "";
+export const setActor = n => { _actor = n || ""; };
+export const actor = () => _actor;
+const LOG_SKIP = new Set(["updated_at", "created_at", "dirty", "server_rev", "history"]);
+const short = v => { const s = typeof v === "string" ? v : JSON.stringify(v); return s == null ? "" : s.length > 40 ? s.slice(0, 40) + "…" : s; };
+function logChange(prev, d) {
+  if (d.kind !== "audit" && d.kind !== "ncr") return null;
+  const changes = [];
+  if (prev) {
+    for (const k of new Set([...Object.keys(prev), ...Object.keys(d)])) {
+      if (LOG_SKIP.has(k)) continue;
+      if (k === "ratings") { const a = prev.ratings || {}, b = d.ratings || {}; for (const i of new Set([...Object.keys(a), ...Object.keys(b)])) if (a[i] !== b[i]) changes.push(`Item ${i}: ${a[i] ?? "-"} → ${b[i] ?? "-"}`); continue; }
+      if (k === "sigs") { const a = prev.sigs || {}, b = d.sigs || {}; for (const i of new Set([...Object.keys(a), ...Object.keys(b)])) if ((a[i] || {}).img !== (b[i] || {}).img) changes.push(`Signature ${i}: ${(b[i] || {}).img ? "signed" : "removed"}`); continue; }
+      if (/photos$/.test(k) && JSON.stringify(prev[k] || []) !== JSON.stringify(d[k] || [])) { changes.push(`${k}: ${(prev[k] || []).length} → ${(d[k] || []).length}`); continue; }
+      const empty = v => v == null || v === "" || (Array.isArray(v) && !v.length);
+      if (empty(prev[k]) && empty(d[k])) continue; // nothing to nothing is not a change
+      if (JSON.stringify(prev[k]) !== JSON.stringify(d[k])) changes.push(`${k}: ${short(prev[k])} → ${short(d[k])}`);
+    }
+    if (!changes.length) return null;
+  }
+  return { id: uid("log"), kind: "log", audit_id: d.kind === "audit" ? d.id : d.audit_id, project_id: d.project_id, target: d.id, target_kind: d.kind, target_ref: d.ref || "",
+    action: !prev ? "Created" : d.deleted ? "Deleted" : "Edited", changes: changes.slice(0, 30), by: _actor, at: nowISO(), created_at: nowISO(), updated_at: nowISO(), dirty: 1 };
+}
+// The screens edit audits and NCRs in place, so the cache cannot be used to see what changed.
+// We keep a copy of the last saved version and compare against that.
+const snaps = new Map();
+// Edits by the same person on the same record within 2 minutes become one line (typing saves many times).
+function coalesceLog(log) {
+  let last = null;
+  for (const x of cache.values()) if (x.kind === "log" && x.target === log.target && x.by === log.by && (!last || x.at > last.at)) last = x;
+  if (!last || last.action !== "Edited" || log.action !== "Edited" || Date.parse(log.at) - Date.parse(last.at) > 120000) return log;
+  // status steps, signatures and reasons are audit evidence: never folded into an earlier line
+  const key_event = c => /^(status|Signature|return_reason|reopen_reason|repeated|sent):?/.test(c);
+  if (log.changes.some(key_event) || last.changes.some(key_event)) return log;
+  const key = s => s.split(": ")[0];
+  const merged = new Map(last.changes.map(c => [key(c), c]));
+  for (const c of log.changes) {
+    const o = merged.get(key(c));
+    if (o && o.includes(" → ") && c.includes(" → ")) merged.set(key(c), o.split(" → ")[0] + " → " + c.split(" → ").slice(-1)[0]);
+    else merged.set(key(c), c);
+  }
+  const changes = [...merged.values()].filter(c => { const p = c.split(": ").slice(1).join(": ").split(" → "); return p.length < 2 || p[0] !== p[p.length - 1]; }).slice(0, 30);
+  return { ...last, changes, at: log.at, updated_at: log.at, dirty: 1 };
+}
 export async function put(doc, { silent = false, fromServer = false } = {}) {
   const d = { ...doc };
+  const _prev = snaps.get(d.id) || cache.get(d.id);
+  const _log = fromServer ? null : logChange(_prev, d);
+  if (d.kind === "audit" || d.kind === "ncr") { try { snaps.set(d.id, structuredClone(d)); } catch (e) { snaps.delete(d.id); } }
+  if (_log) { const lg = coalesceLog(_log); cache.set(lg.id, lg); await req(tx("docs", "readwrite").put(lg)); }
   if (!fromServer) { d.updated_at = nowISO(); d.dirty = 1; if (!d.created_at) d.created_at = d.updated_at; }
   cache.set(d.id, d);
   await req(tx("docs", "readwrite").put(d));

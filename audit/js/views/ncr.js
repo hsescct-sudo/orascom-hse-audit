@@ -2,7 +2,8 @@
 import * as S from "../store.js";
 import * as M from "../model.js";
 import { setTitle, setActions, go, link } from "../app.js";
-import { esc, ICON, fmtDate, toast, todayISO, debounce } from "../ui.js";
+import { esc, ICON, fmtDate, toast, todayISO, debounce, dialog } from "../ui.js";
+import { sigBlockHTML, mountSigPads, readSigPads } from "../sign.js";
 import { sevChip, ncrChip, repChip } from "../components.js";
 import { photoStrip, editNCR } from "../widgets.js";
 
@@ -20,7 +21,7 @@ export async function render(ctx) {
   setActions(`<a class="btn sm" href="${a ? link("report", a.id, n.module) + "?type=ncr&ncr=" + n.id : "#"}">${ICON.print}<span>NCR form</span></a>${canEditBody ? `<button class="btn sm" id="edit" type="button">${ICON.edit}<span>Edit NCR</span></button>` : ""}`);
   const ed = document.getElementById("edit"); if (ed) ed.onclick = async () => { const r = await editNCR(a, n); if (r === "deleted") go(link("ncrs")); else if (r) location.reload(); };
   const save = debounce(async () => { n = await S.put({ ...n }); }, 400);
-  const prev = n.repeat_of ? S.getAny(n.repeat_of) : null;
+  const prev = (n.repeat_of || n.repeat_link) ? S.getAny(n.repeat_of || n.repeat_link) : null;
   const next = n.carried_to ? S.getAny(n.carried_to) : null;
   view.className = "view narrow";
   view.innerHTML = `<div class="stack">
@@ -35,7 +36,7 @@ export async function render(ctx) {
         <div><span class="muted">Deadline</span><br><b>${esc(fmtDate(n.due_date) || "–")}</b></div>
         <div><span class="muted">Root causes</span><br><b>${esc([...(n.root_causes || []), n.other_cause].filter(Boolean).join(", ") || "–")}</b></div>
       </div>
-      ${prev ? `<p class="small" style="margin-top:12px">Repeated from <a href="${link("ncr", prev.id, n.module)}">${esc(prev.ref)}</a>, still open at this audit.</p>` : ""}
+      ${prev ? `<p class="small" style="margin-top:12px">Repeated from <a href="${link("ncr", prev.id, n.module)}">${esc(prev.ref)}</a>${n.repeat_of ? ", still open at this audit" : ` (${esc(prev.status)} then found again)`}.</p>` : ""}${n.repeated && n.repeat_notice ? `<p class="small">Notice ref.: ${esc(n.repeat_notice)}</p>` : ""}${n.repeated && n.repeat_verified ? `<p class="small">Verification: ${esc(n.repeat_verified)}</p>` : ""}
       ${next ? `<p class="small" style="margin-top:12px">Not closed by the next audit. Raised again as <a href="${link("ncr", next.id, n.module)}">${esc(next.ref)}</a>.</p>` : ""}
     </section>
     <section class="panel"><div class="panel-h"><h2>Non-conformity</h2><span class="muted">${esc(n.clause || d.ncrClause)}</span></div>
@@ -58,23 +59,58 @@ export async function render(ctx) {
     </section>
   </div>`;
   photoStrip(view.querySelector("#ph"), n.photos, { readOnly: true });
-  photoStrip(view.querySelector("#caph"), n.ca_photos || [], { readOnly: !canFollow, onChange: ids => { n.ca_photos = ids; save(); }, label: "Add evidence" });
-  if (!canFollow) view.querySelectorAll("[data-f]").forEach(i => { i.disabled = true; });
+  photoStrip(view.querySelector("#caph"), n.ca_photos || [], { readOnly: !canFollow || n.status === "Closed" || n.status === "Review", onChange: ids => { n.ca_photos = ids; save(); }, label: "Add evidence" });
+  if (!canFollow || n.status === "Closed" || n.status === "Review") view.querySelectorAll("[data-f]").forEach(i => { i.disabled = true; });
   view.addEventListener("input", e => { const f = e.target.closest("[data-f]"); if (!f) return; n[f.dataset.f] = f.value; save(); });
+  // Closure flow (P-20 7.10): project evidence -> under review -> auditor approves with signature, or returns with a reason.
+  const askReason = (title, ok) => dialog({
+    title, body: `<label class="fld"><span>Reason (recorded in the history)</span><textarea id="rs" placeholder="Why?"></textarea></label>`,
+    actions: [{ label: "Cancel", value: null }, { label: ok, kind: "primary", validate: w => (w.querySelector("#rs").value.trim().length < 3 ? "Write a short reason." : null), value: w => w.querySelector("#rs").value.trim() }],
+  });
   const drawBtns = () => {
     const b = view.querySelector("#stbtns");
     if (!canFollow || n.status === "Carried") { b.innerHTML = ""; return; }
+    const note = n.return_reason && n.status === "Open" ? `<span class="small" style="color:var(--g-red)">Returned: ${esc(n.return_reason)}</span>` : "";
     b.innerHTML = n.status === "Closed"
-      ? `<span class="chip st-closed">Closed ${esc(fmtDate(n.ca_date))}</span><button class="btn sm ghost" type="button" id="reopen">Reopen</button>`
-      : `<button class="btn primary" type="button" id="close">${ICON.check}<span>Mark as closed</span></button>`;
-    const c = view.querySelector("#close");
-    if (c) c.onclick = async () => {
+      ? `<span class="chip st-closed">Closed ${esc(fmtDate(n.ca_date))}</span>${n.closed_by ? `<span class="small muted">approved by ${esc(n.closed_by)}</span>` : ""}<button class="btn sm ghost" type="button" id="reopen">Reopen</button>`
+      : n.status === "Review"
+        ? `<span class="chip st-review">Evidence under review</span><button class="btn primary" type="button" id="approve">${ICON.check}<span>Approve and close</span></button><button class="btn" type="button" id="return">Return to project</button>`
+        : `${note}<button class="btn primary" type="button" id="review">${ICON.check}<span>Send evidence for review</span></button>`;
+    const rv = view.querySelector("#review");
+    if (rv) rv.onclick = async () => {
       if (!n.ca_text) { toast("Write the corrective action taken first.", "error"); view.querySelector("[data-f=ca_text]").focus(); return; }
+      if (!(n.ca_photos || []).length) { toast("Add at least one evidence photo (P-20 7.10).", "error"); return; }
       const me = M.me();
-      n = await S.put({ ...n, status: "Closed", ca_date: n.ca_date || todayISO(), followup_name: n.followup_name || me.name, followup_position: n.followup_position || me.position || "", followup_date: todayISO() });
-      toast("NCR closed.", "ok"); render(ctx);
+      n = await S.put({ ...n, status: "Review", ca_date: n.ca_date || todayISO(), received_at: new Date().toISOString(), received_by: me.name, return_reason: "" });
+      toast("Sent for review.", "ok"); render(ctx);
     };
-    const r = view.querySelector("#reopen"); if (r) r.onclick = async () => { n = await S.put({ ...n, status: "Open" }); render(ctx); };
+    const ap = view.querySelector("#approve");
+    if (ap) ap.onclick = async () => {
+      const me = M.me();
+      const old = (n.sigs || {}).approver || {};
+      const seed = { ...n, sigs: { ...(n.sigs || {}), approver: { ...old, name: old.name || me.name, date: todayISO() } } };
+      const r = await dialog({
+        title: "Approve and close this NCR", wide: true,
+        body: `<p class="small muted">Check the evidence first. Your signature confirms the NCR is closed.</p>${sigBlockHTML(seed, ["approver"])}`,
+        onMount: w => mountSigPads(w, seed),
+        actions: [{ label: "Cancel", value: null }, { label: "Approve and close", kind: "primary",
+          validate: w => { const box = w.querySelector("[data-sig=approver]"); return !box._drawn && !old.img ? "Sign in the box first." : null; },
+          value: w => readSigPads(w, seed) }],
+      });
+      if (!r) return;
+      n = await S.put({ ...n, sigs: r, status: "Closed", closed_by: me.name, closed_at: new Date().toISOString(), followup_name: n.followup_name || me.name, followup_position: n.followup_position || me.position || "", followup_date: todayISO(), return_reason: "" });
+      toast("NCR approved and closed.", "ok"); render(ctx);
+    };
+    const rt = view.querySelector("#return");
+    if (rt) rt.onclick = async () => {
+      const why = await askReason("Return evidence to the project", "Return"); if (!why) return;
+      n = await S.put({ ...n, status: "Open", return_reason: why }); toast("Returned to the project.", "ok"); render(ctx);
+    };
+    const r = view.querySelector("#reopen");
+    if (r) r.onclick = async () => {
+      const why = await askReason("Reopen this NCR", "Reopen"); if (!why) return;
+      n = await S.put({ ...n, status: "Open", reopen_reason: why, closed_by: "", closed_at: "" }); render(ctx);
+    };
   };
   drawBtns();
 }

@@ -7,9 +7,9 @@ export const ROOT_CAUSES = ["Lack of Training", "Lack of Supervision", "Lack of 
 export const SEVERITIES = ["Minor", "Major", "Serious"];
 
 export const GRADES = [
-  { min: 85, code: "green", label: "Full compliance", appraisal: "Up to OC Standards", bonus: 20 },
-  { min: 75, code: "orange", label: "Relative compliance", appraisal: "Close to OC Standards", bonus: 15 },
-  { min: 65, code: "yellow", label: "Low compliance", appraisal: "Needs Improvement", bonus: 10 },
+  { min: 85, code: "green", label: "Full compliance", appraisal: "Up to OC Standards", bonus: 15 },
+  { min: 75, code: "orange", label: "Relative compliance", appraisal: "Close to OC Standards", bonus: 10 },
+  { min: 65, code: "yellow", label: "Low compliance", appraisal: "Needs Improvement", bonus: 5 },
   { min: 0, code: "red", label: "No compliance", appraisal: "Unsatisfactory", bonus: 0 },
 ];
 

@@ -92,7 +92,7 @@ async function planItem(mod, pl) {
   if (r.save) { await S.put({ ...pl, month: r.month, lead_id: r.lead }); toast("Plan updated."); rerender(); }
 }
 
-// Plan every active project for the year: HSE audit twice, lifting once; leads take turns.
+// Plan every active project for the year: HSE audit every 2 months (P-20 7.2), lifting once; leads take turns.
 async function buildPlan(mod, year) {
   const def = M.def(mod);
   const auditors = M.auditors().filter(m => m.role === "auditor");
@@ -101,7 +101,7 @@ async function buildPlan(mod, year) {
   const r = await dialog({
     title: `Build the ${year} plan · ${def.short}`,
     body: `<p>Plans every active project${existing.length ? `. Projects that already have a plan in ${year} are left as they are` : ""}. Lead auditors take turns so the work is shared.</p>
-      <label class="fld"><span>Audits per project in ${year}</span><select id="bp-n">${mod === "full" ? `<option value="2" selected>2 (every 6 months)</option><option value="1">1</option><option value="4">4 (every 3 months)</option>` : `<option value="1" selected>1</option><option value="2">2 (every 6 months)</option>`}</select></label>`,
+      <label class="fld"><span>Audits per project in ${year}</span><select id="bp-n">${mod === "full" ? `<option value="6" selected>6 (one every 2 months, P-20 §7.2)</option><option value="12">12 (monthly, extra follow-up)</option><option value="4">4 (exception only: JV / outside Egypt, record reason)</option><option value="2">2 (exception only: JV / outside Egypt, record reason)</option>` : `<option value="1" selected>1</option><option value="2">2 (every 6 months)</option>`}</select></label>`,
     actions: [{ label: "Cancel", value: null }, { label: "Build plan", kind: "primary", value: w => +w.querySelector("#bp-n").value }],
   });
   if (!r) return;

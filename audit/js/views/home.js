@@ -17,8 +17,18 @@ export async function render(ctx) {
   const waiting = M.isAdmin() ? M.audits(mod).filter(a => a.status === "submitted") : [];
   const recent = M.audits(mod).filter(a => M.finished(a) && (a.lead_id === me.id || M.isAdmin())).slice(0, 5);
   const card = (title, sub, right, attrs) => `<div class="ncr-card" ${attrs} role="button" tabindex="0"><div class="thumb">${ICON.clip}</div><div style="min-width:0"><div class="nc-t">${title}</div><div class="nc-m">${sub}</div></div><div>${right}</div></div>`;
+  const overN = M.ncrs(mod).filter(n => M.ncrState(n, today) === "overdue");
+  const revN = M.ncrs(mod).filter(n => M.ncrState(n, today) === "review");
+  const unsent = M.audits(mod).filter(a => M.sendOverdue(a, today));
+  const byProj = {}; overN.forEach(n => { const k = M.project(n.project_id).name; byProj[k] = (byProj[k] || 0) + 1; });
+  const alertBar = (overN.length || revN.length || unsent.length) ? `<section class="panel" style="border-color:#f0c4c2;background:#fdf3f2"><b>Needs attention</b>
+    ${overN.length ? `<div class="small" style="margin-top:6px"><b style="color:var(--g-red)">${overN.length} NCR${overN.length > 1 ? "s" : ""} past the deadline:</b> ${(() => { const e = Object.entries(byProj).sort((x, y) => y[1] - x[1]); return e.slice(0, 5).map(([k, v]) => `${esc(k)} (${v})`).join(", ") + (e.length > 5 ? `, and ${e.length - 5} more project${e.length - 5 > 1 ? "s" : ""}` : ""); })()}</div>` : ""}
+    ${revN.length ? `<div class="small" style="margin-top:6px"><b>${revN.length} NCR${revN.length > 1 ? "s" : ""} with evidence waiting for your review</b></div>` : ""}
+    ${unsent.length ? `<div class="small" style="margin-top:6px"><b>${unsent.length} report${unsent.length > 1 ? "s" : ""} not sent to the project after 7 days:</b> ${unsent.slice(0, 5).map(a => esc(a.ref)).join(", ")}</div>` : ""}
+    <a class="btn sm" style="margin-top:10px" href="${link("ncrs")}">Open NCR register</a></section>` : "";
   view.className = "view narrow";
   view.innerHTML = `<div class="stack">
+    ${alertBar}
     ${M.canEdit() ? `<button class="btn primary lg" type="button" id="start" style="justify-self:start">${ICON.play}<span>${def.id === "full" ? "Start an HSE audit" : "Start a lifting assessment"}</span></button>` : ""}
     ${waiting.length ? `<section class="panel"><div class="panel-h"><h2>Waiting for your approval</h2><span class="muted">${waiting.length}</span></div>${waiting.map(a => card(esc(M.project(a.project_id).name), `<span class="ref num" style="font:700 13px var(--f-cond);color:var(--navy)">${esc(a.ref)}</span><span class="muted small">${esc(fmtDate(a.date))}</span>`, mtag(M.score(a).total), `data-a="${esc(a.id)}"`)).join("")}</section>` : ""}
     <section class="panel"><div class="panel-h"><h2>In progress</h2><span class="muted">Saved on this device</span></div>

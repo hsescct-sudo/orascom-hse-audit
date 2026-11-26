@@ -14,7 +14,7 @@ export async function render(ctx) {
   const today = todayISO();
   const years = [...new Set([+today.slice(0, 4), ...M.audits(mod).map(a => +a.date.slice(0, 4)), ...M.plans(mod).map(p => p.year)])].sort((a, b) => b - a);
   let f = {}; try { f = JSON.parse(localStorage.getItem(FKEY) || "{}"); } catch (e) { /* none */ }
-  f = { year: years.includes(+f.year) ? +f.year : years[0], country: f.country || "", project: f.project || "" };
+  f = { year: years.includes(+f.year) ? +f.year : (years.includes(+today.slice(0, 4)) ? +today.slice(0, 4) : years[0]), country: f.country || "", project: f.project || "" };
   const countries = [...new Set(M.projects().map(p => p.country))].sort();
 
   view.innerHTML = `
@@ -45,6 +45,8 @@ export async function render(ctx) {
     const openN = ncrs.filter(n => ["open", "overdue"].includes(M.ncrState(n, today)));
     const overdueN = ncrs.filter(n => M.ncrState(n, today) === "overdue");
     const seriousN = ncrs.filter(n => n.severity === "Serious");
+    const reviewN = ncrs.filter(n => M.ncrState(n, today) === "review");
+    const unsentN = audits.filter(a => M.sendOverdue(a, today));
     const closed = ncrs.filter(n => n.status === "Closed");
     const onTime = closed.filter(n => M.onTime(n) === true).length;
     const avg = scored.length ? scored.reduce((t, x) => t + x.s.total, 0) / scored.length : null;
@@ -76,6 +78,8 @@ export async function render(ctx) {
       <section class="kpis span-12" aria-label="Key figures">
         <div class="kpi"><div class="k-v num">${planDone}<small>/${plan.length}</small></div><div class="k-l">Planned audits done${planOver ? `, <b style="color:var(--g-red)">${planOver} overdue</b>` : ""}</div><div class="k-meter"><b style="width:${pct(planDone, plan.length) || 0}%"></b></div></div>
         <div class="kpi"><div class="k-v num">${openN.length}</div><div class="k-l">Open NCRs</div></div>
+        <div class="kpi ${reviewN.length ? "alert" : ""}"><div class="k-v num">${reviewN.length}</div><div class="k-l">NCR evidence waiting for review</div></div>
+        <div class="kpi ${unsentN.length ? "alert" : ""}"><div class="k-v num">${unsentN.length}</div><div class="k-l">Reports not sent after 7 days</div></div>
         <div class="kpi ${overdueN.length ? "alert" : ""}"><div class="k-v num">${overdueN.length}</div><div class="k-l">NCRs past the deadline</div></div>
         <div class="kpi ${seriousN.length ? "alert" : ""}"><div class="k-v num">${seriousN.length}</div><div class="k-l">Serious NCRs this year</div></div>
         <div class="kpi"><div class="k-v num">${closed.length ? pct(onTime, closed.length) : "–"}<small>${closed.length ? "%" : ""}</small></div><div class="k-l">NCRs closed on time</div></div>

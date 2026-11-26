@@ -5,6 +5,7 @@ import { go, link } from "./app.js";
 import { esc, dialog, confirmBox, toast, todayISO, addDays, shrinkImage, photoInputs, lightbox, ICON } from "./ui.js";
 import { projectOptions, optionList } from "./components.js";
 import { ROOT_CAUSES, SEVERITIES } from "./templates.js";
+import { sigBlockHTML, mountSigPads, readSigPads } from "./sign.js";
 
 // ---------- start an audit ----------
 export async function startAudit(module, { project_id = "", plan_id = "" } = {}) {
@@ -104,18 +105,27 @@ export async function editNCR(audit, ncr = null, { item_id = "" } = {}) {
     photos: [], responsible_name: "", responsible_position: "", due_date: addDays(audit.date, M.DUE_DAYS.Minor), status: "Open",
     ca_text: "", ca_date: "", followup_name: "", followup_position: "", followup_date: "", comments: "",
   };
+  const prevNCRs = M.ncrs(audit.module).filter(x => x.project_id === audit.project_id && x.audit_id !== audit.id && !x.deleted).sort((x, y) => String(y.date).localeCompare(String(x.date)));
   const items = d.parts.flatMap(p => p.items.map(it => ({ ...it, part: p })));
   let photoCtl = null;
   const body = `
     <div class="sev-pick" role="radiogroup" aria-label="NCR type">${SEVERITIES.map(s => `<label class="s-${s}"><input type="radio" name="sev" value="${s}" ${n.severity === s ? "checked" : ""}><b>${s}</b><small>${s === "Serious" ? "Stop work / immediate · −15% once" : s === "Major" ? `Close in ${M.DUE_DAYS.Major} days` : `Close in ${M.DUE_DAYS.Minor} days`}</small></label>`).join("")}</div>
     ${n.repeated ? `<p class="chip rep" style="justify-self:start">Repeated from the last audit · −${d.deductions.repeated}%</p>` : ""}
+    <fieldset class="fld" style="border:1px solid var(--line);border-radius:10px;padding:10px;margin:0"><span>Repeated violation (P-20 §7.3)</span>
+      <label class="tick"><input type="checkbox" id="nc-rep" ${n.repeated ? "checked" : ""} ${n.repeat_of ? "disabled" : ""}>This violation was found before on this project (open or closed) · −${d.deductions.repeated}%</label>
+      <div class="grid2" style="margin-top:6px">
+        <label class="fld"><span>Previous NCR / notice</span><select id="nc-prev"><option value="">Not linked</option>${prevNCRs.map(p => `<option value="${esc(p.id)}" ${p.id === (n.repeat_link || n.repeat_of) ? "selected" : ""}>${esc(p.ref)} · ${esc(p.date)} · ${esc(p.status)} · ${esc((p.description || "").slice(0, 50))}</option>`).join("")}</select></label>
+        <label class="fld"><span>Notice ref. (if outside the system)</span><input id="nc-notice" value="${esc(n.repeat_notice || "")}" placeholder="e.g. HSE notice no."></label>
+      </div>
+      <label class="fld"><span>Verification result</span><input id="nc-repv" value="${esc(n.repeat_verified || "")}" placeholder="What was checked on site to confirm it is repeated"></label>
+    </fieldset>
     <label class="fld"><span>What did you see?</span><textarea id="nc-desc" placeholder="Describe the non-conformity as seen on site">${esc(n.description)}</textarea></label>
     <div class="grid2">
       <label class="fld"><span>NCR classification</span><select id="nc-cls">${optionList(d.ncrClasses, n.classification, "Choose…")}</select></label>
       <label class="fld"><span>Location</span><input id="nc-loc" value="${esc(n.location)}" placeholder="Area, building, level"></label>
     </div>
     <label class="fld"><span>Photos</span><div id="nc-ph"></div></label>
-    <fieldset class="fld" style="border:0;padding:0;margin:0"><span>Root causes</span><div class="row">${ROOT_CAUSES.map(r => `<label class="tick"><input type="checkbox" value="${esc(r)}" ${(n.root_causes || []).includes(r) ? "checked" : ""}>${esc(r)}</label>`).join("")}</div>
+    <fieldset class="fld" id="nc-rc" style="border:0;padding:0;margin:0"><span>Root causes</span><div class="row">${ROOT_CAUSES.map(r => `<label class="tick"><input type="checkbox" value="${esc(r)}" ${(n.root_causes || []).includes(r) ? "checked" : ""}>${esc(r)}</label>`).join("")}</div>
       <input class="inp" id="nc-other" placeholder="Other cause (optional)" value="${esc(n.other_cause || "")}" style="margin-top:6px"></fieldset>
     <label class="fld"><span>Corrective / preventive action required</span><textarea id="nc-act">${esc(n.action_required)}</textarea></label>
     <div class="grid3">
@@ -130,23 +140,25 @@ export async function editNCR(audit, ncr = null, { item_id = "" } = {}) {
           <label class="fld"><span>Appraisal item (optional)</span><select id="nc-it"><option value="">None</option>${items.map(it => `<option value="${esc(it.id)}" ${it.id === n.item_id ? "selected" : ""}>${esc(it.part.code)} · ${esc(it.title)}</option>`).join("")}</select></label>
         </div>
         <label class="fld"><span>Requirement</span><textarea id="nc-req">${esc(n.requirement || d.ncrRequirement)}</textarea></label>
-      </div></details>`;
+      </div></details>
+    ${sigBlockHTML(n, ["prepared", "responsible", "followup"])}`;
   const res = await dialog({
     title: isNew ? `New NCR · ${n.ref}` : `NCR ${n.ref}`, body, wide: true,
     actions: [
       ...(isNew ? [] : [{ label: "Delete NCR", kind: "ghost", value: "delete" }]),
       { label: "Cancel", value: null },
-      { label: isNew ? "Save NCR" : "Save changes", kind: "primary", validate: w => (!w.querySelector("#nc-desc").value.trim() ? "Describe what you saw." : !w.querySelector("#nc-cls").value ? "Choose the NCR classification." : null),
+      { label: isNew ? "Save NCR" : "Save changes", kind: "primary", validate: w => (!w.querySelector("#nc-desc").value.trim() ? "Describe what you saw." : (w.querySelector("#nc-rep").checked && !n.repeat_of && !w.querySelector("#nc-prev").value && !w.querySelector("#nc-notice").value.trim()) ? "A repeated NCR needs a link to the previous NCR or a notice reference." : !w.querySelector("#nc-cls").value ? "Choose the NCR classification." : null),
         value: w => ({
-          severity: (w.querySelector("input[name=sev]:checked") || {}).value || "Minor",
+          severity: (w.querySelector("input[name=sev]:checked") || {}).value || "Minor", sigs: readSigPads(w, n),
+          repeated: !!n.repeat_of || w.querySelector("#nc-rep").checked, repeat_link: w.querySelector("#nc-prev").value, repeat_notice: w.querySelector("#nc-notice").value.trim(), repeat_verified: w.querySelector("#nc-repv").value.trim(),
           description: w.querySelector("#nc-desc").value.trim(), classification: w.querySelector("#nc-cls").value, location: w.querySelector("#nc-loc").value.trim(),
-          root_causes: [...w.querySelectorAll("fieldset .tick input:checked")].map(i => i.value), other_cause: w.querySelector("#nc-other").value.trim(),
+          root_causes: [...w.querySelectorAll("#nc-rc .tick input:checked")].map(i => i.value), other_cause: w.querySelector("#nc-other").value.trim(),
           action_required: w.querySelector("#nc-act").value.trim(), responsible_name: w.querySelector("#nc-rn").value.trim(), responsible_position: w.querySelector("#nc-rp").value.trim(),
           due_date: w.querySelector("#nc-due").value, clause: w.querySelector("#nc-cl").value.trim(), item_id: w.querySelector("#nc-it").value, requirement: w.querySelector("#nc-req").value.trim(),
         }) },
     ],
     onMount: w => {
-      photoCtl = photoStrip(w.querySelector("#nc-ph"), n.photos, { label: "Add photo" });
+      photoCtl = photoStrip(w.querySelector("#nc-ph"), n.photos, { label: "Add photo" }); mountSigPads(w, n);
       w.querySelectorAll("input[name=sev]").forEach(r => r.addEventListener("change", () => { w.querySelector("#nc-due").value = addDays(audit.date, M.DUE_DAYS[r.value]); }));
     },
   });

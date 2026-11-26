@@ -155,6 +155,8 @@ export function sampleData(now, today = isoOf(new Date())) {
       ratings, notes: {}, photos: [],
       equipment: pl.module === "lifting" ? def.equipment.map(e => ({ ...e, count: Math.floor(R() * 6) })) : [],
       created_at: date + "T08:00:00.000Z", updated_at: date + "T15:00:00.000Z", submitted_at: date + "T14:00:00.000Z", approved_at: date + "T16:00:00.000Z",
+      // most sample reports were sent to the project within a week (P-20 7.4); a few were not, to show the alert
+      sent: R() < 0.9 ? { date: [addDaysISO(date, 1 + Math.floor(R() * 5)), today].sort()[0], to: "Project Manager, Site HSE Manager", ref: "E-mail", by: lead.name } : null,
       sample: true,
     };
     pl.audit_id = audit.id;

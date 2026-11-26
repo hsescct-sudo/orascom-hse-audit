@@ -6,6 +6,7 @@ import { setTitle, setActions, link } from "../app.js";
 import { esc, ICON, fmtDate, COLORS } from "../ui.js";
 import { GRADES, ROOT_CAUSES } from "../templates.js";
 import { fmtScore, gradeOf } from "../scoring.js";
+import { sigCell, changeLogHTML } from "../sign.js";
 
 export async function render(ctx) {
   const { view, query } = ctx;
@@ -26,7 +27,7 @@ export async function render(ctx) {
   const urls = {};
   const ids = [...(a.photos || []), ...M.auditNCRs(a).flatMap(n => [...(n.photos || []), ...(n.ca_photos || [])]), ...M.auditGoods(a).flatMap(g => g.photos || [])];
   await Promise.all(ids.map(async id => { urls[id] = await S.photoURL(id); }));
-  view.innerHTML = type === "ncr" ? ncrPack(a, d, urls, query.ncr) : (d.id === "full" ? fullReport(a, d, urls) : liftReport(a, d, urls));
+  view.innerHTML = type === "ncr" ? ncrPack(a, d, urls, query.ncr) : (d.id === "full" ? fullReport(a, d, urls) : liftReport(a, d, urls)) + changeLogHTML(a);
 }
 
 const head = (d, title, ref, rev) => `<div class="rep-head"><div><img src="assets/orascom-logo.png" alt="Orascom Construction" style="width:100%;max-width:130px"></div><div><h1>${esc(title)}</h1></div><div><span>Form Ref.: <b>${esc(ref)}</b></span><span>Form Rev.: <b>${esc(rev)}</b></span><span>HSE Dept.</span></div></div>`;
@@ -137,12 +138,13 @@ function ncrPack(a, d, urls, only) {
       <tr><th>Project</th><td>${esc(p.name)}</td><td><b>Location:</b> ${esc(n.location || "")}</td><th>Due date</th><td>${esc(fmtDate(n.due_date))}</td></tr>
       <tr><th>NCR classification</th><td colspan="4">${esc(n.classification)}</td></tr>
       <tr><th>Description of non-conformity</th><td colspan="4"><b>(${esc(n.clause || d.ncrClause)})</b><br><i>${esc(n.requirement || d.ncrRequirement)}</i><br><br>${esc(n.description)}</td></tr>
-      <tr><th>Prepared by</th><td colspan="2"><b>Name:</b> ${esc(lead.name || "")}</td><td colspan="2"><b>Position:</b> ${esc(lead.position || "Corporate HSE Auditor")}</td></tr>
+      <tr><th>Prepared by</th><td colspan="2"><b>Name:</b> ${esc(((n.sigs || {}).prepared || {}).name || lead.name || "")}<br><b>Position:</b> ${esc(lead.position || "Corporate HSE Auditor")}</td><td colspan="2"><b>Signature:</b> ${sigCell(n, "prepared")}</td></tr>
       <tr><th>Root causes</th><td colspan="4">${ROOT_CAUSES.map(r => `${box((n.root_causes || []).includes(r))}${esc(r)}`).join("&nbsp;&nbsp;&nbsp;")}${n.other_cause ? ` (${esc(n.other_cause)})` : ""}</td></tr>
       <tr><th>Corrective / preventive action requirements</th><td colspan="2">${esc(n.action_required || "")}</td><td colspan="2" class="ph-cell"><b>Evidence photos</b><br>${(n.photos || []).slice(0, 2).map(id => urls[id] ? `<img src="${urls[id]}" alt="NCR photo">` : "").join("")}</td></tr>
-      <tr><th>Corrective / preventive action responsible</th><td colspan="2"><b>Name:</b> ${esc(n.responsible_name || "")}<br><b>Position:</b> ${esc(n.responsible_position || "")}</td><td colspan="2"><b>Date:</b><br><b>Signature:</b></td></tr>
+      <tr><th>Corrective / preventive action responsible</th><td colspan="2"><b>Name:</b> ${esc(n.responsible_name || "")}<br><b>Position:</b> ${esc(n.responsible_position || "")}</td><td colspan="2"><b>Date:</b> ${esc(fmtDate(((n.sigs || {}).responsible || {}).date) || "")}<br><b>Signature:</b> ${sigCell(n, "responsible")}</td></tr>
       <tr><th>Corrective action taken</th><td colspan="2">${esc(n.ca_text || "")}${n.ca_date ? `<br><small>${esc(fmtDate(n.ca_date))}</small>` : ""}</td><td colspan="2" class="ph-cell">${(n.ca_photos || []).slice(0, 2).map(id => urls[id] ? `<img src="${urls[id]}" alt="Evidence photo">` : "").join("")}</td></tr>
-      <tr><th>Follow up for complying by</th><td colspan="2"><b>Name:</b> ${esc(n.followup_name || "")}<br><b>Position:</b> ${esc(n.followup_position || "")}</td><td colspan="2"><b>Date:</b> ${esc(fmtDate(n.followup_date) || "")}<br><b>Signature:</b></td></tr>
+      <tr><th>Follow up for complying by</th><td colspan="2"><b>Name:</b> ${esc(n.followup_name || "")}<br><b>Position:</b> ${esc(n.followup_position || "")}</td><td colspan="2"><b>Date:</b> ${esc(fmtDate(n.followup_date || ((n.sigs || {}).followup || {}).date) || "")}<br><b>Signature:</b> ${sigCell(n, "followup")}</td></tr>
+      <tr><th>Closure approved by (Auditor)</th><td colspan="2"><b>Name:</b> ${esc(((n.sigs || {}).approver || {}).name || "")}<br><b>Position:</b> Corporate HSE Auditor</td><td colspan="2"><b>Date:</b> ${esc(fmtDate(((n.sigs || {}).approver || {}).date) || "")}<br><b>Signature:</b> ${sigCell(n, "approver")}</td></tr>
     </tbody></table>
     <p class="small">Status: <b>${esc(M.NCR_STATE[M.ncrState(n)])}</b></p>
   </div>`).join("");

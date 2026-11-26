@@ -18,7 +18,7 @@ export async function render(ctx) {
   const counts = st => all.filter(n => M.ncrState(n, today) === st).length;
   view.innerHTML = `
     <div class="row" style="margin-bottom:12px;gap:8px" id="states">
-      ${[["", "All", all.length], ["open", "Open", counts("open")], ["overdue", "Past deadline", counts("overdue")], ["closed", "Closed", counts("closed")], ["carried", "Repeated in next audit", counts("carried")]]
+      ${[["", "All", all.length], ["open", "Open", counts("open")], ["overdue", "Past deadline", counts("overdue")], ["closed", "Closed", counts("closed")], ["review", "Evidence under review", counts("review")], ["carried", "Repeated in next audit", counts("carried")]]
         .map(([k, l, c]) => `<button class="btn sm ${f.state === k ? "primary" : ""}" data-st="${k}" type="button">${l} <span class="num" style="opacity:.75">${c}</span></button>`).join("")}
     </div>
     <div class="filters" style="margin-bottom:14px">

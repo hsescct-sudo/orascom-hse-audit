@@ -14,7 +14,7 @@ export const member = id => S.get(id);
 
 let current = null;
 export const me = () => current;
-export const setMe = m => { current = m; };
+export const setMe = m => { current = m; S.setActor(m ? (m.name || m.email || "") : ""); };
 export const isAdmin = () => !!current && current.role === "admin";
 export const canEdit = () => !!current && (current.role === "admin" || current.role === "auditor");
 
@@ -64,11 +64,14 @@ export const auditRef = (d, proj, n) => `${d.prefix}-${proj.code}-${String(n).pa
 // NCR state as people read it
 export function ncrState(n, today = todayISO()) {
   if (n.status === "Closed") return "closed";
+  if (n.status === "Review") return "review";
   if (n.status === "Carried") return "carried";
   if (n.due_date && n.due_date < today) return "overdue";
   return "open";
 }
-export const NCR_STATE = { open: "Open", overdue: "Overdue", closed: "Closed", carried: "Repeated in next audit" };
+export const NCR_STATE = { open: "Open", overdue: "Overdue", review: "Evidence under review", closed: "Closed", carried: "Repeated in next audit" };
+// P-20 7.4: the report goes to the project through Corporate HSE within 7 days of the audit date.
+export const sendOverdue = (a, today = todayISO()) => finished(a) && !(a.sent && a.sent.date) && daysBetween(a.date, today) > 7;
 export const daysToClose = n => (n.status === "Closed" && n.ca_date && n.date ? Math.max(0, daysBetween(n.date, n.ca_date)) : null);
 export const onTime = n => (n.status === "Closed" && n.ca_date && n.due_date ? n.ca_date <= n.due_date : null);
 
