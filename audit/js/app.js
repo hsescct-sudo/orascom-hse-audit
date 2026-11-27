@@ -212,6 +212,7 @@ function drawNav() {
   $("#nav").innerHTML = items.map(([pg, label, ic, c]) => `<a href="${link(pg)}"${cur(pg)}>${ic}<span>${label}</span>${c ? `<span class="cnt" title="Overdue NCRs">${c}</span>` : ""}</a>`).join("") +
     `<div class="nav-h">Company</div>` +
     [["projects", "Projects", ICON.building], ["team", "Auditors and users", ICON.users], ["settings", "Settings", ICON.gear]].map(([pg, label, ic]) => `<a href="${link(pg)}"${cur(pg)}>${ic}<span>${label}</span></a>`).join("") +
+    `<a href="../start/">${ICON.back}<span>All HSE systems</span></a>` +
     (CFG.flashAuditUrl ? `<a href="${esc(CFG.flashAuditUrl)}" target="_blank" rel="noopener">${ICON.ext}<span>Flash Audit system</span></a>` : "");
   const tabs = [
     me.role !== "viewer" ? ["home", "My audits", ICON.home] : ["dashboard", "Dashboard", ICON.dash],

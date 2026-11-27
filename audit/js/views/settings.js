@@ -14,6 +14,8 @@ export async function render(ctx) {
   const mode = await S.meta("mode");
   const st = S.settings();
   const rem = st.reminders || {};
+  const Demo = await import("../demo.js");
+  const dc = Demo.demoCounts();
   const photos = await S.photoCount();
   const sync = Sync.status();
   view.className = "view narrow";
@@ -54,6 +56,12 @@ export async function render(ctx) {
       </tbody></table></div>
       <div class="row" style="margin-top:10px"><button class="btn primary" type="button" id="saverules">Save scoring rules</button></div>
     </section>
+    ${mode === "cloud" ? `<section class="panel"><div class="panel-h"><h2>Presentation data</h2><span class="muted">For a demo to management</span></div>
+      ${dc.total ? `<p><b>Presentation data is on the server:</b> ${dc.audits} audits, ${dc.ncrs} NCRs${st.demo ? `, added ${esc(String(st.demo.loaded_at || "").slice(0, 10))} by ${esc(st.demo.by || "")}` : ""}. Every user sees it. E-mail reminders stay off until you remove it.</p>
+        <div class="row" style="margin-top:10px"><button class="btn danger" type="button" id="demo-del">Remove presentation data</button></div>`
+      : `<p class="small">Adds realistic audits, NCRs, good practices and plans on all company projects, so the dashboards and registers are full for a presentation. Your auditors are used as the auditors. E-mail reminders turn off. After the presentation, remove all of it with one button. Your real records are not changed.</p>
+        <div class="row" style="margin-top:10px"><button class="btn" type="button" id="demo-add">Add presentation data</button></div>`}
+    </section>` : ""}
     <section class="panel"><div class="panel-h"><h2>E-mail reminders</h2><span class="muted">Sent early morning on the days you pick</span></div>
       <label class="tick" style="margin-bottom:10px"><input type="checkbox" id="rm-on" ${rem.on ? "checked" : ""}>Send reminders by e-mail</label>
       <div class="row small" style="gap:12px;margin-bottom:10px" id="rm-days">${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => `<label class="tick"><input type="checkbox" value="${i}" ${(rem.days || [0, 3]).includes(i) ? "checked" : ""}>${d}</label>`).join("")}</div>
@@ -105,8 +113,23 @@ export async function render(ctx) {
   if ($("#saverem")) $("#saverem").onclick = async () => {
     const days = [...view.querySelectorAll("#rm-days input:checked")].map(i => +i.value);
     if ($("#rm-on").checked && !days.length) { toast("Pick at least one day.", "error"); return; }
+    if ($("#rm-on").checked && Demo.demoCounts().total) { toast("Remove the presentation data first. Otherwise the auditors get reminders about NCRs that are not real.", "error"); $("#rm-on").checked = false; return; }
     await S.saveSettings({ reminders: { on: $("#rm-on").checked, days, projects: $("#rm-prj").checked, ccLead: $("#rm-cc").checked, auditors: $("#rm-aud").checked, admins: $("#rm-adm").checked } });
     toast("Reminders saved.", "ok");
+  };
+  if ($("#demo-add")) $("#demo-add").onclick = async () => {
+    if (!(await confirmBox("This adds about 80 audits and 240 NCRs on all company projects. All users see them. E-mail reminders turn off until you remove them.", { title: "Add presentation data?", ok: "Add data" }))) return;
+    const b = $("#demo-add"); b.disabled = true; b.textContent = "Adding…";
+    try { const n = await Demo.loadDemo(); await Sync.syncNow(true); toast(`${n} records added. Reminders are off.`, "ok"); }
+    catch (e) { toast(e.message, "error"); }
+    rerender();
+  };
+  if ($("#demo-del")) $("#demo-del").onclick = async () => {
+    if (!(await confirmBox("All presentation audits, NCRs, good practices and plans are removed for every user. Real records stay.", { title: "Remove presentation data?", ok: "Remove", danger: true }))) return;
+    const b = $("#demo-del"); b.disabled = true; b.textContent = "Removing…";
+    try { const n = await Demo.removeDemo(); await Sync.syncNow(true); toast(`${n} records removed. Turn the reminders on again when you are ready.`, "ok"); }
+    catch (e) { toast(e.message, "error"); }
+    rerender();
   };
   if ($("#remkey")) $("#remkey").onclick = async () => {
     if (!(await confirmBox("This makes a new key for the reminder job in GitHub. An older key stops working.", { title: "Make the GitHub key?", ok: "Make key" }))) return;

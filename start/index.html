@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Corporate HSE Systems</title>
+  <meta name="description" content="Orascom Construction Corporate HSE: Flash Audit, HSE Audit, Lifting Assessment and Settings.">
+  <meta name="theme-color" content="#001a38">
+  <link rel="icon" href="../audit/assets/icon-64.png">
+  <style>
+    @font-face { font-family: "Barlow"; font-weight: 500; font-display: swap; src: url(../audit/fonts/barlow-latin-500-normal.woff2) format("woff2"); }
+    @font-face { font-family: "Barlow"; font-weight: 600; font-display: swap; src: url(../audit/fonts/barlow-latin-600-normal.woff2) format("woff2"); }
+    @font-face { font-family: "Barlow Semi Condensed"; font-weight: 700; font-display: swap; src: url(../audit/fonts/barlow-semi-condensed-latin-700-normal.woff2) format("woff2"); }
+    :root {
+      --night: #001a38; --navy: #003876; --paper: #eef2f7; --card: #ffffff; --ink: #0d1a2c; --muted: #5a6880; --line: #d5dde8;
+      /* ISO 7010 safety sign colours: warning yellow, safe green, mandatory blue */
+      --flash: #f5b400; --audit: #1d8f52; --lift: #1060b0; --gear: #4f5d72;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { font-family: "Barlow", system-ui, sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+    header { background: var(--night); color: #fff; padding: 22px 0 92px; }
+    .bar, h1, header p { max-width: 1120px; margin-left: auto; margin-right: auto; padding: 0 24px; }
+    .bar { display: flex; align-items: center; gap: 14px; }
+    .logo { background: #fff; border-radius: 8px; padding: 6px 10px; display: inline-flex; }
+    .logo img { height: 26px; display: block; }
+    .bar b { font-family: "Barlow Semi Condensed"; font-size: 19px; letter-spacing: .2px; }
+    .bar span { display: block; font-size: 13px; color: #9fb3cc; font-weight: 500; }
+    h1 { margin-top: 38px; margin-bottom: 0; font-family: "Barlow Semi Condensed"; font-weight: 700; font-size: clamp(30px, 5vw, 46px); line-height: 1.05; }
+    header p { margin-top: 10px; margin-bottom: 0; color: #b9c8db; font-size: 16px; }
+    main { max-width: 1120px; margin: -64px auto 0; padding: 0 24px 48px; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+    .tile { position: relative; display: flex; flex-direction: column; gap: 14px; min-height: 250px; padding: 22px 20px 20px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; color: inherit; text-decoration: none; text-align: left; font: inherit; cursor: pointer; box-shadow: 0 1px 0 rgba(13, 26, 44, .04), 0 10px 24px -18px rgba(13, 26, 44, .45); transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+    .tile:hover { transform: translateY(-3px); border-color: var(--c); box-shadow: 0 16px 30px -20px rgba(13, 26, 44, .55); }
+    .tile:focus-visible { outline: 3px solid var(--c); outline-offset: 3px; }
+    .tile::after { content: ""; position: absolute; left: 20px; right: 20px; bottom: 0; height: 4px; border-radius: 4px 4px 0 0; background: var(--c); opacity: .9; }
+    .sign { width: 92px; height: 92px; display: block; }
+    .tile h2 { margin: 6px 0 0; font-family: "Barlow Semi Condensed"; font-weight: 700; font-size: 27px; line-height: 1.05; }
+    .tile p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.4; }
+    .go { margin-top: auto; font-weight: 600; font-size: 14px; color: var(--ink); display: inline-flex; align-items: center; gap: 6px; }
+    .go svg { transition: transform .18s ease; }
+    .tile:hover .go svg { transform: translateX(3px); }
+    .t-flash { --c: var(--flash); } .t-audit { --c: var(--audit); } .t-lift { --c: var(--lift); } .t-gear { --c: var(--gear); }
+    footer { max-width: 1120px; margin: 0 auto; padding: 0 24px 32px; color: var(--muted); font-size: 13px; }
+    dialog { border: 0; border-radius: 14px; padding: 0; width: min(440px, calc(100vw - 32px)); box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .5); }
+    dialog::backdrop { background: rgba(0, 26, 56, .55); }
+    .dlg { padding: 22px; }
+    .dlg h3 { margin: 0 0 4px; font-family: "Barlow Semi Condensed"; font-size: 24px; }
+    .dlg > p { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+    .pick { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; color: inherit; text-decoration: none; margin-bottom: 10px; }
+    .pick:hover, .pick:focus-visible { border-color: var(--navy); outline: none; background: #f6f9fd; }
+    .pick b { display: block; font-size: 16px; } .pick span { color: var(--muted); font-size: 13px; }
+    .pick svg { flex: none; }
+    .close { margin-top: 6px; width: 100%; padding: 11px; border-radius: 10px; border: 1px solid var(--line); background: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+    @media (max-width: 980px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 520px) {
+      header { padding: 16px 0 84px; } .bar, h1, header p { padding: 0 16px; } h1 { margin-top: 26px; } main { padding: 0 16px 36px; } footer { padding: 0 16px 28px; }
+      .grid { gap: 12px; } .tile { min-height: 0; padding: 16px 14px 18px; gap: 10px; } .sign { width: 64px; height: 64px; }
+      .tile h2 { font-size: 22px; } .tile p { font-size: 13.5px; } .go { display: none; }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .tile { animation: rise .5s cubic-bezier(.2, .7, .2, 1) both; }
+      .tile:nth-child(2) { animation-delay: .06s; } .tile:nth-child(3) { animation-delay: .12s; } .tile:nth-child(4) { animation-delay: .18s; }
+      @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar"><span class="logo"><img src="../audit/assets/orascom-logo.png" alt="Orascom Construction"></span><div><b>Corporate HSE</b><span>Audit systems</span></div></div>
+    <h1>Choose a system</h1>
+    <p>Flash audits, full HSE audits and lifting assessments for all company projects.</p>
+  </header>
+  <main>
+    <div class="grid">
+      <a class="tile t-flash" href="../">
+        <svg class="sign" viewBox="0 0 96 96" aria-hidden="true"><path d="M48 6 L91 84 Q93 89 88 89 H8 Q3 89 5 84 Z" fill="#f5b400"/><path d="M48 15 L83.5 81.5 H12.5 Z" fill="none" stroke="#0d1a2c" stroke-width="6" stroke-linejoin="round"/><path d="M53 32 L37 58 H48 L43 75 L60 47 H49 Z" fill="#0d1a2c"/></svg>
+        <h2>Flash Audit</h2>
+        <p>Quick site checks with the Flash checklist, scores and actions.</p>
+        <span class="go">Open<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 5l7 7-7 7-1.4-1.4 4.6-4.6H4v-2h12.2l-4.6-4.6z" fill="currentColor"/></svg></span>
+      </a>
+      <a class="tile t-audit" href="../audit/#/full">
+        <svg class="sign" viewBox="0 0 96 96" aria-hidden="true"><rect x="4" y="4" width="88" height="88" rx="12" fill="#1d8f52"/><rect x="25" y="20" width="46" height="58" rx="5" fill="#fff"/><rect x="36" y="14" width="24" height="12" rx="4" fill="#fff" stroke="#1d8f52" stroke-width="4"/><path d="M34 52 l9 9 l19 -21" fill="none" stroke="#1d8f52" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <h2>HSE Audit</h2>
+        <p>Full audit with form F-HSE-078, NCRs, reports and the year plan.</p>
+        <span class="go">Open<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 5l7 7-7 7-1.4-1.4 4.6-4.6H4v-2h12.2l-4.6-4.6z" fill="currentColor"/></svg></span>
+      </a>
+      <a class="tile t-lift" href="../audit/#/lifting">
+        <svg class="sign" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="44" fill="#1060b0"/><rect x="35" y="14" width="26" height="22" rx="6" fill="#fff"/><circle cx="48" cy="25" r="5" fill="#1060b0"/><rect x="44.5" y="35" width="7" height="12" fill="#fff"/><path d="M48 46 V53 A13 13 0 1 1 35 66 V59" fill="none" stroke="#fff" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <h2>Lifting</h2>
+        <p>Lifting assessment with form F-HSE-0175 and its own NCR register.</p>
+        <span class="go">Open<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 5l7 7-7 7-1.4-1.4 4.6-4.6H4v-2h12.2l-4.6-4.6z" fill="currentColor"/></svg></span>
+      </a>
+      <button class="tile t-gear" type="button" id="settings">
+        <svg class="sign" viewBox="0 0 96 96" aria-hidden="true"><rect x="4" y="4" width="88" height="88" rx="44" fill="#4f5d72"/><path fill="#fff" fill-rule="evenodd" d="M44 18h8l1.6 7.4a23 23 0 0 1 6.2 2.6l6.4-4.1 5.7 5.7-4.1 6.4a23 23 0 0 1 2.6 6.2L78 44v8l-7.4 1.6a23 23 0 0 1-2.6 6.2l4.1 6.4-5.7 5.7-6.4-4.1a23 23 0 0 1-6.2 2.6L52 78h-8l-1.6-7.4a23 23 0 0 1-6.2-2.6l-6.4 4.1-5.7-5.7 4.1-6.4a23 23 0 0 1-2.6-6.2L18 52v-8l7.4-1.6a23 23 0 0 1 2.6-6.2l-4.1-6.4 5.7-5.7 6.4 4.1a23 23 0 0 1 6.2-2.6zM48 37a11 11 0 1 0 0 22a11 11 0 1 0 0-22z"/></svg>
+        <h2>Settings</h2>
+        <p>Users, projects, scoring rules, reminders and system options.</p>
+        <span class="go">Open<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 5l7 7-7 7-1.4-1.4 4.6-4.6H4v-2h12.2l-4.6-4.6z" fill="currentColor"/></svg></span>
+      </button>
+    </div>
+  </main>
+  <footer>Orascom Construction, Corporate HSE.</footer>
+  <dialog id="dlg" aria-labelledby="dlg-t">
+    <div class="dlg">
+      <h3 id="dlg-t">Settings</h3>
+      <p>Each system keeps its own settings. Administrators only.</p>
+      <a class="pick" href="../audit/#/settings"><svg width="36" height="36" viewBox="0 0 96 96" aria-hidden="true"><rect x="4" y="4" width="88" height="88" rx="12" fill="#1d8f52"/><path d="M30 50 l12 12 l24 -28" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>HSE Audit and Lifting</b><span>Scoring, reminders, demo data, sign-ins</span></div></a>
+      <a class="pick" href="../audit/#/team"><svg width="36" height="36" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="44" fill="#4f5d72"/><circle cx="48" cy="38" r="13" fill="#fff"/><path d="M24 74c3-13 13-19 24-19s21 6 24 19z" fill="#fff"/></svg><div><b>Auditors and users</b><span>Add people and make their sign-ins</span></div></a>
+      <a class="pick" href="../audit/#/projects"><svg width="36" height="36" viewBox="0 0 96 96" aria-hidden="true"><rect x="4" y="4" width="88" height="88" rx="12" fill="#003876"/><path d="M26 74V36l22-12 22 12v38H56V56H40v18z" fill="#fff"/></svg><div><b>Projects</b><span>Project list, e-mails, JV</span></div></a>
+      <a class="pick" href="../#/settings"><svg width="36" height="36" viewBox="0 0 96 96" aria-hidden="true"><path d="M48 6 L91 84 Q93 89 88 89 H8 Q3 89 5 84 Z" fill="#f5b400"/><path d="M53 32 L37 58 H48 L43 75 L60 47 H49 Z" fill="#0d1a2c"/></svg><div><b>Flash Audit</b><span>Flash system settings</span></div></a>
+      <button class="close" type="button" id="dlg-x">Close</button>
+    </div>
+  </dialog>
+  <script>
+    const dlg = document.getElementById("dlg");
+    document.getElementById("settings").addEventListener("click", () => { if (dlg.showModal) dlg.showModal(); else location.href = "../audit/#/settings"; });
+    document.getElementById("dlg-x").addEventListener("click", () => dlg.close());
+    dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+  </script>
+</body>
+</html>

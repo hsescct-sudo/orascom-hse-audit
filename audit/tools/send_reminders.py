@@ -220,6 +220,9 @@ def main():
     if not st.get("on") and not force:
         print("Reminders are off in Settings. Nothing sent.")
         return 0
+    if (data.get("settings") or {}).get("demo") and not force:
+        print("Presentation data is loaded. Reminders paused until it is removed.")
+        return 0
     if int(data.get("weekday", 0)) not in (st.get("days") or [0, 3]) and not force:
         print("Today is not a reminder day. Nothing sent.")
         return 0
