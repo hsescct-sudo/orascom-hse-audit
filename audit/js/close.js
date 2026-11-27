@@ -58,9 +58,9 @@ function draw(data) {
   const list = data.ncrs || [];
   const today = todayISO();
   const open = list.filter(n => n.status === "Open");
-  document.title = `${p.name || "Project"} NCRs · OC HSE Audit`;
+  document.title = `${p.name || "Project"} NCRs | OC HSE Audit`;
   $("#lk-title").textContent = p.name || "Project";
-  $("#lk-sub").textContent = `${MOD[data.module] || "Audit"} NCRs · ${[p.code, p.city, p.country].filter(Boolean).join(" · ")}`;
+  $("#lk-sub").textContent = `${MOD[data.module] || "Audit"} NCRs for ${[p.code, p.city, p.country].filter(Boolean).join(", ")}`;
   $("#lk-main").innerHTML = `
     <p class="lk-intro">${open.length ? `${open.length} NCR${open.length === 1 ? " needs" : "s need"} action. For each one, write what was done, add photos of the evidence and send it. The auditor checks it and closes the NCR, or sends it back with a reason.` : "No NCR needs action now. Sent evidence and recently closed NCRs are listed below."}</p>
     ${list.map(n => card(n, today)).join("") || `<div class="empty"><h3>No NCRs</h3><p>There are no open NCRs for this project.</p></div>`}`;

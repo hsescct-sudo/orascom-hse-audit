@@ -64,7 +64,7 @@ export function parseFlashAudit(wb) {
   const mp = labelValue(/^manpower$/i, "num");
   const mpN = typeof mp === "number" ? mp : parseInt(String(mp?.result ?? mp ?? "").replace(/[^\d]/g, ""), 10);
   header.manpower = isNaN(mpN) ? null : mpN;
-  if (!header.date) warnings.push("No audit date found — today's date will be used unless you change it.");
+  if (!header.date) warnings.push("No audit date found. Today's date will be used unless you change it.");
 
   // scope
   let scope = "";

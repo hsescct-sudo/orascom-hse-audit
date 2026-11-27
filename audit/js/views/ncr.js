@@ -17,7 +17,7 @@ export async function render(ctx) {
   const p = M.project(n.project_id);
   const canFollow = M.canEdit();
   const canEditBody = M.canEdit() && a && (a.status === "draft" || M.isAdmin());
-  setTitle(n.ref, `NCR · ${p.name}`);
+  setTitle(n.ref, `NCR, ${p.name}`);
   setActions(`<a class="btn sm" href="${a ? link("report", a.id, n.module) + "?type=ncr&ncr=" + n.id : "#"}">${ICON.print}<span>NCR form</span></a>${canFollow ? `<button class="btn sm" id="plink" type="button">${ICON.ext}<span>Project link</span></button>` : ""}${canEditBody ? `<button class="btn sm" id="edit" type="button">${ICON.edit}<span>Edit NCR</span></button>` : ""}`);
   const pl = document.getElementById("plink"); if (pl) pl.onclick = () => projectLink(n.module, n.project_id);
   const ed = document.getElementById("edit"); if (ed) ed.onclick = async () => { const r = await editNCR(a, n); if (r === "deleted") go(link("ncrs")); else if (r) location.reload(); };

@@ -29,7 +29,7 @@ export async function render(ctx) {
     </div></section>
     <section class="panel"><div class="panel-h"><h2>This device</h2></div>
       <div class="stack" style="gap:8px">
-        <div class="row" style="justify-content:space-between"><span>Signed in as</span><b>${esc(M.me().name)} · ${esc(M.me().role)}</b></div>
+        <div class="row" style="justify-content:space-between"><span>Signed in as</span><b>${esc(M.me().name)} (${esc(M.me().role)})</b></div>
         <div class="row" style="justify-content:space-between"><span>Mode</span><b>${mode === "demo" ? "Sample data, this device only" : "Connected to the server"}</b></div>
         ${mode === "cloud" ? `<div class="row" style="justify-content:space-between"><span>Waiting to send</span><b>${sync.pending} change${sync.pending === 1 ? "" : "s"}</b></div>` : ""}
         <div class="row" style="justify-content:space-between"><span>Photos saved on this device</span><b>${photos}</b></div>
@@ -80,7 +80,7 @@ export async function render(ctx) {
         <label class="fld"><span>${esc(MODULES[id].short)}: good practice classifications (${d.goodClasses.length})</span><textarea rows="8" data-l="goodClasses">${esc(d.goodClasses.join("\n"))}</textarea></label></div>`; }).join("")}
       <div class="row"><button class="btn primary" type="button" id="savelists">Save lists</button></div>
     </section>` : ""}
-    <p class="muted small">OC HSE Audit ${VERSION} · ${esc(MODULES.full.formRef)} and ${esc(MODULES.lifting.formRef)} · NCR form ${esc(MODULES.full.ncrFormRef)}</p>
+    <p class="muted small">OC HSE Audit ${VERSION}. Forms ${esc(MODULES.full.formRef)} and ${esc(MODULES.lifting.formRef)}, NCR form ${esc(MODULES.full.ncrFormRef)}.</p>
   </div>`;
   const $ = s => view.querySelector(s);
   if ($("#leave")) $("#leave").onclick = leaveDemo;

@@ -32,10 +32,10 @@ export async function render(root, ctx) {
 
   function closurePanel() {
     const st = findingState(f);
-    if (st === "closed") return `<div class="panel ok"><b>Closed</b><span class="muted small">${f.closed_at ? fmtDateTime(f.closed_at) : ""}${f.closed_by ? " · approved by " + esc(f.closed_by) : ""}</span>${f.closure_note ? `<p>${esc(f.closure_note)}</p>` : ""}
+    if (st === "closed") return `<div class="panel ok"><b>Closed</b><span class="muted small">${f.closed_at ? fmtDateTime(f.closed_at) : ""}${f.closed_by ? ", approved by " + esc(f.closed_by) : ""}</span>${f.closure_note ? `<p>${esc(f.closure_note)}</p>` : ""}
       ${isAdmin ? `<div class="btnrow"><button class="btn ghost" data-act="reopen">Reopen finding</button></div>` : ""}</div>`;
     if (st === "pending") {
-      return `<div class="panel info"><b>Closure submitted for review</b><span class="muted small">${f.closure_submitted_at ? fmtDateTime(f.closure_submitted_at) : ""}${f.closure_submitted_by ? ` · ${esc(f.closure_submitted_by)}` : ""}</span>
+      return `<div class="panel info"><b>Closure submitted for review</b><span class="muted small">${f.closure_submitted_at ? fmtDateTime(f.closure_submitted_at) : ""}${f.closure_submitted_by ? `, ${esc(f.closure_submitted_by)}` : ""}</span>
         ${f.closure_note ? `<p>${esc(f.closure_note)}</p>` : ""}
         ${isAdmin ? `<label class="fld"><span>Comment (needed when returning)</span><textarea id="rv-c" rows="2" placeholder="e.g. Verified on photo / Mid rail still missing"></textarea></label>
           <div class="btnrow"><button class="btn primary" data-act="approve">Approve and close</button><button class="btn ghost danger" data-act="reject">Return to project</button></div>`
@@ -52,7 +52,7 @@ export async function render(root, ctx) {
     root.innerHTML = `
       <div class="page-head"><div><a class="back" href="#/register">‹ Findings register</a>
         <h1>${fRef(f.ref)} ${riskChip(f.risk)} ${stateChip(f)}</h1>
-        <p class="muted">${esc(f.projects?.name || "")} · <a href="#/audit/${f.audit_id}">Audit ${aRef(f.audits?.ref)}</a> on ${fmtDate(f.audits?.audit_date)} (${f.audits?.audit_type === "corporate" ? "Corporate" : "Project"})</p></div>
+        <p class="muted">${esc(f.projects?.name || "")}, <a href="#/audit/${f.audit_id}">Audit ${aRef(f.audits?.ref)}</a> on ${fmtDate(f.audits?.audit_date)} (${f.audits?.audit_type === "corporate" ? "Corporate" : "Project"})</p></div>
         <div class="actions">${canEdit() ? `<button class="btn ghost" data-act="edit">Edit</button><button class="btn ghost danger" data-act="delete">Delete</button>` : ""}</div></div>
       <div class="grid2">
         <div class="stack">
@@ -60,7 +60,7 @@ export async function render(root, ctx) {
             <h2 class="h2">Observation</h2>
             <p class="lead">${esc(f.observation) || '<span class="muted">No description.</span>'}</p>
             <dl class="dl">
-              <dt>Topic</dt><dd>${esc(topicName(f.topic))}${it ? `<div class="muted small">${esc(f.item_id)} · ${esc(it.text)}</div>` : ""}</dd>
+              <dt>Topic</dt><dd>${esc(topicName(f.topic))}${it ? `<div class="muted small">${esc(f.item_id)}: ${esc(it.text)}</div>` : ""}</dd>
               <dt>Area</dt><dd>${esc(f.area) || "—"}</dd>
               <dt>Root cause</dt><dd class="pre">${esc(f.root_cause) || "—"}</dd>
               <dt>${f.fixed_on_spot ? "Corrected on the spot" : "Immediate action"}</dt><dd class="pre">${esc(f.immediate_action) || "—"}</dd>
@@ -68,7 +68,7 @@ export async function render(root, ctx) {
               <dt>Owner</dt><dd>${esc(f.owner) || "—"}</dd>
               <dt>Target date</dt><dd>${f.fixed_on_spot ? "Immediately" : fmtDate(f.target_date) || "—"}</dd>
               ${f.needs_support ? `<dt>Management support</dt><dd><span class="chip st-overdue">Needed</span> ${esc(f.support_title)}</dd>` : ""}
-              <dt>Raised by</dt><dd>${esc(f.created_by_name) || "—"} · ${fmtDateTime(f.created_at)}</dd>
+              <dt>Raised by</dt><dd>${esc(f.created_by_name) || "—"}, ${fmtDateTime(f.created_at)}</dd>
             </dl>
           </section>
           <section class="card"><h2 class="h2">Photo of violation</h2>${gallery("violation")}</section>
@@ -151,7 +151,7 @@ export async function render(root, ctx) {
         <label class="fld"><span>Area</span><input id="e-area" value="${esc(f.area)}"></label>
         <label class="fld"><span>Owner</span><input id="e-owner" value="${esc(f.owner)}"></label>
         <label class="fld span2"><span>Observation</span><textarea id="e-obs" rows="3">${esc(f.observation)}</textarea></label>
-        <label class="fld span2"><span>Root cause</span><textarea id="e-rc" rows="2" list="rcl">${esc(f.root_cause)}</textarea><small class="muted">Common: ${RC_LIST.join(" · ")}</small></label>
+        <label class="fld span2"><span>Root cause</span><textarea id="e-rc" rows="2" list="rcl">${esc(f.root_cause)}</textarea><small class="muted">Common: ${RC_LIST.join(", ")}</small></label>
         <label class="fld span2"><span>Immediate action</span><textarea id="e-act" rows="2">${esc(f.immediate_action)}</textarea></label>
         <label class="fld span2"><span>Interim control</span><textarea id="e-int" rows="2">${esc(f.interim_control)}</textarea></label>
         <label class="fld span2"><span>Action plan</span><textarea id="e-plan" rows="2">${esc(f.action_plan)}</textarea></label>

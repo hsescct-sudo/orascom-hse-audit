@@ -48,7 +48,7 @@ export async function render(root, ctx) {
     const active = draft.topics.filter(t => t.active), nActive = active.reduce((n, t) => n + t.items.filter(i => i.active).length, 0);
     p.innerHTML = `
       <div class="card set-head">
-        <div><b>${active.length} topics · ${nActive} active checks</b><p class="muted small">${saved("checklist")}. Switched-off checks disappear from new audits; old audits keep them.</p></div>
+        <div><b>${active.length} topics, ${nActive} active checks</b><p class="muted small">${saved("checklist")}. Switched-off checks disappear from new audits; old audits keep them.</p></div>
         <div class="btnrow">
           <span class="pill ${dirty ? "warn" : "ok"}" id="dirty">${dirty ? "Changes not saved" : "All saved"}</span>
           <button class="btn ghost" data-act="add-topic">${ICON.plus} Add topic</button>
@@ -64,7 +64,7 @@ export async function render(root, ctx) {
     const canDelete = !usedTopics.has(t.code) && !t.items.some(i => usedItems.has(i.id)) && !DEFAULT_CHECKLIST.topics.some(d => d.code === t.code);
     return `<section class="tcard ${t.active ? "" : "off"}" data-ti="${ti}">
       <div class="tc-head">
-        <button class="tc-toggle" data-act="toggle" aria-expanded="${on}"><span class="tc-code">${esc(t.code)}</span><span class="tc-title"><b>${esc(t.name)}</b><small class="muted">${n} active check${n === 1 ? "" : "s"}${t.active ? "" : " · switched off"}</small></span></button>
+        <button class="tc-toggle" data-act="toggle" aria-expanded="${on}"><span class="tc-code">${esc(t.code)}</span><span class="tc-title"><b>${esc(t.name)}</b><small class="muted">${n} active check${n === 1 ? "" : "s"}${t.active ? "" : ", switched off"}</small></span></button>
         <label class="switch" title="Show this topic in new audits"><input type="checkbox" data-f="active" ${t.active ? "checked" : ""}><span>${t.active ? "On" : "Off"}</span></label>
         <button class="icon-btn sm" data-act="up" title="Move up" aria-label="Move ${esc(t.name)} up" ${ti === 0 ? "disabled" : ""}>${ICON.up}</button>
         <button class="icon-btn sm" data-act="down" title="Move down" aria-label="Move ${esc(t.name)} down" ${ti === draft.topics.length - 1 ? "disabled" : ""}>${ICON.down}</button>

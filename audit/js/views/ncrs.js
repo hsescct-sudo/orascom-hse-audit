@@ -8,7 +8,7 @@ import { sevChip, ncrChip, repChip, projectOptions, optionList } from "../compon
 export async function render(ctx) {
   const { module: mod, def, view, query } = ctx;
   const fref = S.settings().findingsFormRef;
-  setTitle("NCR register", `${def.name} · NCR form ${def.ncrFormRef}${fref ? ` · Register ${fref}` : ""}`);
+  setTitle("NCR register", `${def.name}, NCR form ${def.ncrFormRef}${fref ? `, Register ${fref}` : ""}`);
   const today = todayISO();
   const all = M.ncrs(mod).sort((a, b) => (b.date || "").localeCompare(a.date || "") || (a.ref || "").localeCompare(b.ref || ""));
   const years = [...new Set(all.map(n => String(n.date).slice(0, 4)))].sort().reverse();
@@ -46,7 +46,7 @@ export async function render(ctx) {
       const p = M.project(n.project_id); const st = M.ncrState(n, today);
       const late = st === "overdue" ? `<br><span class="small" style="color:var(--g-red);font-weight:600">${daysBetween(n.due_date, today)} days late</span>` : "";
       return `<tr class="click" data-n="${esc(n.id)}"><td class="c-ref"><span class="ref">${esc(n.ref)}</span><br><span class="muted small nowrap">${esc(fmtDate(n.date))}</span></td><td class="c-proj"><b style="font-weight:600">${esc(p.code)}</b><br><span class="muted small">${esc(p.name)}</span></td>
-        <td><span class="chips">${sevChip(n.severity)}${repChip(n)}</span></td><td class="wrap c-wide">${esc(n.description)}<br><span class="muted small">${[n.location, n.classification].filter(Boolean).map(esc).join(" · ")}</span></td>
+        <td><span class="chips">${sevChip(n.severity)}${repChip(n)}</span></td><td class="wrap c-wide">${esc(n.description)}<br><span class="muted small">${[n.location, n.classification].filter(Boolean).map(esc).join(", ")}</span></td>
         <td style="min-width:120px">${esc(n.responsible_name || "")}${n.responsible_position ? `<br><span class="muted small">${esc(n.responsible_position)}</span>` : ""}</td>
         <td class="nowrap">${esc(fmtDate(n.due_date))}${late}</td><td class="c-end">${ncrChip(n)}</td></tr>`;
     }).join("") + (list.length > shown.length ? `<tr><td colspan="7" class="muted small">Showing the first ${shown.length}. Use the filters or export to Excel to see all.</td></tr>` : "")

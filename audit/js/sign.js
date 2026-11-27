@@ -134,7 +134,7 @@ export async function serverSigsHTML(id) {
     const rows = await Sync.call("ha_sigs", { p_doc_id: id });
     if (!rows || !rows.length) return "";
     const label = k => (SIG_SLOTS.find(s => s.key === k) || { label: k }).label;
-    return `<p class="small muted" style="margin:0">Signatures kept on the server (can't be changed): ${rows.map(r => `${esc(label(r.slot))}${r.name ? " · " + esc(r.name) : ""} · ${esc(fmtWhen(r.pushed_at))} by ${esc(r.pushed_by || "")}`).join("; ")}.</p>`;
+    return `<p class="small muted" style="margin:0">Signatures kept on the server (can't be changed): ${rows.map(r => `${esc(label(r.slot))}${r.name ? ", " + esc(r.name) : ""}, ${esc(fmtWhen(r.pushed_at))} by ${esc(r.pushed_by || "")}`).join("; ")}.</p>`;
   } catch (e) { return ""; }
 }
 

@@ -133,7 +133,7 @@ def build(data, app_url, test=False):
                 lines.append("")
             lines += ["If the work is done, send the evidence today. The auditor checks it and closes the NCR.", "", "Corporate HSE"]
             out.append({"kind": "project", "to": to, "cc": cc,
-                        "subject": f"HSE audit NCRs: {len(late) or len(items)} {'past the deadline' if late else 'due soon'} · {p.get('name', '')}",
+                        "subject": f"HSE audit NCRs: {len(late) or len(items)} {'past the deadline' if late else 'due soon'} for {p.get('name', '')}",
                         "text": "\n".join(lines)})
 
     # 2. Auditors: their own open work
@@ -160,15 +160,15 @@ def build(data, app_url, test=False):
             lines = [f"Hello {m.get('name', '')},", "", "Your open items in the Corporate HSE audit system:", ""]
             if w["send"]:
                 lines.append(f"Reports not sent to the project after {SEND_LATE_DAYS} days (P-20 7.4):")
-                lines += [f"  - {a.get('ref')} · {(projects.get(a.get('project_id')) or {}).get('name', '')} · audit date {fmt(a.get('date'))}" for a in w["send"]]
+                lines += [f"  - {a.get('ref')}, {(projects.get(a.get('project_id')) or {}).get('name', '')}, audit date {fmt(a.get('date'))}" for a in w["send"]]
                 lines.append("")
             if w["review"]:
                 lines.append("Evidence sent by the project, waiting for your review:")
-                lines += [f"  - {n.get('ref')} · {(projects.get(n.get('project_id')) or {}).get('name', '')} · sent {fmt(n.get('received_at'))}" for n in w["review"]]
+                lines += [f"  - {n.get('ref')}, {(projects.get(n.get('project_id')) or {}).get('name', '')}, sent {fmt(n.get('received_at'))}" for n in w["review"]]
                 lines.append("")
             if w["plan"]:
                 lines.append("Audits planned for this month, not started yet:")
-                lines += [f"  - {MOD.get(pl.get('module'), '')} · {(projects.get(pl.get('project_id')) or {}).get('name', '')}" for pl in w["plan"]]
+                lines += [f"  - {MOD.get(pl.get('module'), '')}, {(projects.get(pl.get('project_id')) or {}).get('name', '')}" for pl in w["plan"]]
                 lines.append("")
             lines += [f"Open the system: {app_url}", "", "This is an automatic reminder."]
             n_items = len(w["send"]) + len(w["review"]) + len(w["plan"])
@@ -198,7 +198,7 @@ def build(data, app_url, test=False):
             lines.append("")
         lines += [f"Dashboard: {app_url}", "", "This is an automatic summary."]
         for m in admins:
-            out.append({"kind": "admin", "to": [m["email"]], "cc": [], "subject": f"HSE audit weekly summary · {fmt(data['today'])}", "text": "\n".join(lines)})
+            out.append({"kind": "admin", "to": [m["email"]], "cc": [], "subject": f"HSE audit weekly summary, {fmt(data['today'])}", "text": "\n".join(lines)})
     return out
 
 

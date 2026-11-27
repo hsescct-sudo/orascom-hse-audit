@@ -10,7 +10,7 @@ import { fmtScore } from "../scoring.js";
 const FKEY = "oc-audit-dash-filters";
 export async function render(ctx) {
   const { module: mod, def, view } = ctx;
-  setTitle("Dashboard", `${def.name} · ${def.formRef}`);
+  setTitle("Dashboard", `${def.name}, ${def.formRef}`);
   const today = todayISO();
   const years = [...new Set([+today.slice(0, 4), ...M.audits(mod).map(a => +a.date.slice(0, 4)), ...M.plans(mod).map(p => p.year)])].sort((a, b) => b - a);
   let f = {}; try { f = JSON.parse(localStorage.getItem(FKEY) || "{}"); } catch (e) { /* none */ }
@@ -99,7 +99,7 @@ export async function render(ctx) {
     view.querySelector("#league").innerHTML = rows.length ? rows.map((x, i) => {
       const p = M.project(x.a.project_id);
       const hist = M.audits(mod).filter(a => a.project_id === p.id && M.finished(a)).slice(0, 5).reverse().map(a => M.score(a).total);
-      return `<div class="league-row" data-p="${esc(p.id)}" role="link" tabindex="0"><span class="rk">${i + 1}</span><span class="nm"><b>${esc(p.name)}</b><small>${esc(p.code)} · ${esc(p.city)}</small></span>${spark(hist)}${mtag(x.s.total)}</div>`;
+      return `<div class="league-row" data-p="${esc(p.id)}" role="link" tabindex="0"><span class="rk">${i + 1}</span><span class="nm"><b>${esc(p.name)}</b><small>${esc(p.code)}, ${esc(p.city)}</small></span>${spark(hist)}${mtag(x.s.total)}</div>`;
     }).join("") : `<p class="muted">No scored audits yet.</p>`;
     view.querySelector("#league").onclick = e => { const r = e.target.closest("[data-p]"); if (r) go(link("audits") + "?project=" + r.dataset.p); };
 

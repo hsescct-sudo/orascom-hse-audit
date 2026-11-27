@@ -14,7 +14,7 @@ export async function render(ctx) {
   let year = +(sessionStorage.getItem(YKEY) || nowY);
   const allPlans = M.plans(mod);
   const years = [...new Set([nowY, nowY + 1, ...allPlans.map(p => p.year)])].sort();
-  setTitle("Audit plan", `${def.name} · ${year}`);
+  setTitle("Audit plan", `${def.name}, ${year}`);
   const admin = M.isAdmin();
   const act = setActions(`${admin ? `<button class="btn" type="button" id="gen">${ICON.cal}<span>Build the year plan</span></button>` : ""}<button class="btn" type="button" id="xl">${ICON.xls}<span>Excel</span></button>`);
   const g = act.querySelector("#gen"); if (g) g.onclick = () => buildPlan(mod, year);
@@ -40,7 +40,7 @@ export async function render(ctx) {
   const rows = projs.filter(p => showAll || withPlan.has(p.id));
   const initials = id => { const m = M.member(id); if (!m) return "?"; const num = m.name.match(/^Auditor\s+(\d+)$/i); return num ? num[1] : m.name.split(/\s+/).filter(Boolean).map(w => w[0]).join("").slice(0, 3).toUpperCase(); };
   board.innerHTML = `<div class="ph" style="justify-content:flex-start;padding-left:10px;left:0;position:sticky;z-index:2">Project</div>${Array.from({ length: 12 }, (_, i) => `<div class="ph ${year === nowY && i + 1 === nowM ? "cm" : ""}">${monthName(i + 1)}</div>`).join("")}` +
-    (rows.length ? rows.map(p => `<div class="pn">${esc(p.name)}<small>${esc(p.code)} · ${esc(p.city)}</small></div>` + Array.from({ length: 12 }, (_, i) => {
+    (rows.length ? rows.map(p => `<div class="pn">${esc(p.name)}<small>${esc(p.code)}, ${esc(p.city)}</small></div>` + Array.from({ length: 12 }, (_, i) => {
       const items = plans.filter(x => x.project_id === p.id && x.month === i + 1);
       return `<div class="${year === nowY && i + 1 === nowM ? "cm" : ""}" data-cell="${esc(p.id)}|${i + 1}">${items.map(x => `<button class="pcell ${M.planStatus(x, today)}" type="button" data-plan="${esc(x.id)}" title="${esc(M.PLAN_STATE[M.planStatus(x, today)])}: ${esc((M.member(x.lead_id) || {}).name || "")}">${esc(initials(x.lead_id))}</button>`).join("")}</div>`;
     }).join("")).join("") : `<div style="grid-column:1/-1" class="empty"><h3>No plan for ${year}</h3><p>${admin ? "Use “Build the year plan” to plan every active project, or click a month to add one audit." : "Corporate HSE hasn't published the plan yet."}</p></div>`);
@@ -58,7 +58,7 @@ async function addPlan(mod, project_id, year, month) {
   const auditors = M.auditors();
   const p = M.project(project_id);
   const r = await dialog({
-    title: `Plan an audit · ${monthName(month)} ${year}`,
+    title: `Plan an audit for ${monthName(month)} ${year}`,
     body: `<p><b>${esc(p.name)}</b></p><label class="fld"><span>Lead auditor</span><select id="pl-l">${auditors.map(m => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join("")}</select></label>
       <fieldset class="fld" style="border:0;padding:0;margin:0"><span>Team (optional)</span><div class="row">${auditors.map(m => `<label class="tick"><input type="checkbox" value="${esc(m.id)}">${esc(m.name)}</label>`).join("")}</div></fieldset>`,
     actions: [{ label: "Cancel", value: null }, { label: "Add to plan", kind: "primary", value: w => ({ lead: w.querySelector("#pl-l").value, team: [...w.querySelectorAll(".tick input:checked")].map(i => i.value) }) }],
@@ -78,7 +78,7 @@ async function planItem(mod, pl) {
       ${admin ? `<div class="grid2"><label class="fld"><span>Month</span><select id="pi-m">${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${i + 1 === pl.month ? "selected" : ""}>${monthName(i + 1)}</option>`).join("")}</select></label>
         <label class="fld"><span>Lead auditor</span><select id="pi-l">${auditors.map(m => `<option value="${esc(m.id)}" ${m.id === pl.lead_id ? "selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label></div>`
         : `<p>Lead auditor: <b>${esc((M.member(pl.lead_id) || {}).name || "")}</b></p>`}
-      ${a ? `<p>Audit: <b>${esc(a.ref)}</b> · ${esc(a.date)}</p>` : ""}${pl.exception_reason ? `<p class="small muted">Fewer audits on this project (P-20 §7.2): ${esc(pl.exception_reason)}</p>` : ""}`,
+      ${a ? `<p>Audit: <b>${esc(a.ref)}</b>, ${esc(a.date)}</p>` : ""}${pl.exception_reason ? `<p class="small muted">Fewer audits on this project (P-20 §7.2): ${esc(pl.exception_reason)}</p>` : ""}`,
     actions: [
       ...(admin && !a ? [{ label: "Remove from plan", kind: "ghost", value: "del" }] : []),
       ...(admin ? [{ label: "Save", kind: "ghost", value: w => ({ save: true, month: +w.querySelector("#pi-m").value, lead: w.querySelector("#pi-l").value }) }] : []),
@@ -101,7 +101,7 @@ async function buildPlan(mod, year) {
   const projs = M.activeProjects().filter(p => !existing.some(x => x.project_id === p.id));
   const excep = projs.filter(M.planException), normal = projs.filter(p => !M.planException(p));
   const r = await dialog({
-    title: `Build the ${year} plan · ${def.short}`,
+    title: `Build the ${year} ${def.short} plan`,
     body: `<p>Plans every active project${existing.length ? `. Projects that already have a plan in ${year} are left as they are` : ""}. Lead auditors take turns so the work is shared.</p>
       ${mod === "full" ? `<div class="grid2">
         <label class="fld"><span>Projects in Egypt, not JV (${normal.length})</span><select id="bp-n"><option value="6" selected>6 a year (every 2 months, P-20 §7.2)</option><option value="12">12 a year (monthly, extra follow-up)</option></select></label>

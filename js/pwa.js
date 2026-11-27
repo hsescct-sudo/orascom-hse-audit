@@ -24,7 +24,7 @@ export async function installApp() {
     deferred = null; notify();
     return;
   }
-  const ios = `<ol class="steps"><li>Open this link in <b>Safari</b> (not inside WhatsApp or another app).</li><li>Tap the <b>Share</b> button — the square with an arrow at the bottom of the screen.</li><li>Scroll and tap <b>Add to Home Screen</b>, then <b>Add</b>.</li><li>Open <b>HSE Audit</b> from your home screen. It opens full screen like any app.</li></ol>`;
+  const ios = `<ol class="steps"><li>Open this link in <b>Safari</b> (not inside WhatsApp or another app).</li><li>Tap the <b>Share</b> button (the square with an arrow at the bottom of the screen).</li><li>Scroll and tap <b>Add to Home Screen</b>, then <b>Add</b>.</li><li>Open <b>HSE Audit</b> from your home screen. It opens full screen like any app.</li></ol>`;
   const android = `<ol class="steps"><li>Open this link in <b>Chrome</b>.</li><li>Tap the menu <b>⋮</b> at the top right.</li><li>Tap <b>Install app</b> (or <b>Add to Home screen</b>), then <b>Install</b>.</li><li>Open <b>HSE Audit</b> from your home screen or app drawer.</li></ol>`;
   const apk = `<div class="panel info"><b>Android app</b><span>Download the app, open the file and tap <b>Install</b>. If Android asks, allow installing apps from this source.</span><a class="btn primary" href="${ANDROID_APK}" download>Download the Android app</a></div><p class="muted">Or add it from Chrome, without a file:</p>`;
   const desktop = `<p>On a computer, use Chrome or Edge: click the install icon at the right end of the address bar, or menu → <b>Install HSE Audit</b>.</p>`;

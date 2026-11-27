@@ -132,12 +132,12 @@ export async function render(root, ctx) {
   }
   function scopeText(m) {
     const parts = [];
-    parts.push(f.project ? store.project(f.project)?.name : f.location ? `${f.location} · ${m.projects.length} projects` : isAdmin ? `All ${m.projects.length} projects` : "");
+    parts.push(f.project ? store.project(f.project)?.name : f.location ? `${f.location}, ${m.projects.length} projects` : isAdmin ? `All ${m.projects.length} projects` : "");
     parts.push(f.period === "all" ? "All time" : f.period === "custom" ? `${f.from ? fmtDate(f.from) : "start"} – ${f.to ? fmtDate(f.to) : "today"}` : PERIODS.find(p => p[0] === f.period)[1].replace(/^(\d)/, "Last $1"));
     if (f.type) parts.push(f.type === "corporate" ? "Corporate audits" : "Project audits");
     if (f.risk) parts.push(RISK_LABEL[f.risk] + " risk");
     if (f.topic) parts.push(topicName(f.topic));
-    return parts.filter(Boolean).join(" · ");
+    return parts.filter(Boolean).join(", ");
   }
   const regLink = extra => {
     const [from, to] = range();
@@ -164,19 +164,19 @@ export async function render(root, ctx) {
     charts.splice(0).forEach(c => c.dispose());
     Object.keys(tables).forEach(k => delete tables[k]);
     const m = model();
-    root.querySelector("#scope").textContent = `${scopeText(m)} · updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    root.querySelector("#scope").textContent = `${scopeText(m)}, updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
     const has = m.findings.length > 0;
     const closeRate = has ? pct(m.st.closed, m.findings.length) : null;
     const T = { closure: +DS.closureTarget || 90, compliance: +DS.complianceTarget || 90 };
     const comp = m.ok + m.nc ? pct(m.ok, m.ok + m.nc) : null;
     const tiles = [
-      { label: "Audits", value: nf(m.audits.length), note: `${m.audits.filter(a => a.audit_type === "corporate").length} corporate · ${m.audits.filter(a => a.audit_type === "project").length} project`, href: "#/audits", trend: spark(m.monthly.audits) },
+      { label: "Audits", value: nf(m.audits.length), note: `${m.audits.filter(a => a.audit_type === "corporate").length} corporate, ${m.audits.filter(a => a.audit_type === "project").length} project`, href: "#/audits", trend: spark(m.monthly.audits) },
       { label: "Findings", value: nf(m.findings.length), note: `${m.findings.filter(x => x.risk === "High").length} high risk`, href: regLink({}), trend: spark(m.monthly.raised) },
       { label: "Not closed", value: nf(m.notClosed), note: `${m.st.pending} waiting for review`, href: regLink({ status: "notclosed" }), tone: m.notClosed ? "warn" : "", trend: spark(m.monthly.backlog, SERIES.backlog) },
       { label: "Overdue", value: nf(m.st.overdue), note: m.overdue.length ? `oldest ${m.overdue[0].d} days late` : "none late", href: regLink({ status: "overdue" }), tone: m.st.overdue ? "bad" : "good", icon: m.st.overdue ? ICON.warn : ICON.check },
       { label: "High risk not closed", value: nf(m.highOpen), note: m.highOpen ? "need priority action" : "none open", href: regLink({ status: "notclosed", risk: "High" }), tone: m.highOpen ? "bad" : "good", icon: m.highOpen ? ICON.warn : ICON.check },
       { label: "Average days to close", value: m.avgClose == null ? "—" : nf(m.avgClose), note: "excluding on-the-spot fixes", href: regLink({ status: "closed" }) },
-      { label: "Checklist compliance", value: comp == null ? "—" : comp + "%", note: comp == null ? "no checklist audits yet" : `${nf(m.ok + m.nc)} checks · target ${T.compliance}%`, href: "#/audits", tone: comp == null ? "" : comp >= T.compliance ? "good" : "warn" },
+      { label: "Checklist compliance", value: comp == null ? "—" : comp + "%", note: comp == null ? "no checklist audits yet" : `${nf(m.ok + m.nc)} checks, target ${T.compliance}%`, href: "#/audits", tone: comp == null ? "" : comp >= T.compliance ? "good" : "warn" },
       isAdmin
         ? { label: "Projects audited", value: `${m.coverage.audited.length}<small> / ${m.coverage.audited.length + m.coverage.missing.length}</small>`, note: m.coverage.missing.length ? `${m.coverage.missing.length} not audited yet` : "all audited", href: "#cov", tone: m.coverage.missing.length ? "" : "good" }
         : { label: "Pending review", value: nf(m.st.pending), note: "closures sent to Corporate HSE", href: regLink({ status: "pending" }) },
@@ -188,26 +188,26 @@ export async function render(root, ctx) {
           <span class="kl">Closure rate</span>
           <b class="kv">${closeRate == null ? "—" : closeRate + "%"}</b>
           <span class="meter tgt" role="img" aria-label="${closeRate ?? 0}% of findings closed, target ${T.closure}%"><i style="width:${closeRate ?? 0}%"></i><em style="left:${T.closure}%"></em></span>
-          <span class="kn">${has ? `${nf(m.st.closed)} of ${nf(m.findings.length)} findings closed · target ${T.closure}%` : `No findings in this view yet · target ${T.closure}%`}</span>
+          <span class="kn">${has ? `${nf(m.st.closed)} of ${nf(m.findings.length)} findings closed, target ${T.closure}%` : `No findings in this view yet, target ${T.closure}%`}</span>
           <span class="hero-split">${STATES.map(s => `<span><i class="sw" style="background:${COLORS.state[s]}"></i>${STATE_LABEL[s]} <b>${nf(m.st[s])}</b></span>`).join("")}</span>
         </a>` : ""}
         ${panelOn("kpis") ? tiles.map(tileHtml).join("") : ""}
       </div>
       ${has ? `
       <div class="dgrid">
-        ${card("c-proj", "c8", m.byProjectView ? "Findings by project" : "Findings by area", "by close-out status · click a bar to open those findings", `<div class="chart" id="c-proj"></div>`)}
+        ${card("c-proj", "c8", m.byProjectView ? "Findings by project" : "Findings by area", "by close-out status, click a bar to open those findings", `<div class="chart" id="c-proj"></div>`)}
         ${card("c-status", "c4", "Close-out status", "share of findings in view", `<div class="statlist">${STATES.map(s => `<a href="${regLink({ status: s })}" class="srow"><span class="sw" style="background:${COLORS.state[s]}"></span><span>${STATE_LABEL[s]}</span><b>${nf(m.st[s])}</b><span class="hbar"><i style="width:${pct(m.st[s], m.findings.length)}%;background:${COLORS.state[s]}"></i></span><small>${pct(m.st[s], m.findings.length)}%</small></a>`).join("")}</div>
           <h3 class="dsub">Risk</h3><div class="statlist">${RISKS.map(r => { const n = m.findings.filter(x => x.risk === r).length; return `<a href="${regLink({ risk: r })}" class="srow"><span class="sw" style="background:${COLORS.risk[r]}"></span><span>${RISK_LABEL[r]}</span><b>${nf(n)}</b><span class="hbar"><i style="width:${pct(n, m.findings.length)}%;background:${COLORS.risk[r]}"></i></span><small>${pct(n, m.findings.length)}%</small></a>`; }).join("")}</div>`, { table: false })}
-        ${card("c-trend", "c8", "Raised, closed and still open", "findings per month · the orange line is what was still open at each month end", `<div class="chart" id="c-trend"></div>`)}
+        ${card("c-trend", "c8", "Raised, closed and still open", "findings per month, the orange line is what was still open at each month end", `<div class="chart" id="c-trend"></div>`)}
         ${card("c-age", "c4", "How long open findings wait", "not closed, by days since the audit", `<div class="chart" id="c-age"></div>`)}
-        ${card("c-topic", "c6", "Findings by topic", "life-saving controls · by risk", `<div class="chart tall" id="c-topic"></div>`)}
-        ${card("c-rc", "c6", "Top root causes", "times recorded · share of all root causes", `<div class="chart tall" id="c-rc"></div>`)}
-        ${isAdmin && m.byProjectView && m.glist.length > 1 ? card("c-heat", "c12", "Where findings concentrate", "number of findings · project × topic · click a cell to open them", `<div class="chart" id="c-heat"></div>`) : ""}
+        ${card("c-topic", "c6", "Findings by topic", "life-saving controls, by risk", `<div class="chart tall" id="c-topic"></div>`)}
+        ${card("c-rc", "c6", "Top root causes", "times recorded, share of all root causes", `<div class="chart tall" id="c-rc"></div>`)}
+        ${isAdmin && m.byProjectView && m.glist.length > 1 ? card("c-heat", "c12", "Where findings concentrate", "number of findings, project × topic, click a cell to open them", `<div class="chart" id="c-heat"></div>`) : ""}
       </div>` : `<div class="empty dempty"><h3>No findings in this view yet</h3><p>${store.findings.length ? "Change the filters above to see data." : "Charts appear here as soon as audits are carried out on the phone or Excel audit reports are imported."}</p><div class="btnrow center"><a class="btn primary" href="#/new">New audit</a><a class="btn ghost" href="#/import">Import Excel report</a></div></div>`}
       <div class="dgrid">
-        ${isAdmin && m.byProjectView ? card("c-league", "c12", "Project performance", `${m.perf.filter(r => r.audits).length} audited · click a project to focus the dashboard on it`, `<div class="lg-tools"><label class="check"><input type="checkbox" id="idle" ${showIdle ? "checked" : ""}> Show projects without audits in this period</label></div><div id="c-league" class="tscroll"></div>`, { table: false }) : ""}
-        ${has ? card("c-over", isAdmin ? "c7" : "c12", "Overdue findings", `${m.overdue.length} past target date · <a class="linkish" href="${regLink({ status: "overdue" })}">open the list ›</a>`, m.overdue.length ? `<div class="tscroll"><table class="tbl compact"><thead><tr><th>Ref</th>${isAdmin ? "<th>Project</th>" : ""}<th>Observation</th><th class="num">Days late</th></tr></thead><tbody>${m.overdue.slice(0, 6).map(({ x, d }) => `<tr class="click" data-href="#/finding/${x.id}"><td class="nowrap"><b>${fRef(x.ref)}</b><div>${riskChip(x.risk)}</div></td>${isAdmin ? `<td>${esc(x.projects?.name || "")}</td>` : ""}<td class="obs">${esc(x.observation.slice(0, 80))}${x.observation.length > 80 ? "…" : ""}${x.owner ? `<div class="muted small">Owner: ${esc(x.owner)}</div>` : ""}</td><td class="num"><b class="t-over">${d}</b></td></tr>`).join("")}</tbody></table></div>` : `<p class="okmsg">${ICON.check} No overdue findings.</p>`, { table: false }) : ""}
-        ${has ? card("c-sup", isAdmin ? "c5" : "c6", "Needs management support", `${m.support.length} not closed`, `<div class="rank">${m.support.slice(0, 7).map(x => `<a class="rrow" href="#/finding/${x.id}"><span><b>${esc(x.support_title || topicName(x.topic))}</b><small class="muted">${esc(x.projects?.name || "")} · ${fRef(x.ref)}</small></span>${riskChip(x.risk)}</a>`).join("") || `<p class="okmsg">${ICON.check} Nothing waiting for management.</p>`}${m.support.length > 7 ? `<a class="linkish" href="${regLink({ support: "1", status: "notclosed" })}">All ${m.support.length} ›</a>` : ""}</div>`, { table: false }) : ""}
+        ${isAdmin && m.byProjectView ? card("c-league", "c12", "Project performance", `${m.perf.filter(r => r.audits).length} audited, click a project to focus the dashboard on it`, `<div class="lg-tools"><label class="check"><input type="checkbox" id="idle" ${showIdle ? "checked" : ""}> Show projects without audits in this period</label></div><div id="c-league" class="tscroll"></div>`, { table: false }) : ""}
+        ${has ? card("c-over", isAdmin ? "c7" : "c12", "Overdue findings", `${m.overdue.length} past target date, <a class="linkish" href="${regLink({ status: "overdue" })}">open the list ›</a>`, m.overdue.length ? `<div class="tscroll"><table class="tbl compact"><thead><tr><th>Ref</th>${isAdmin ? "<th>Project</th>" : ""}<th>Observation</th><th class="num">Days late</th></tr></thead><tbody>${m.overdue.slice(0, 6).map(({ x, d }) => `<tr class="click" data-href="#/finding/${x.id}"><td class="nowrap"><b>${fRef(x.ref)}</b><div>${riskChip(x.risk)}</div></td>${isAdmin ? `<td>${esc(x.projects?.name || "")}</td>` : ""}<td class="obs">${esc(x.observation.slice(0, 80))}${x.observation.length > 80 ? "…" : ""}${x.owner ? `<div class="muted small">Owner: ${esc(x.owner)}</div>` : ""}</td><td class="num"><b class="t-over">${d}</b></td></tr>`).join("")}</tbody></table></div>` : `<p class="okmsg">${ICON.check} No overdue findings.</p>`, { table: false }) : ""}
+        ${has ? card("c-sup", isAdmin ? "c5" : "c6", "Needs management support", `${m.support.length} not closed`, `<div class="rank">${m.support.slice(0, 7).map(x => `<a class="rrow" href="#/finding/${x.id}"><span><b>${esc(x.support_title || topicName(x.topic))}</b><small class="muted">${esc(x.projects?.name || "")}, ${fRef(x.ref)}</small></span>${riskChip(x.risk)}</a>`).join("") || `<p class="okmsg">${ICON.check} Nothing waiting for management.</p>`}${m.support.length > 7 ? `<a class="linkish" href="${regLink({ support: "1", status: "notclosed" })}">All ${m.support.length} ›</a>` : ""}</div>`, { table: false }) : ""}
         ${has ? card("c-items", isAdmin && m.byProjectView ? "c6" : "c6", "Checks that fail most often", "checklist items raised as findings", `<div id="c-items" class="rank"></div>`, { table: false }) : ""}
         ${isAdmin && m.byProjectView && panelOn("c-cov") ? `<div id="cov" class="c6 covwrap">${card("c-cov", "", "Audit coverage by location", `${m.coverage.audited.length} of ${m.coverage.audited.length + m.coverage.missing.length} active projects audited in this period`, `<div class="chart" id="c-cov"></div>`)}</div>` : ""}
       </div>`;
@@ -307,7 +307,7 @@ export async function render(root, ctx) {
       grid: { left: 8, right: 70, top: 8, bottom: 8, containLabel: true },
       tooltip: { ...tip, trigger: "item", formatter: p => rowsTip(rcl[p.dataIndex][0], [["times recorded", p.value, SERIES.raised], ["of all root causes", pct(p.value, m.rcTotal) + "%", "transparent"]]) },
       xAxis: { type: "value", ...axisVal }, yAxis: { type: "category", inverse: true, data: rcl.map(x => x[0]), ...axisCat, axisLabel: { color: INK, fontSize: 12, fontFamily: FONT, formatter: v => v.length > 42 ? v.slice(0, 41) + "…" : v } },
-      series: [{ type: "bar", data: rcl.map(x => x[1]), barMaxWidth: 18, itemStyle: { color: SERIES.raised, borderRadius: [0, 4, 4, 0] }, label: { show: true, position: "right", color: INK2, fontSize: 12, formatter: p => `${p.value} · ${pct(p.value, m.rcTotal)}%` } }],
+      series: [{ type: "bar", data: rcl.map(x => x[1]), barMaxWidth: 18, itemStyle: { color: SERIES.raised, borderRadius: [0, 4, 4, 0] }, label: { show: true, position: "right", color: INK2, fontSize: 12, formatter: p => `${p.value}, ${pct(p.value, m.rcTotal)}%` } }],
     }, p => { location.hash = regLink({ root: rcl[p.dataIndex][0] }); }, { cols: ["Root cause", "Times recorded", "Share"], rows: rcl.map(x => [x[0], x[1], pct(x[1], m.rcTotal) + "%"]) });
     else if (rcEl) rcEl.outerHTML = `<p class="muted">No root causes recorded yet.</p>`;
 
@@ -429,7 +429,7 @@ export async function render(root, ctx) {
       scope: scopeText(m), asOf: fmtDate(todayISO()),
       coverRows: [["Audits", nf(m.audits.length)], ["Findings", nf(m.findings.length)], ["Closure rate", closeRate == null ? "—" : closeRate + "%"], ["Overdue", nf(m.st.overdue)]],
       kpis: [
-        { label: "Audits", value: nf(m.audits.length), note: `${m.audits.filter(a => a.audit_type === "corporate").length} corporate · ${m.audits.filter(a => a.audit_type === "project").length} project` },
+        { label: "Audits", value: nf(m.audits.length), note: `${m.audits.filter(a => a.audit_type === "corporate").length} corporate, ${m.audits.filter(a => a.audit_type === "project").length} project` },
         { label: "Findings", value: nf(m.findings.length), note: `${m.findings.filter(x => x.risk === "High").length} high risk` },
         { label: "Closure rate", value: closeRate == null ? "—" : closeRate + "%", note: `${nf(m.st.closed)} closed`, tone: "good" },
         { label: "Not closed", value: nf(m.notClosed), note: `${m.st.pending} waiting for review`, tone: m.notClosed ? "warn" : "" },

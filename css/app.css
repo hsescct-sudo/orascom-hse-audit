@@ -494,7 +494,7 @@ input:focus, select:focus, textarea:focus { border-color: #3d7dd8; outline: 3px 
 .side a.side-all { margin-top: 10px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .1); border-radius: 0 0 8px 8px; color: #9fb4cf; }
 .side-foot { letter-spacing: 0; font-size: 12.5px; color: #7f97b7; }
 .demo-bar { background: repeating-linear-gradient(-45deg, #fdf3d6 0 12px, #fbeec5 12px 24px); border-bottom: 1px solid #ecd58f; color: #5c4708; font-weight: 500; }
-.dhead { background: radial-gradient(110% 150% at 100% 0%, rgba(13, 76, 150, .6) 0%, rgba(13, 76, 150, 0) 55%), var(--night); border-radius: var(--radius); box-shadow: none; }
+.dhead { background: var(--night); border-radius: var(--radius); box-shadow: none; }
 .dhead::after { display: none; }
 .dhead .eyebrow { font: 600 14px/1.2 var(--cond); letter-spacing: 0; text-transform: none; color: #f5b400; }
 .dhead h1 { font-weight: 700; font-size: 30px; }
@@ -503,7 +503,7 @@ input:focus, select:focus, textarea:focus { border-color: #3d7dd8; outline: 3px 
 
 /* sign-in: the same layout as HSE Audit and Lifting */
 .login { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); place-items: stretch; padding: 0; background: var(--canvas); }
-.login-art { position: relative; overflow: hidden; display: flex; flex-direction: column; color: #fff; padding: 40px 48px 0; background: radial-gradient(90% 120% at 90% -10%, rgba(13, 76, 150, .55), transparent 60%), var(--night); }
+.login-art { position: relative; overflow: hidden; display: flex; flex-direction: column; color: #fff; padding: 40px 48px 0; background: var(--night); }
 .login-top { display: flex; align-items: center; gap: 12px; }
 .login-logo { background: #fff; border-radius: 8px; padding: 6px 10px; display: inline-flex; }
 .login-logo img { height: 22px; display: block; }
@@ -559,3 +559,5 @@ input:focus, select:focus, textarea:focus { border-color: #3d7dd8; outline: 3px 
   .tbl:not(.items-tbl) td.selcol { position: absolute; top: 12px; right: 12px; }
   .who .role { display: none; }
 }
+
+.ktile.hero { background: var(--surface); }

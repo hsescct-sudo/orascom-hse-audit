@@ -79,8 +79,8 @@ function gate() {
     <section class="gate-art">
       <div class="gate-top"><div class="brand"><span class="brand-logo"><img src="assets/orascom-logo.png" alt="Orascom Construction"></span><span class="brand-name">Corporate HSE<span>Audit system</span></span></div><a class="gate-back" href="../start/">${ICON.back}<span>All HSE systems</span></a></div>
       <div>
-        <h1>Every project audited, scored and followed up.</h1>
-        <p>Plan the year, audit on site with or without internet, score with the company form, raise NCRs with photos, and send the report before you leave the site.</p>
+        <h1>HSE Audit and Lifting</h1>
+        <p>Audit on site with or without internet. Score with the company form, raise NCRs with photos and send the report before you leave the site.</p>
       </div>
       <div class="gate-tags" aria-hidden="true">
         <div class="stag green"><b class="s-score">91<small>%</small></b><span class="s-label">Full compliance</span></div>
@@ -268,7 +268,7 @@ function drawWho() {
 
 function updateSync(st) {
   if (!document.getElementById("sync-top")) return;
-  const label = st.mode === "demo" ? "Sample data on this device" : !st.online ? `Offline${st.pending ? ` · ${st.pending} to send` : ""}` : st.syncing ? "Sending…" : st.pending ? `${st.pending} waiting to send` : "All saved";
+  const label = st.mode === "demo" ? "Sample data on this device" : !st.online ? `Offline${st.pending ? `, ${st.pending} to send` : ""}` : st.syncing ? "Sending…" : st.pending ? `${st.pending} waiting to send` : "All saved";
   const cls = st.mode === "demo" ? "local" : !st.online ? "offline" : st.pending ? "pending" : "";
   const html = `<span class="sync ${cls}" role="status" title="${esc(st.error || label)}"><i></i><span class="sync-l">${esc(label)}</span></span>`;
   $("#sync-top").innerHTML = html;
@@ -289,7 +289,7 @@ export async function leaveDemo() {
 }
 
 // ---------- routing ----------
-export function setTitle(title, crumb = "") { $("#title").textContent = title; $("#crumb").textContent = crumb; document.title = `${title} · OC HSE Audit`; }
+export function setTitle(title, crumb = "") { $("#title").textContent = title; $("#crumb").textContent = crumb; document.title = `${title} | OC HSE Audit`; }
 export function setActions(html) { $("#actions").innerHTML = html || ""; return $("#actions"); }
 
 async function route() {

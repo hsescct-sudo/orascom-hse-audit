@@ -60,7 +60,7 @@ export async function render(root, ctx) {
   function draw() {
     rows = filterFindings(store.findings, q).sort((a, b) => { const x = val(a, sort.key), y = val(b, sort.key); return (x < y ? -1 : x > y ? 1 : 0) * sort.dir || b.ref - a.ref; });
     const st = { open: 0, overdue: 0, pending: 0, closed: 0 }; rows.forEach(f => st[findingState(f)]++);
-    root.querySelector("#sum").textContent = `${rows.length} findings · ${st.open + st.overdue} open (${st.overdue} overdue) · ${st.pending} pending review · ${st.closed} closed`;
+    root.querySelector("#sum").textContent = `${rows.length} findings, ${st.open + st.overdue} open (${st.overdue} overdue), ${st.pending} pending review, ${st.closed} closed`;
     const extra = [q.root && `Root cause: ${q.root}`, q.item && `Check item: ${q.item}`, q.support && "Needs management support"].filter(Boolean);
     root.querySelector("#chips").innerHTML = extra.length ? `<div class="filter-chips">${extra.map(t => `<span class="chip st-pending">${esc(t)}</span>`).join("")}<button class="linkish" id="x-extra">Remove</button></div>` : "";
     root.querySelector("#rows").innerHTML = rows.slice(0, limit).map(f => {

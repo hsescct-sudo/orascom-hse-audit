@@ -539,7 +539,7 @@ input[type=number] { -moz-appearance: textfield; }
 }
 
 /* ---------- one look with the main page and Flash (Nov 2026) ---------- */
-.gate-art { padding-bottom: 0; background: radial-gradient(90% 120% at 90% -10%, rgba(13, 76, 150, .55), transparent 60%), #001a38; }
+.gate-art { padding-bottom: 0; background: #001a38; }
 .gate-art .stag::before { background: #001a38; }
 .gate-sky { display: block; width: calc(100% + 112px); margin: -6px -56px 0; height: clamp(130px, 13vw, 210px); }
 @media (prefers-reduced-motion: no-preference) {

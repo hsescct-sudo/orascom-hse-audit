@@ -129,7 +129,7 @@ function renderChrome(active) {
         <button class="icon-btn" id="pw-btn" title="Change my password" aria-label="Change my password" hidden>${ICON.key}</button>
         <button class="icon-btn" id="signout" title="Sign out" aria-label="Sign out">${ICON.out}</button>
       </header>
-      ${api.mode === "demo" ? `<div class="demo-bar">Demo mode — sample data only. Nothing here is real and nothing is saved.</div>` : ""}
+      ${api.mode === "demo" ? `<div class="demo-bar">Demo mode: sample data only. Nothing here is real and nothing is saved.</div>` : ""}
       <div class="net-bar" id="net-bar" hidden>No connection. You can look around, but nothing can be saved until you are back online.</div>
       <div class="upd-bar" id="upd-bar" hidden>A new version of the app is ready. <button class="linkish" onclick="location.reload()">Reload now</button></div>
       <div class="body">
@@ -179,7 +179,7 @@ async function renderLogin() {
         <button role="tab" class="tab" data-tab="admin" aria-selected="false">Administration</button>
       </div>
       <form id="f-project" class="login-form">
-        <label class="fld"><span>Project</span><select id="lp" required>${projects.length ? `<option value="">Choose your project…</option>` + projects.map(p => `<option value="${esc(p.id)}">${esc(p.name)} (${esc(p.code)})</option>`).join("") : `<option value="">No projects yet — ask the administration</option>`}</select></label>
+        <label class="fld"><span>Project</span><select id="lp" required>${projects.length ? `<option value="">Choose your project…</option>` + projects.map(p => `<option value="${esc(p.id)}">${esc(p.name)} (${esc(p.code)})</option>`).join("") : `<option value="">No projects yet. Ask the administration.</option>`}</select></label>
         <label class="fld"><span>Project password</span><input id="lpw" type="password" autocomplete="current-password" required></label>
         <label class="fld"><span>Your name</span><input id="lnm" autocomplete="name" value="${esc(savedName())}" required></label>
         <button class="btn primary wide" type="submit">Sign in</button>

@@ -25,7 +25,7 @@ export async function render(root, ctx) {
         if (!v) return;
         await api.createAdmin(v.email, v.name, v.pw); toast("Administrator added."); await load();
       } else if (b.dataset.act === "pw") {
-        const v = await dialog({ title: "Change password · " + (a.name || a.email), body: `<label class="fld"><span>New password (at least 8 characters)</span><input id="np" autocomplete="new-password"></label>`, actions: [{ label: "Cancel", value: null }, { label: "Save", value: w => w.querySelector("#np").value, validate: w => (w.querySelector("#np").value.length < 8 ? "The password needs at least 8 characters." : null) }] });
+        const v = await dialog({ title: "Change password for " + (a.name || a.email), body: `<label class="fld"><span>New password (at least 8 characters)</span><input id="np" autocomplete="new-password"></label>`, actions: [{ label: "Cancel", value: null }, { label: "Save", value: w => w.querySelector("#np").value, validate: w => (w.querySelector("#np").value.length < 8 ? "The password needs at least 8 characters." : null) }] });
         if (!v) return;
         await api.setAdminPassword(a.user_id, v); toast("Password changed.");
       } else if (b.dataset.act === "del") {

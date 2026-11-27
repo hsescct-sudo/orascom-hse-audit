@@ -22,7 +22,7 @@ export async function render(root, ctx) {
     <div class="card table-card"><div class="tscroll"><table class="tbl"><thead><tr>${isAdmin ? `<th class="selcol"><input type="checkbox" id="sel-all" aria-label="Select every audit in the list"></th>` : ""}<th>Ref</th><th>Date</th>${isAdmin ? "<th>Project</th>" : ""}<th>Type</th><th>Source</th><th>Auditor</th><th class="num">Findings</th><th class="num">High</th><th class="num">Not closed</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table></div></div>`;
   function draw() {
     list = store.audits.filter(a => (!q.project || a.project_id === q.project) && (!q.type || a.audit_type === q.type) && (!q.source || a.source === q.source) && (!q.status || a.status === q.status));
-    root.querySelector("#sum").textContent = `${list.length} audits · ${list.filter(a => a.status === "draft").length} drafts`;
+    root.querySelector("#sum").textContent = `${list.length} audits, ${list.filter(a => a.status === "draft").length} drafts`;
     root.querySelector("#rows").innerHTML = list.map(a => { const s = stats[a.id] || { n: 0, open: 0, high: 0 }; return `<tr class="click" data-id="${a.id}">${isAdmin ? `<td class="selcol"><input type="checkbox" class="rsel" data-id="${a.id}" aria-label="Select ${aRef(a.ref)}"></td>` : ""}
       <td><a href="#/audit/${a.id}"><b>${aRef(a.ref)}</b></a></td><td class="nowrap">${fmtDate(a.audit_date)}</td>${isAdmin ? `<td>${esc(a.projects?.name || "")}</td>` : ""}
       <td>${a.audit_type === "corporate" ? "Corporate" : "Project"}</td><td>${a.source === "excel" ? "Excel import" : "Checklist"}</td><td>${esc(a.auditor)}</td>

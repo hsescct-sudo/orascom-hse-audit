@@ -96,9 +96,9 @@ export async function buildAuditPptx({ audit, project, findings, photosByFinding
   const { pptx, logo } = await newDeck(`HSE Flash Audit – ${project.name || ""} – ${audit.audit_date}`);
   const typeLabel = audit.audit_type === "corporate" ? "Corporate audit" : "Project audit";
   cover(pptx, logo, {
-    eyebrow: SETTINGS.report.title || "HSE Flash Audit Report", title: project.name || "Project", sub: `${typeLabel} · ${fmtDate(audit.audit_date)} · ${aRef(audit.ref)}`,
+    eyebrow: SETTINGS.report.title || "HSE Flash Audit Report", title: project.name || "Project", sub: `${typeLabel}, ${fmtDate(audit.audit_date)}, ${aRef(audit.ref)}`,
     rows: [["Auditor(s)", audit.auditor], ["Project Manager", audit.pm || project.pm], ["P.O.C.", audit.poc != null ? Math.round(audit.poc) + "%" : ""], ["Manpower", audit.manpower != null ? Number(audit.manpower).toLocaleString() : ""]],
-    foot: [SETTINGS.report.formRef && `Form ${SETTINGS.report.formRef}`, SETTINGS.report.formRev && `Rev. ${SETTINGS.report.formRev}`, `generated ${fmtDate(todayISO())} by the ${SETTINGS.general.appName || "HSE Flash Audit"} system`].filter(Boolean).join(" · "),
+    foot: [SETTINGS.report.formRef && `Form ${SETTINGS.report.formRef}`, SETTINGS.report.formRev && `Rev. ${SETTINGS.report.formRev}`, `generated ${fmtDate(todayISO())} by the ${SETTINGS.general.appName || "HSE Flash Audit"} system`].filter(Boolean).join(", "),
   });
 
   // summary
@@ -106,7 +106,7 @@ export async function buildAuditPptx({ audit, project, findings, photosByFinding
   const closed = findings.filter(f => f.status === "closed").length;
   const checks = Object.values(audit.checks || {}), ok = checks.filter(v => v === "ok").length, nc = checks.filter(v => v === "nc").length;
   let s = pptx.addSlide({ masterName: "BODY" });
-  heading(s, "Summary", `${project.name || ""} · ${fmtDate(audit.audit_date)}`);
+  heading(s, "Summary", `${project.name || ""}, ${fmtDate(audit.audit_date)}`);
   const tiles = [["Observations", findings.length, "", ""], ["High risk", by("High"), "", by("High") ? "bad" : ""], ["Medium risk", by("Med"), "", ""], ["Low risk", by("Low"), "", ""], ["Closed", closed, findings.length ? Math.round(100 * closed / findings.length) + "% closed" : "", "good"], ["Still open", findings.length - closed, "", findings.length - closed ? "warn" : ""]];
   if (ok + nc) tiles.push(["Compliance", Math.round(100 * ok / (ok + nc)) + "%", `${checks.length} checks`, ""]);
   const tw = (W - 1 - (tiles.length - 1) * 0.15) / tiles.length;
@@ -124,7 +124,7 @@ export async function buildAuditPptx({ audit, project, findings, photosByFinding
   // checklist results
   if (checks.length) {
     s = pptx.addSlide({ masterName: "BODY" });
-    heading(s, "Checklist results", `${checks.length} checks rated · compliance ${ok + nc ? Math.round(100 * ok / (ok + nc)) + "%" : "—"}`);
+    heading(s, "Checklist results", `${checks.length} checks rated, compliance ${ok + nc ? Math.round(100 * ok / (ok + nc)) + "%" : "—"}`);
     const rows = [[th("Topic"), th("OK"), th("Not compliant"), th("N/A"), th("Compliance")]];
     ALL_TOPICS.forEach(t => { const ids = t.items.map(i => i.id); const o = ids.filter(i => audit.checks[i] === "ok").length, n = ids.filter(i => audit.checks[i] === "nc").length, na = ids.filter(i => audit.checks[i] === "na").length; if (o + n + na) rows.push([t.name, String(o), { text: String(n), options: n ? { bold: true, color: C.state.overdue } : {} }, String(na), o + n ? Math.round(100 * o / (o + n)) + "%" : "—"]); });
     table(s, rows, { x: 0.5, y: 1.4, w: W - 1, colW: [5.6, 1.5, 1.9, 1.5, 1.833], fontSize: 12, rowH: 0.36, align: "left" });
@@ -138,7 +138,7 @@ export async function buildAuditPptx({ audit, project, findings, photosByFinding
   for (let i = 0; i < findings.length; i++) {
     const f = findings[i], st = findingState(f);
     s = pptx.addSlide({ masterName: "BODY" });
-    heading(s, `Observation ${i + 1} of ${findings.length}`, [fRef(f.ref), f.area, topicName(f.topic)].filter(Boolean).join(" · "));
+    heading(s, `Observation ${i + 1} of ${findings.length}`, [fRef(f.ref), f.area, topicName(f.topic)].filter(Boolean).join(", "));
     let cx = 0.5; cx += chip(pptx, s, cx, 1.32, `${RISK_LABEL[f.risk] || f.risk} risk`, C.riskBg[f.risk] || C.canvas, C.riskInk[f.risk] || C.ink) + 0.12;
     cx += chip(pptx, s, cx, 1.32, STATE_LABEL[st], C.stateBg[st], C.stateInk[st]) + 0.12;
     if (f.needs_support) chip(pptx, s, cx, 1.32, "Needs management support", "A52A2A", C.white);
@@ -147,9 +147,9 @@ export async function buildAuditPptx({ audit, project, findings, photosByFinding
     const fs = len > 900 ? 10 : len > 600 ? 11 : len > 380 ? 12 : 13;
     const lab = t => ({ text: t.toUpperCase(), options: { fontSize: 9.5, bold: true, color: C.muted, breakLine: true, paraSpaceBefore: 8 } });
     const val = (t, o = {}) => ({ text: t || "—", options: { fontSize: fs, color: C.ink, breakLine: true, ...o } });
-    s.addText([lab("What was found"), val(f.observation, { fontSize: fs + 1, bold: true }), lab("Root cause"), val((f.root_cause || "").split("\n").join(" · ")),
-      lab(f.fixed_on_spot ? "Corrected on the spot" : "Action"), val(act), lab("Owner · target date"), val(`${f.owner || "—"} · ${f.fixed_on_spot ? "Immediately" : fmtDate(f.target_date) || "—"}`),
-      ...(f.status === "closed" ? [lab("Closed"), val(f.fixed_on_spot ? `${fmtDate(audit.audit_date)} · corrected during the audit` : `${fmtDate(f.closed_at)}${f.closed_by ? " · " + f.closed_by : ""}`)] : [])],
+    s.addText([lab("What was found"), val(f.observation, { fontSize: fs + 1, bold: true }), lab("Root cause"), val((f.root_cause || "").split("\n").join(", ")),
+      lab(f.fixed_on_spot ? "Corrected on the spot" : "Action"), val(act), lab("Owner and target date"), val(`${f.owner || "—"}, ${f.fixed_on_spot ? "Immediately" : fmtDate(f.target_date) || "—"}`),
+      ...(f.status === "closed" ? [lab("Closed"), val(f.fixed_on_spot ? `${fmtDate(audit.audit_date)}, corrected during the audit` : `${fmtDate(f.closed_at)}${f.closed_by ? ", " + f.closed_by : ""}`)] : [])],
       { x: 0.5, y: 1.8, w: 5.9, h: 5.05, fontFace: FONT, valign: "top", margin: 0 });
     const ph = photosByFinding[f.id] || [];
     const cols = [["Photo of violation", ph.filter(p => p.kind === "violation"), C.risk.High, 6.7], ["Closure evidence", ph.filter(p => p.kind === "closure"), C.state.closed, 9.85]];
@@ -195,7 +195,7 @@ export async function buildAuditPptx({ audit, project, findings, photosByFinding
 // Dashboard → summary deck. `m` is the model the dashboard computed for the current filters.
 export async function buildSummaryPptx(m) {
   const { pptx, logo } = await newDeck(m.title);
-  cover(pptx, logo, { eyebrow: "HSE Flash Audit · Dashboard summary", title: m.title, sub: m.scope, rows: m.coverRows, foot: `Data as of ${m.asOf} · generated by the HSE Flash Audit System` });
+  cover(pptx, logo, { eyebrow: "HSE Flash Audit, Dashboard summary", title: m.title, sub: m.scope, rows: m.coverRows, foot: `Data as of ${m.asOf}, generated by the HSE Flash Audit System` });
 
   // key figures
   let s = pptx.addSlide({ masterName: "BODY" });
@@ -209,7 +209,7 @@ export async function buildSummaryPptx(m) {
   if (m.byGroup.labels.length) {
     for (const part of chunk(m.byGroup.labels.map((l, i) => i), 16)) {
       s = pptx.addSlide({ masterName: "BODY" });
-      heading(s, m.byGroup.title, "Number of findings by close-out status" + (m.byGroup.labels.length > 16 ? ` · ${part[0] + 1}–${part[part.length - 1] + 1} of ${m.byGroup.labels.length}` : ""));
+      heading(s, m.byGroup.title, "Number of findings by close-out status" + (m.byGroup.labels.length > 16 ? `, ${part[0] + 1}–${part[part.length - 1] + 1} of ${m.byGroup.labels.length}` : ""));
       s.addChart(pptx.ChartType.bar, STATES.map(k => ({ name: STATE_LABEL[k], labels: part.map(i => short(m.byGroup.labels[i], 60)), values: part.map(i => m.byGroup[k][i]) })), {
         x: 0.5, y: 1.35, w: W - 1, h: 5.5, barDir: "bar", barGrouping: "stacked", chartColors: STATES.map(k => C.state[k]), barGapWidthPct: 45,
         showLegend: true, legendPos: "t", catAxisOrientation: "maxMin", ...axisOpts, catAxisLabelFontSize: part.length > 10 ? 9 : 10,
@@ -254,7 +254,7 @@ export async function buildSummaryPptx(m) {
     const pages = chunk(m.league, 13);
     pages.forEach((rows, pi) => {
       s = pptx.addSlide({ masterName: "BODY" });
-      heading(s, "Project performance", `Sorted by overdue findings${pages.length > 1 ? ` · page ${pi + 1} of ${pages.length}` : ""}`);
+      heading(s, "Project performance", `Sorted by overdue findings${pages.length > 1 ? `, page ${pi + 1} of ${pages.length}` : ""}`);
       const t = [[th("Project"), th("Location"), th("Audits"), th("Last audit"), th("Findings"), th("High"), th("Not closed"), th("Overdue"), th("Closure"), th("Compliance")]];
       rows.forEach(r => t.push([{ text: short(r.name, 58), options: { bold: true } }, r.location || "", String(r.audits), r.last ? fmtDate(r.last) : "—", String(r.n), String(r.high), String(r.open), { text: String(r.overdue), options: r.overdue ? { bold: true, color: C.state.overdue } : {} }, r.closure == null ? "—" : r.closure + "%", r.comp == null ? "—" : r.comp + "%"]));
       table(s, t, { x: 0.5, y: 1.35, w: W - 1, colW: [3.95, 1.3, 0.75, 1.15, 0.85, 0.7, 0.95, 0.85, 0.85, 0.983], fontSize: 10, rowH: 0.36, align: "left" });
@@ -277,7 +277,7 @@ export async function buildSummaryPptx(m) {
     const pages = chunk(m.overdue, 11);
     pages.forEach((rows, pi) => {
       s = pptx.addSlide({ masterName: "BODY" });
-      heading(s, "Overdue findings", `${m.overdue.length} past their target date${pages.length > 1 ? ` · page ${pi + 1} of ${pages.length}` : ""}`);
+      heading(s, "Overdue findings", `${m.overdue.length} past their target date${pages.length > 1 ? `, page ${pi + 1} of ${pages.length}` : ""}`);
       const t = [[th("Ref"), th("Project"), th("Observation"), th("Risk"), th("Owner"), th("Target"), th("Days late")]];
       rows.forEach(r => t.push([r.ref, short(r.project, 40), short(r.observation, 120), r.risk, short(r.owner, 26), r.target, { text: String(r.days), options: { bold: true, color: C.state.overdue } }]));
       table(s, t, { x: 0.5, y: 1.35, w: W - 1, colW: [0.95, 2.3, 4.9, 0.8, 1.6, 1.0, 0.783], fontSize: 9.5 });
@@ -288,7 +288,7 @@ export async function buildSummaryPptx(m) {
     const pages = chunk(m.support, 11);
     pages.forEach((rows, pi) => {
       s = pptx.addSlide({ masterName: "BODY" });
-      heading(s, "Needs management support", `${m.support.length} not closed${pages.length > 1 ? ` · page ${pi + 1} of ${pages.length}` : ""}`);
+      heading(s, "Needs management support", `${m.support.length} not closed${pages.length > 1 ? `, page ${pi + 1} of ${pages.length}` : ""}`);
       const t = [[th("Ref"), th("Project"), th("Issue"), th("Observation"), th("Risk"), th("Status")]];
       rows.forEach(r => t.push([r.ref, short(r.project, 40), { text: short(r.title, 40), options: { bold: true } }, short(r.observation, 110), r.risk, r.status]));
       table(s, t, { x: 0.5, y: 1.35, w: W - 1, colW: [0.95, 2.4, 2.2, 4.5, 0.85, 1.433], fontSize: 9.5 });

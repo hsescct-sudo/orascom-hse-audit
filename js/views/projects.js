@@ -18,7 +18,7 @@ export async function render(root, ctx) {
     store.findings.forEach(f => { const c = counts[f.project_id] = counts[f.project_id] || { audits: 0, open: 0, overdue: 0 }; const s = findingState(f); if (s !== "closed") c.open++; if (s === "overdue") c.overdue++; });
     const noLogin = store.projects.filter(p => !p.login_user_id && p.active).length;
     root.innerHTML = `
-      <div class="page-head"><div><h1>Projects</h1><p class="muted">${store.projects.length} projects · each project signs in with its own password</p></div>
+      <div class="page-head"><div><h1>Projects</h1><p class="muted">${store.projects.length} projects, each project signs in with its own password</p></div>
         <div class="actions">
           <button class="btn ghost danger" data-act="wipe">${ICON.trash} Delete data…</button>
           <button class="btn ghost" data-act="import">Import list from Excel</button>
@@ -87,7 +87,7 @@ export async function render(root, ctx) {
 
   async function pwDialog(p) {
     const v = await dialog({
-      title: (p.login_user_id ? "Change password · " : "Set password · ") + p.name,
+      title: (p.login_user_id ? "Change password for " : "Set password for ") + p.name,
       body: `<label class="fld"><span>New password (at least 8 characters)</span><div class="row"><input id="np" value="${genPassword()}" autocomplete="off"><button class="btn ghost sm" type="button" id="gen">New</button></div></label>
         <p class="muted small">${p.login_user_id ? "The old password stops working immediately. Anyone signed in keeps working until they sign out." : "The project appears on the sign-in screen once it has a password."}</p>`,
       onMount: w => w.querySelector("#gen").addEventListener("click", () => { w.querySelector("#np").value = genPassword(); }),
@@ -165,12 +165,12 @@ export async function render(root, ctx) {
   async function wipeDialog(presetProject = "") {
     const count = w => {
       const s = scopeOf(w.querySelector("#w-project").value, w.querySelector("#w-from").value, w.querySelector("#w-to").value);
-      w.querySelector("#w-sum").innerHTML = s.audits.length ? `<span>This deletes <b>${s.audits.length}</b> audit${s.audits.length === 1 ? "" : "s"}, <b>${s.findings.length}</b> finding${s.findings.length === 1 ? "" : "s"} and <b>${s.photos}</b> photo${s.photos === 1 ? "" : "s"}, with all their comments. Projects, logins and administrators are kept.</span>` : "<span>Nothing matches — no audits in this selection.</span>";
+      w.querySelector("#w-sum").innerHTML = s.audits.length ? `<span>This deletes <b>${s.audits.length}</b> audit${s.audits.length === 1 ? "" : "s"}, <b>${s.findings.length}</b> finding${s.findings.length === 1 ? "" : "s"} and <b>${s.photos}</b> photo${s.photos === 1 ? "" : "s"}, with all their comments. Projects, logins and administrators are kept.</span>` : "<span>Nothing matches. No audits in this selection.</span>";
       return s;
     };
     const v = await dialog({
       title: "Delete data",
-      body: `<p class="muted">Use this to clear test entries or old campaigns. Deleted data and photos can't be recovered — download the Excel register or reports first if you may need them.</p>
+      body: `<p class="muted">Use this to clear test entries or old campaigns. Deleted data and photos can't be recovered. Download the Excel register or reports first if you may need them.</p>
         <label class="fld"><span>Project</span><select id="w-project"><option value="">All projects</option>${store.projects.map(p => `<option value="${p.id}" ${p.id === presetProject ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
         <div class="form-grid"><label class="fld"><span>Audits dated from (optional)</span><input type="date" id="w-from"></label><label class="fld"><span>To (optional)</span><input type="date" id="w-to"></label></div>
         <p class="panel warn" id="w-sum"></p>

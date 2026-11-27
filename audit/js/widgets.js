@@ -110,12 +110,12 @@ export async function editNCR(audit, ncr = null, { item_id = "" } = {}) {
   const items = d.parts.flatMap(p => p.items.map(it => ({ ...it, part: p })));
   let photoCtl = null;
   const body = `
-    <div class="sev-pick" role="radiogroup" aria-label="NCR type">${SEVERITIES.map(s => `<label class="s-${s}"><input type="radio" name="sev" value="${s}" ${n.severity === s ? "checked" : ""}><b>${s}</b><small>${s === "Serious" ? "Stop work / immediate · −15% once" : s === "Major" ? `Close in ${M.DUE_DAYS.Major} days` : `Close in ${M.DUE_DAYS.Minor} days`}</small></label>`).join("")}</div>
-    ${n.repeated ? `<p class="chip rep" style="justify-self:start">Repeated from the last audit · −${d.deductions.repeated}%</p>` : ""}
+    <div class="sev-pick" role="radiogroup" aria-label="NCR type">${SEVERITIES.map(s => `<label class="s-${s}"><input type="radio" name="sev" value="${s}" ${n.severity === s ? "checked" : ""}><b>${s}</b><small>${s === "Serious" ? "Stop work now, −15% once" : s === "Major" ? `Close in ${M.DUE_DAYS.Major} days` : `Close in ${M.DUE_DAYS.Minor} days`}</small></label>`).join("")}</div>
+    ${n.repeated ? `<p class="chip rep" style="justify-self:start">Repeated from the last audit, −${d.deductions.repeated}%</p>` : ""}
     <fieldset class="fld" style="border:1px solid var(--line);border-radius:10px;padding:10px;margin:0"><span>Repeated violation (P-20 §7.3)</span>
-      <label class="tick"><input type="checkbox" id="nc-rep" ${n.repeated ? "checked" : ""} ${n.repeat_of ? "disabled" : ""}>This violation was found before on this project (open or closed) · −${d.deductions.repeated}%</label>
+      <label class="tick"><input type="checkbox" id="nc-rep" ${n.repeated ? "checked" : ""} ${n.repeat_of ? "disabled" : ""}>This violation was found before on this project (open or closed), −${d.deductions.repeated}%</label>
       <div class="grid2" style="margin-top:6px">
-        <label class="fld"><span>Previous NCR / notice</span><select id="nc-prev"><option value="">Not linked</option>${prevNCRs.map(p => `<option value="${esc(p.id)}" ${p.id === (n.repeat_link || n.repeat_of) ? "selected" : ""}>${esc(p.ref)} · ${esc(p.date)} · ${esc(p.status)} · ${esc((p.description || "").slice(0, 50))}</option>`).join("")}</select></label>
+        <label class="fld"><span>Previous NCR / notice</span><select id="nc-prev"><option value="">Not linked</option>${prevNCRs.map(p => `<option value="${esc(p.id)}" ${p.id === (n.repeat_link || n.repeat_of) ? "selected" : ""}>${esc(p.ref)}, ${esc(p.date)}, ${esc(p.status)}, ${esc((p.description || "").slice(0, 50))}</option>`).join("")}</select></label>
         <label class="fld"><span>Notice ref. (if outside the system)</span><input id="nc-notice" value="${esc(n.repeat_notice || "")}" placeholder="e.g. HSE notice no."></label>
       </div>
       <label class="fld"><span>Verification result</span><input id="nc-repv" value="${esc(n.repeat_verified || "")}" placeholder="What was checked on site to confirm it is repeated"></label>
@@ -138,13 +138,13 @@ export async function editNCR(audit, ncr = null, { item_id = "" } = {}) {
       <div class="stack" style="margin-top:10px">
         <div class="grid2">
           <label class="fld"><span>Standard clause</span><input id="nc-cl" value="${esc(n.clause || "")}"></label>
-          <label class="fld"><span>Appraisal item (optional)</span><select id="nc-it"><option value="">None</option>${items.map(it => `<option value="${esc(it.id)}" ${it.id === n.item_id ? "selected" : ""}>${esc(it.part.code)} · ${esc(it.title)}</option>`).join("")}</select></label>
+          <label class="fld"><span>Appraisal item (optional)</span><select id="nc-it"><option value="">None</option>${items.map(it => `<option value="${esc(it.id)}" ${it.id === n.item_id ? "selected" : ""}>${esc(it.part.code)}, ${esc(it.title)}</option>`).join("")}</select></label>
         </div>
         <label class="fld"><span>Requirement</span><textarea id="nc-req">${esc(n.requirement || d.ncrRequirement)}</textarea></label>
       </div></details>
     ${sigBlockHTML(n, ["prepared", "responsible", "followup"])}`;
   const res = await dialog({
-    title: isNew ? `New NCR · ${n.ref}` : `NCR ${n.ref}`, body, wide: true,
+    title: isNew ? `New NCR ${n.ref}` : `NCR ${n.ref}`, body, wide: true,
     actions: [
       ...(isNew ? [] : [{ label: "Delete NCR", kind: "ghost", value: "delete" }]),
       { label: "Cancel", value: null },
@@ -223,7 +223,7 @@ export async function projectLink(mod, projectId = "") {
   let l = linkOf(mod, projectId);
   if (!l) {
     const ok = await dialog({
-      title: `Project link · ${p.name}`,
+      title: `Project link for ${p.name}`,
       body: `<p>The project opens this link to see its ${esc(d.short)} NCRs and send evidence: what was done, photos and a signature. No sign-in is needed. The NCR then waits for you under "Evidence under review".</p>
         <p class="muted small">Anyone who has the link can send evidence for this project. Share it only with the project HSE team. You can turn it off at any time.</p>
         ${cloud ? "" : `<p class="small" style="color:var(--g-red)">Links work only when the system is connected to the server, not with sample data.</p>`}`,
@@ -235,9 +235,9 @@ export async function projectLink(mod, projectId = "") {
   }
   const url = linkUrl(l);
   const to = p.contact_emails || "";
-  const mail = `mailto:${encodeURIComponent(to).replace(/%2C/g, ",").replace(/%40/g, "@")}?subject=${encodeURIComponent(`${d.short} NCRs · ${p.name}: send your evidence here`)}&body=${encodeURIComponent(`Dear project HSE team,\n\nUse this link to see the open ${d.short} NCRs of ${p.name} and send the evidence of the corrective actions (text and photos):\n${url}\n\nNo sign-in is needed. Please don't share the link outside the project.\n\nCorporate HSE`)}`;
+  const mail = `mailto:${encodeURIComponent(to).replace(/%2C/g, ",").replace(/%40/g, "@")}?subject=${encodeURIComponent(`${d.short} NCRs for ${p.name}: send your evidence here`)}&body=${encodeURIComponent(`Dear project HSE team,\n\nUse this link to see the open ${d.short} NCRs of ${p.name} and send the evidence of the corrective actions (text and photos):\n${url}\n\nNo sign-in is needed. Please don't share the link outside the project.\n\nCorporate HSE`)}`;
   const r = await dialog({
-    title: `Project link · ${p.name}`, wide: true,
+    title: `Project link for ${p.name}`, wide: true,
     body: `<p class="small">${esc(d.short)} NCRs only. Made${l.created_by ? ` by ${esc(l.created_by)}` : ""}${l.created_at ? ` on ${esc(l.created_at.slice(0, 10))}` : ""}.</p>
       <label class="fld"><span>Link</span><input id="lk-u" value="${esc(url)}" readonly></label>
       <div class="row" style="margin-top:10px"><button type="button" class="btn" id="lk-copy">Copy link</button><a class="btn" href="${esc(mail)}">E-mail to the project</a><a class="btn ghost" href="${esc(url)}" target="_blank" rel="noopener">Open</a></div>

@@ -25,7 +25,7 @@ export async function render(root, ctx) {
     root.innerHTML = `
       <div class="page-head"><div><a class="back" href="#/audits">‹ Audits</a>
         <h1>Audit ${aRef(a.ref)} ${a.status === "draft" ? `<span class="chip st-open">Draft</span>` : `<span class="chip st-closed">Submitted</span>`}</h1>
-        <p class="muted">${esc(proj.name || "")} · ${fmtDate(a.audit_date)} · ${a.audit_type === "corporate" ? "Corporate audit" : "Project audit"} · ${a.source === "excel" ? "Imported from Excel" + (a.file_name ? " (" + esc(a.file_name) + ")" : "") : "Checklist"}</p></div>
+        <p class="muted">${esc(proj.name || "")}, ${fmtDate(a.audit_date)}, ${a.audit_type === "corporate" ? "Corporate audit" : "Project audit"}, ${a.source === "excel" ? "Imported from Excel" + (a.file_name ? " (" + esc(a.file_name) + ")" : "") : "Checklist"}</p></div>
         <div class="actions">
           <button class="btn ghost" data-act="xlsx" title="Download the ${esc(formLabel())} as Excel">${ICON.xls} Excel ${esc(formRef() || "report")}</button>
           <button class="btn ghost" data-act="pptx" title="Download the report as a PowerPoint deck">${ICON.ppt} PowerPoint</button>
@@ -43,8 +43,8 @@ export async function render(root, ctx) {
         <div class="kpi"><span>Compliance</span><b>${vals.length ? (pct(ok, ok + nc) ?? "—") + "%" : "—"}</b></div>
       </div>
       ${a.areas ? `<p><b>Areas visited:</b> ${esc(a.areas)}</p>` : ""}
-      <section class="card"><h2 class="h2">Purpose &amp; scope</h2><p class="pre">${esc(a.scope || defaultScope(a, proj.name))}</p>${!a.scope ? `<p class="muted small">Standard wording — edit the audit details to change it.</p>` : ""}</section>
-      ${vals.length ? `<section class="card"><h2 class="h2">Checklist results · ${vals.length} of ${Object.keys(ITEM).length} checks</h2>
+      <section class="card"><h2 class="h2">Purpose &amp; scope</h2><p class="pre">${esc(a.scope || defaultScope(a, proj.name))}</p>${!a.scope ? `<p class="muted small">Standard wording. Edit the audit details to change it.</p>` : ""}</section>
+      ${vals.length ? `<section class="card"><h2 class="h2">Checklist results, ${vals.length} of ${Object.keys(ITEM).length} checks</h2>
         <div class="tscroll"><table class="tbl compact"><thead><tr><th>Topic</th><th class="num">OK</th><th class="num">NC</th><th class="num">N/A</th><th class="num">Compliance</th><th></th></tr></thead><tbody>
         ${byTopic.map(r => `<tr><td>${esc(r.t.name)}</td><td class="num">${r.o}</td><td class="num">${r.n ? `<b class="t-over">${r.n}</b>` : 0}</td><td class="num">${r.na}</td><td class="num">${r.c == null ? "—" : r.c + "%"}</td><td class="barcell"><span class="hbar"><i style="width:${r.c ?? 0}%"></i></span></td></tr>`).join("")}
         </tbody></table></div></section>` : ""}
@@ -52,7 +52,7 @@ export async function render(root, ctx) {
         ${findings.length ? `<div class="flist">${findings.map((f, i) => `<a class="fitem" href="#/finding/${f.id}">
           <span class="thumb">${a._thumb[f.id] && urls[a._thumb[f.id]] ? `<img src="${esc(urls[a._thumb[f.id]])}" alt="" loading="lazy">` : ""}</span>
           <span class="fbody"><span class="fhead"><b>${i + 1}. ${fRef(f.ref)}</b> ${riskChip(f.risk)} ${stateChip(f)}</span>
-          <span class="muted small">${esc(f.area || "")}${f.area ? " · " : ""}${esc(topicName(f.topic))}</span>
+          <span class="muted small">${esc(f.area || "")}${f.area ? ", " : ""}${esc(topicName(f.topic))}</span>
           <span>${esc(f.observation)}</span></span></a>`).join("")}</div>` : `<p class="muted">No findings were raised.</p>`}
       </section>
       <section class="card"><h2 class="h2">Conclusion</h2><p class="pre">${esc(a.conclusion || defaultConclusion(a, findings))}</p></section>`;
@@ -88,7 +88,7 @@ export async function render(root, ctx) {
         } finally { busy.done(); b.disabled = false; }
       }
       if (act === "submit") {
-        if (!(await confirmBox(isAdmin ? "Submit this audit? The project can then only submit closures for its findings." : "Submit this audit to the administration? After submitting, findings can't be edited — only closed through “Submit closure”.", { ok: "Submit audit" }))) return;
+        if (!(await confirmBox(isAdmin ? "Submit this audit? The project can then only submit closures for its findings." : "Submit this audit to the administration? After submitting, findings can't be edited. They can only be closed through “Submit closure”.", { ok: "Submit audit" }))) return;
         await api.updateAudit(a.id, { status: "submitted" }); store.markStale(); toast("Audit submitted."); await load(); draw();
       }
       if (act === "reopen") { await api.updateAudit(a.id, { status: "draft" }); store.markStale(); toast("Audit returned to draft. The project can edit it again."); await load(); draw(); }

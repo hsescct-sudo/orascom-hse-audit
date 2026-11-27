@@ -25,7 +25,7 @@ export async function render(root, ctx) {
         ${isAdmin ? `<label class="fld"><span>Project</span><select id="i-project"><option value="">Choose the project…</option>${projects.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></label>
           <label class="fld"><span>Audit type</span><select id="i-type"><option value="corporate">Corporate HSE audit</option><option value="project">Project self-audit</option></select></label>`
           : `<div class="fld"><span>Project</span><b>${esc(me.project_name)}</b></div>`}
-        <label class="drop" id="drop"><input type="file" id="i-file" accept=".xlsx,.xlsm"><b>Choose the Excel file</b><span class="muted">or drop it here · .xlsx or .xlsm · photos on the sheet or inside cells are read</span></label>
+        <label class="drop" id="drop"><input type="file" id="i-file" accept=".xlsx,.xlsm"><b>Choose the Excel file</b><span class="muted">or drop it here, .xlsx or .xlsm, photos on the sheet or inside cells are read</span></label>
         <ul class="muted small hints"><li>Each finding should be on its own row, with the observation in one column.</li><li>Photos are matched to the row they sit on. A column headed “After”, “Closure” or “Evidence” is read as closure photos.</li><li>Cell notes (comments) are added to the observation.</li><li>Old .xls files: open in Excel and “Save as” .xlsx first.</li></ul>
         <p class="dlg-err" id="i-err"></p>
       </div>`;
@@ -74,7 +74,7 @@ export async function render(root, ctx) {
     const head = readHeaderInfo(ws, generic.an.headerRow || 12);
     const ex = extractRows(ws, generic.an, generic.images[ws.name] || [], head.date, generic.notes[ws.name] || {});
     const warnings = [];
-    if (!head.date) warnings.push("No audit date found in the sheet — today's date is used unless you change it below.");
+    if (!head.date) warnings.push("No audit date found in the sheet. Today's date is used unless you change it below.");
     const p = { header: head, scope: "", conclusion: "", findings: ex.findings, warnings, imageCount: ex.imageCount, generic: true, projectId: parsed?.projectId, type: parsed?.type };
     p.findings.forEach(f => { f.topic = matchTopic(f.category) || guessTopic(`${f.category} ${f.observation} ${f.root_cause}`); f.include = !!f.observation; });
     return p;
@@ -89,16 +89,16 @@ export async function render(root, ctx) {
     if (!generic) return "";
     const ws = generic.wb.worksheets[generic.sheetIndex], an = generic.an;
     const colName = c => { let s = "", n = c; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
-    const colOpts = sel => `<option value="">— not in this sheet —</option>` + an.cols.map(x => `<option value="${x.c}" ${+sel === x.c ? "selected" : ""}>${colName(x.c)}${x.label ? " · " + esc(x.label.slice(0, 40)) : ""}</option>`).join("");
+    const colOpts = sel => `<option value="">Not in this sheet</option>` + an.cols.map(x => `<option value="${x.c}" ${+sel === x.c ? "selected" : ""}>${colName(x.c)}${x.label ? ", " + esc(x.label.slice(0, 40)) : ""}</option>`).join("");
     const imgCols = Object.keys(an.photoKinds).map(Number).sort((a, b) => a - b);
     return `<section class="card stack mapping">
-      <div><h2 class="h2">Which column is which</h2><p class="muted small">This file isn't the ${esc(formLabel())}, so the columns were matched by their headings. Correct anything that's wrong — the table below updates straight away.</p></div>
+      <div><h2 class="h2">Which column is which</h2><p class="muted small">This file isn't the ${esc(formLabel())}, so the columns were matched by their headings. Correct anything that's wrong. The table below updates straight away.</p></div>
       <div class="form-grid three">
         ${generic.wb.worksheets.length > 1 ? `<label class="fld"><span>Sheet</span><select id="m-sheet">${generic.wb.worksheets.map((w, i) => `<option value="${i}" ${i === generic.sheetIndex ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select></label>` : `<div class="fld"><span>Sheet</span><b>${esc(ws.name)}</b></div>`}
         <label class="fld"><span>Headings are in row</span><select id="m-head"><option value="0" ${!an.headerRow ? "selected" : ""}>No heading row</option>${Array.from({ length: 30 }, (_, i) => i + 1).map(r => `<option value="${r}" ${an.headerRow === r ? "selected" : ""}>Row ${r}</option>`).join("")}</select></label>
         ${FIELDS.filter(([k]) => k !== "num").map(([k, label]) => `<label class="fld"><span>${esc(label)}${k === "obs" ? " *" : ""}</span><select data-map="${k}">${colOpts(an.mapping[k])}</select></label>`).join("")}
       </div>
-      ${imgCols.length ? `<div><h3 class="h3s">Photos found in ${imgCols.length === 1 ? "column" : "columns"}</h3><div class="form-grid three">${imgCols.map(c => `<label class="fld"><span>Column ${colName(c)}${an.cols[c - 1]?.label ? " · " + esc(an.cols[c - 1].label.slice(0, 30)) : ""}</span><select data-photo="${c}">${[["violation", "Photo of violation"], ["closure", "Closure evidence"], ["ignore", "Ignore these pictures"]].map(([v, l]) => `<option value="${v}" ${an.photoKinds[c] === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>`).join("")}</div></div>` : `<p class="muted small">No pictures were found in this sheet.</p>`}
+      ${imgCols.length ? `<div><h3 class="h3s">Photos found in ${imgCols.length === 1 ? "column" : "columns"}</h3><div class="form-grid three">${imgCols.map(c => `<label class="fld"><span>Column ${colName(c)}${an.cols[c - 1]?.label ? ", " + esc(an.cols[c - 1].label.slice(0, 30)) : ""}</span><select data-photo="${c}">${[["violation", "Photo of violation"], ["closure", "Closure evidence"], ["ignore", "Ignore these pictures"]].map(([v, l]) => `<option value="${v}" ${an.photoKinds[c] === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>`).join("")}</div></div>` : `<p class="muted small">No pictures were found in this sheet.</p>`}
     </section>`;
   }
 
@@ -108,7 +108,7 @@ export async function render(root, ctx) {
     const mismatch = h.project && proj && !proj.name.toLowerCase().includes(h.project.toLowerCase().slice(0, 6)) && !h.project.toLowerCase().includes(proj.code.replace(/-/g, " ").slice(0, 6));
     const nInc = parsed.findings.filter(x => x.include).length;
     root.innerHTML = `
-      <div class="page-head"><div><a class="back" href="#/import">‹ Choose another file</a><h1>Check before importing</h1><p class="muted">${esc(fileName)} → ${esc(proj?.name || "")}${parsed.generic ? " · general sheet" : " · " + esc(formLabel())}</p></div>
+      <div class="page-head"><div><a class="back" href="#/import">‹ Choose another file</a><h1>Check before importing</h1><p class="muted">${esc(fileName)} → ${esc(proj?.name || "")}${parsed.generic ? ", general sheet" : ", " + esc(formLabel())}</p></div>
         <div class="actions"><button class="btn primary" id="do-import" ${nInc ? "" : "disabled"}>Import ${nInc} findings</button></div></div>
       ${mismatch ? `<div class="panel warn"><span>The file says the project is <b>${esc(h.project)}</b>. Make sure you chose the right project.</span></div>` : ""}
       ${parsed.warnings.map(w => `<div class="panel warn">${esc(w)}</div>`).join("")}
@@ -198,7 +198,7 @@ export async function render(root, ctx) {
       toast(photoFail ? `Imported. ${photoFail} photo(s) couldn't be uploaded.` : `Imported ${list.length} findings and ${totalPhotos} photos.`);
       go("#/audit/" + audit.id);
     } catch (x) {
-      toast(x.message + (audit ? " The partly imported audit was kept as a draft — open it from Audits to finish or delete it." : ""), "error");
+      toast(x.message + (audit ? " The partly imported audit was kept as a draft. Open it from Audits to finish or delete it." : ""), "error");
       btn.disabled = false; btn.textContent = "Try again";
     }
   }

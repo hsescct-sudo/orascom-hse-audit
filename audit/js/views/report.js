@@ -14,7 +14,7 @@ export async function render(ctx) {
   if (!a) { setTitle("Report"); view.innerHTML = `<div class="empty"><h3>Audit not found</h3></div>`; return; }
   const d = M.def(a.module);
   const type = query.type === "ncr" ? "ncr" : "report";
-  setTitle(type === "ncr" ? `NCR forms · ${a.ref}` : `Report · ${a.ref}`, `${d.formRef} · ${M.project(a.project_id).name}`);
+  setTitle(type === "ncr" ? `NCR forms ${a.ref}` : `Report ${a.ref}`, `${d.formRef}, ${M.project(a.project_id).name}`);
   const act = setActions(`
     <a class="btn sm" href="${link("audit", a.id, a.module)}">${ICON.back}<span>Audit</span></a>
     <a class="btn sm" href="${link("report", a.id, a.module)}${type === "ncr" ? "" : "?type=ncr"}">${type === "ncr" ? ICON.clip : ICON.flag}<span>${type === "ncr" ? "Audit report" : "NCR forms"}</span></a>
@@ -70,7 +70,7 @@ function conclusion(d, sc) {
   return `<table><thead><tr><th>Conclusion</th><th style="width:140px">Result</th></tr></thead><tbody>${rows}
     <tr><td>Serious violations (${esc(M.ruleText(d).serious)}, ${sc.seriousCount} found)</td><td>${M.minus(sc.serious)}</td></tr>
     <tr><td>Repeated violations (${esc(M.ruleText(d).repeated)}, ${sc.repeatedCount} found)</td><td>${M.minus(sc.repeated)}</td></tr>
-    <tr><th>Total project score</th><th style="background:${sc.grade ? COLORS.grade[sc.grade.code] : "#eee"};color:${sc.grade && ["orange", "yellow"].includes(sc.grade.code) ? "#2b1700" : "#fff"}">${fmtScore(sc.total)} · ${esc(sc.grade ? sc.grade.label : "")}</th></tr></tbody></table>
+    <tr><th>Total project score</th><th style="background:${sc.grade ? COLORS.grade[sc.grade.code] : "#eee"};color:${sc.grade && ["orange", "yellow"].includes(sc.grade.code) ? "#2b1700" : "#fff"}">${fmtScore(sc.total)} (${esc(sc.grade ? sc.grade.label : "")})</th></tr></tbody></table>
     <p class="small">Items marked N/A are not part of this audit; their weight is shared by the other items.</p>`;
 }
 
@@ -82,7 +82,7 @@ function fullReport(a, d, urls) {
     ${ppl(a.attendees, "Key people attended the meeting")}
     ${ppl(a.auditors, "Auditors")}
     <table><tbody>
-      <tr><th>Current manpower</th><td>${esc(a.manpower || "–")}</td><th>Current audit score</th><td><b>${fmtScore(sc.total)}</b> · ${esc(sc.grade ? sc.grade.label : "")}</td></tr>
+      <tr><th>Current manpower</th><td>${esc(a.manpower || "–")}</td><th>Current audit score</th><td><b>${fmtScore(sc.total)}</b> (${esc(sc.grade ? sc.grade.label : "")})</td></tr>
       <tr><th>Progress of completion</th><td>${a.completion !== "" && a.completion != null ? esc(a.completion) + "%" : "–"}</td><th>Previous audit score</th><td>${prev == null ? "First audit" : fmtScore(prev)}</td></tr>
       <tr><th>Audit number</th><td>${a.number}</td><th>Percentage of correcting last audit violations</th><td>${corr == null ? "–" : corr + "%"}</td></tr></tbody></table>
     <table><tbody><tr><th style="width:140px">Opening meeting</th><td>${esc(a.opening || "–")}</td></tr><tr><th>Site tour</th><td>${esc(a.siteTour || "–")}</td></tr></tbody></table>
@@ -110,7 +110,7 @@ function liftReport(a, d, urls) {
     ${head(d, d.reportTitle, d.formRef, d.formRev)}
     <table><tbody><tr><th style="width:110px">Project</th><td>${esc(p.name)} (${esc(p.code)})</td><th style="width:130px">Assessment date</th><td style="width:130px">${esc(fmtDate(a.date))}</td><th style="width:60px">Ref</th><td style="width:130px">${esc(a.ref)}</td></tr></tbody></table>
     <table><tbody><tr><th style="width:200px">Purpose of the lifting assessment</th><td>${esc(d.purpose)}</td></tr></tbody></table>
-    <table><tbody><tr><th>Assessment score</th><td><b>${fmtScore(sc.total)}</b> · ${esc(sc.grade ? sc.grade.label : "")}</td><th>Auditor's name</th><td>${esc(lead.name || "")}</td><th>Auditor's title</th><td>${esc(lead.position || "")}</td></tr></tbody></table>
+    <table><tbody><tr><th>Assessment score</th><td><b>${fmtScore(sc.total)}</b> (${esc(sc.grade ? sc.grade.label : "")})</td><th>Auditor's name</th><td>${esc(lead.name || "")}</td><th>Auditor's title</th><td>${esc(lead.position || "")}</td></tr></tbody></table>
     ${bands(d)}
     <h2>Lifting assessment summary</h2><p>${esc(a.summary || "–")}</p>
     <h2>Lifting equipment statistics</h2><table><thead><tr><th>Ser.</th><th>Lifting equipment description</th><th>No.</th><th>Owned / rental</th></tr></thead><tbody>${(a.equipment || []).map((e, i) => `<tr><td>${i + 1}</td><td>${esc(e.desc)}</td><td>${esc(e.count === "" ? "–" : e.count)}</td><td>${esc(e.owner)}</td></tr>`).join("")}</tbody></table>

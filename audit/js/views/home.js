@@ -8,7 +8,7 @@ import { startAudit } from "../widgets.js";
 export async function render(ctx) {
   const { module: mod, def, view } = ctx;
   const me = M.me();
-  setTitle(`Hello, ${me.name.split(" ")[0]}`, `${def.name} · my audits`);
+  setTitle(`Hello, ${me.name.split(" ")[0]}`, `${def.name}, my audits`);
   const today = todayISO(), y = +today.slice(0, 4), m = +today.slice(5, 7);
   const mine = p => p.lead_id === me.id || (p.team_ids || []).includes(me.id) || M.isAdmin();
   const drafts = M.audits(mod).filter(a => a.status === "draft" && (a.lead_id === me.id || a.created_by === me.id || M.isAdmin()));
@@ -34,9 +34,9 @@ export async function render(ctx) {
     ${M.canEdit() ? `<button class="btn primary lg" type="button" id="start" style="justify-self:start">${ICON.play}<span>${def.id === "full" ? "Start an HSE audit" : "Start a lifting assessment"}</span></button>` : ""}
     ${waiting.length ? `<section class="panel"><div class="panel-h"><h2>Waiting for your approval</h2><span class="muted">${waiting.length}</span></div>${waiting.map(a => card(esc(M.project(a.project_id).name), `<span class="ref num" style="font:700 13px var(--f-cond);color:var(--navy)">${esc(a.ref)}</span>`, mtag(M.score(a).total), `data-a="${esc(a.id)}"`, onDate(a.date))).join("")}</section>` : ""}
     <section class="panel"><div class="panel-h"><h2>In progress</h2><span class="muted">Saved on this device</span></div>
-      ${drafts.length ? drafts.map(a => { const s = M.score(a); return card(esc(M.project(a.project_id).name), `<span class="ref num" style="font:700 13px var(--f-cond);color:var(--navy)">${esc(a.ref)}</span>${auditChip(a)}<span class="muted small">${s.ratedCount}/${s.itemCount} rated · ${M.auditNCRs(a).length} NCRs</span>`, mtag(s.total), `data-a="${esc(a.id)}"`, onDate(a.date)); }).join("") : `<p class="muted">No audit in progress.</p>`}</section>
+      ${drafts.length ? drafts.map(a => { const s = M.score(a); return card(esc(M.project(a.project_id).name), `<span class="ref num" style="font:700 13px var(--f-cond);color:var(--navy)">${esc(a.ref)}</span>${auditChip(a)}<span class="muted small">${s.ratedCount}/${s.itemCount} rated, ${M.auditNCRs(a).length} NCRs</span>`, mtag(s.total), `data-a="${esc(a.id)}"`, onDate(a.date)); }).join("") : `<p class="muted">No audit in progress.</p>`}</section>
     <section class="panel"><div class="panel-h"><h2>From the audit plan</h2><span class="muted">This month and next</span><a class="act btn sm ghost" href="${link("plan")}">Full plan</a></div>
-      ${planned.length ? planned.map(p => { const pr = M.project(p.project_id); return card(esc(pr.name), `${planChip(p)}<span class="muted small">${esc(pr.code)} · ${esc(pr.city)}</span>`, M.canEdit() ? `<button class="btn sm primary" type="button" data-start="${esc(p.id)}">Start</button>` : "", `data-plan="${esc(p.id)}"`, when(String(p.year), monthName(p.month))); }).join("") : `<p class="muted">Nothing planned for you this month.</p>`}</section>
+      ${planned.length ? planned.map(p => { const pr = M.project(p.project_id); return card(esc(pr.name), `${planChip(p)}<span class="muted small">${esc(pr.code)}, ${esc(pr.city)}</span>`, M.canEdit() ? `<button class="btn sm primary" type="button" data-start="${esc(p.id)}">Start</button>` : "", `data-plan="${esc(p.id)}"`, when(String(p.year), monthName(p.month))); }).join("") : `<p class="muted">Nothing planned for you this month.</p>`}</section>
     <section class="panel"><div class="panel-h"><h2>Recent audits</h2><a class="act btn sm ghost" href="${link("audits")}">All audits</a></div>
       ${recent.length ? recent.map(a => card(esc(M.project(a.project_id).name), `<span class="ref num" style="font:700 13px var(--f-cond);color:var(--navy)">${esc(a.ref)}</span>${auditChip(a)}`, mtag(M.score(a).total), `data-a="${esc(a.id)}"`, onDate(a.date))).join("") : `<p class="muted">No audits yet.</p>`}</section>
   </div>`;

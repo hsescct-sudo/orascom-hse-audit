@@ -18,10 +18,10 @@ export const repChip = n => (n.repeated ? `<span class="chip rep" title="Found b
 export const planChip = p => { const s = M.planStatus(p); return `<span class="chip pl-${s}">${esc(M.PLAN_STATE[s])}</span>`; };
 export const AUDIT_STATUS = { draft: "In progress", submitted: "Waiting approval", approved: "Approved" };
 export const auditChip = a => `<span class="chip au-${esc(a.status)}">${esc(AUDIT_STATUS[a.status] || a.status)}</span>`;
-export const projLabel = p => `${esc(p.code)} · ${esc(p.name)}`;
+export const projLabel = p => `${esc(p.code)}: ${esc(p.name)}`;
 
 export function projectOptions(selected = "", { all = "All projects", list = M.projects() } = {}) {
-  return (all ? `<option value="">${esc(all)}</option>` : "") + list.map(p => `<option value="${esc(p.id)}" ${p.id === selected ? "selected" : ""}>${esc(p.code)} · ${esc(p.name)}</option>`).join("");
+  return (all ? `<option value="">${esc(all)}</option>` : "") + list.map(p => `<option value="${esc(p.id)}" ${p.id === selected ? "selected" : ""}>${esc(p.code)}: ${esc(p.name)}</option>`).join("");
 }
 export function optionList(values, selected = "", empty = "") {
   return (empty !== null ? `<option value="">${esc(empty)}</option>` : "") + values.map(v => `<option ${v === selected ? "selected" : ""}>${esc(v)}</option>`).join("");

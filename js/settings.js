@@ -10,8 +10,8 @@ export const DASH_PANELS = [
 ];
 export const DEFAULTS = {
   general: { appName: "HSE Flash Audit", unitName: "Corporate HSE", company: "Orascom Construction" },
-  dashboard: { title: "HSE Performance Dashboard", eyebrow: "Corporate HSE · Flash Audit", closureTarget: 90, complianceTarget: 90, defaultPeriod: "all", hidden: [] },
-  report: { title: "HSE Flash Audit Report", formRef: "F-HSE-0075", formRev: "01", dept: "HSE Dept.", footer: "HSE Flash Audit · Orascom Construction · Corporate HSE" },
+  dashboard: { title: "HSE Performance Dashboard", eyebrow: "Corporate HSE, Flash Audit", closureTarget: 90, complianceTarget: 90, defaultPeriod: "all", hidden: [] },
+  report: { title: "HSE Flash Audit Report", formRef: "F-HSE-0075", formRev: "01", dept: "HSE Dept.", footer: "HSE Flash Audit, Orascom Construction Corporate HSE" },
   lists: { rootCauses: null },
   checklist: null,
 };

@@ -104,7 +104,7 @@ export async function excelReport(a) {
     ws.mergeCells(r, 1, r, 9); const vt = ws.getCell(r, 1); vt.value = "The observed violations"; cellStyle(vt, { bold: true, fill: NAVY, color: "FFFFFFFF" }); r++;
     headerRow(ws, r, ["N°", "Remarks", "Classification", "Location", "Root cause", "Photo", "NCR type", "Responsibility", "Deadline"]); r++;
     for (const [i, n] of ncrs.entries()) {
-      const vals = [i + 1, `${n.description}\n(${n.ref})`, n.classification, n.location || "", [...(n.root_causes || []), n.other_cause].filter(Boolean).join(", "), "", n.severity + (n.repeated ? " · Repeated" : ""), [n.responsible_name, n.responsible_position].filter(Boolean).join("\n"), fmtDate(n.due_date)];
+      const vals = [i + 1, `${n.description}\n(${n.ref})`, n.classification, n.location || "", [...(n.root_causes || []), n.other_cause].filter(Boolean).join(", "), "", n.severity + (n.repeated ? " (repeated)" : ""), [n.responsible_name, n.responsible_position].filter(Boolean).join("\n"), fmtDate(n.due_date)];
       vals.forEach((v, j) => { const c = ws.getCell(r, j + 1); c.value = v; cellStyle(c, { fill: j === 6 && n.severity === "Serious" ? "FFFDE8E7" : null }); });
       ws.getRow(r).height = 96;
       const ph = n.photos && n.photos[0] ? await photoData(n.photos[0]) : null;
@@ -127,7 +127,7 @@ export async function excelReport(a) {
     [7, 70, 9, 10, 10].forEach((w, i) => { ap.getColumn(i + 1).width = w; });
     titleBlock(wb, ap, logoId, d.id === "full" ? "HSE Performance Appraisal Form" : "Lifting Assessment Appraisal Checklist", d.formRef, d.formRev, 5);
     let q = 4; const partCells = [];
-    ap.getCell(q, 1).value = "Project"; ap.getCell(q, 2).value = `${p.name} (${p.code}) · ${fmtDate(a.date)}`; ap.getCell(q, 1).font = { bold: true }; q += 2;
+    ap.getCell(q, 1).value = "Project"; ap.getCell(q, 2).value = `${p.name} (${p.code}), ${fmtDate(a.date)}`; ap.getCell(q, 1).font = { bold: true }; q += 2;
     ap.mergeCells(q, 1, q, 5); ap.getCell(q, 1).value = "Rating is 0-100%. N/A items are left out and their weight goes to the other items. 0% counts as zero."; ap.getCell(q, 1).font = { italic: true, size: 9 }; q += 2;
     sc.parts.forEach(part => {
       const pd = d.parts.find(x => x.id === part.id);
@@ -157,7 +157,7 @@ export async function excelReport(a) {
       e.value = i > 0 && pctMode ? { formula: `IF(E${baseRow}="",0,E${baseRow}*${pct}/100)`, result: Math.round(v * 10) / 10 } : v;
       cellStyle(e, { align: "center" }); e.numFmt = "0.0"; q++;
     });
-    ap.mergeCells(q, 1, q, 4); const tt = ap.getCell(q, 1); tt.value = `Total project score (%) · ${sc.grade ? sc.grade.label : ""}`; cellStyle(tt, { bold: true, fill: sc.grade ? GC[sc.grade.code] : HEAD, color: sc.grade && ["green", "red"].includes(sc.grade.code) ? "FFFFFFFF" : undefined });
+    ap.mergeCells(q, 1, q, 4); const tt = ap.getCell(q, 1); tt.value = `Total project score (%): ${sc.grade ? sc.grade.label : ""}`; cellStyle(tt, { bold: true, fill: sc.grade ? GC[sc.grade.code] : HEAD, color: sc.grade && ["green", "red"].includes(sc.grade.code) ? "FFFFFFFF" : undefined });
     const tv = ap.getCell(q, 5); tv.value = { formula: `IF(E${q - 3}="","",MAX(0,MIN(100,E${q - 3}-E${q - 2}-E${q - 1})))`, result: sc.total == null ? "" : Math.round(sc.total * 10) / 10 }; cellStyle(tv, { bold: true, fill: sc.grade ? GC[sc.grade.code] : HEAD, align: "center", color: sc.grade && ["green", "red"].includes(sc.grade.code) ? "FFFFFFFF" : undefined }); tv.numFmt = "0.0";
     // Sheet 3/4: registers for this audit
     addRegisterSheet(wb, d, ncrs);
@@ -179,7 +179,7 @@ function regRow(n, i) {
   const st = M.ncrState(n);
   const onTime = M.onTime(n);
   return [i + 1, p.name, s == null ? "" : Math.round(s * 10) / 10, a ? ((a.auditors || [])[0] || {}).name || "" : "", fmtDate(n.date), fmtDate(n.due_date), n.description, n.location || "", n.severity + (n.repeated ? " (Repeated)" : ""), n.ref, n.classification, [...(n.root_causes || []), n.other_cause].filter(Boolean).join(", "),
-    n.responsible_name || "", n.responsible_position || "", n.ca_text || "", fmtDate(n.ca_date), n.status === "Carried" ? "Repeated in next audit" : n.status, n.followup_name ? `${n.followup_name}${n.followup_date ? " · " + fmtDate(n.followup_date) : ""}` : "", M.NCR_STATE[st], onTime == null ? (st === "overdue" ? "Late" : "") : onTime ? "On time" : "Late", p.bu ? `${p.bu}${p.director ? " · " + p.director : ""}` : (p.director || "")];
+    n.responsible_name || "", n.responsible_position || "", n.ca_text || "", fmtDate(n.ca_date), n.status === "Carried" ? "Repeated in next audit" : n.status, n.followup_name ? `${n.followup_name}${n.followup_date ? ", " + fmtDate(n.followup_date) : ""}` : "", M.NCR_STATE[st], onTime == null ? (st === "overdue" ? "Late" : "") : onTime ? "On time" : "Late", p.bu ? `${p.bu}${p.director ? ", " + p.director : ""}` : (p.director || "")];
 }
 function addRegisterSheet(wb, d, list, name = "Register") {
   const ws = wb.addWorksheet(name, { views: [{ state: "frozen", ySplit: 1 }], pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
@@ -243,13 +243,13 @@ export async function pptReport(a) {
     const F = "Calibri"; const NV = "003876"; const G = sc.grade ? { green: "1B9E5A", orange: "E9851F", yellow: "EDBE2C", red: "CF2F2B" }[sc.grade.code] : "C8D2DE";
     const dark = sc.grade && ["orange", "yellow"].includes(sc.grade.code) ? "2B1700" : "FFFFFF";
     const logo = await logoData();
-    pptx.defineSlideMaster({ title: "M", background: { color: "FFFFFF" }, objects: [{ rect: { x: 0, y: 7.1, w: 13.33, h: 0.4, fill: { color: NV } } }, ...(logo ? [{ image: { data: logo, x: 11.35, y: 0.3, w: 1.6, h: 0.36 } }] : []), { text: { text: `${d.reportTitle} · ${a.ref} · ${p.name}`, options: { x: 0.4, y: 7.12, w: 12.5, h: 0.36, fontFace: F, fontSize: 10, color: "FFFFFF" } } }] });
+    pptx.defineSlideMaster({ title: "M", background: { color: "FFFFFF" }, objects: [{ rect: { x: 0, y: 7.1, w: 13.33, h: 0.4, fill: { color: NV } } }, ...(logo ? [{ image: { data: logo, x: 11.35, y: 0.3, w: 1.6, h: 0.36 } }] : []), { text: { text: `${d.reportTitle}, ${a.ref}, ${p.name}`, options: { x: 0.4, y: 7.12, w: 12.5, h: 0.36, fontFace: F, fontSize: 10, color: "FFFFFF" } } }] });
     // cover
     let s = pptx.addSlide(); s.background = { color: "00264F" };
     if (logo) { s.addShape(pptx.ShapeType.roundRect, { x: 0.6, y: 0.55, w: 2.3, h: 0.7, fill: { color: "FFFFFF" }, rectRadius: 0.1 }); s.addImage({ data: logo, x: 0.75, y: 0.7, w: 2.0, h: 0.45 }); }
     s.addText(d.reportTitle, { x: 0.6, y: 2.0, w: 8, h: 0.8, fontFace: F, fontSize: 36, bold: true, color: "FFFFFF" });
     s.addText(p.name, { x: 0.6, y: 2.9, w: 8, h: 0.9, fontFace: F, fontSize: 22, color: "C9D6E8" });
-    s.addText(`${fmtDate(a.date)} · ${a.ref} · ${d.formRef}`, { x: 0.6, y: 3.9, w: 8, h: 0.5, fontFace: F, fontSize: 16, color: "9FB4CF" });
+    s.addText(`${fmtDate(a.date)}, ${a.ref}, ${d.formRef}`, { x: 0.6, y: 3.9, w: 8, h: 0.5, fontFace: F, fontSize: 16, color: "9FB4CF" });
     s.addShape(pptx.ShapeType.rect, { x: 9.5, y: 1.8, w: 2.9, h: 3.4, fill: { color: G } });
     s.addShape(pptx.ShapeType.ellipse, { x: 10.8, y: 2.05, w: 0.3, h: 0.3, fill: { color: "00264F" } });
     s.addText(fmtScore(sc.total), { x: 9.5, y: 2.6, w: 2.9, h: 1.2, fontFace: F, fontSize: 48, bold: true, color: dark, align: "center" });
@@ -273,8 +273,8 @@ export async function pptReport(a) {
       s = pptx.addSlide({ masterName: "M" });
       const sevColor = { Serious: "CF2F2B", Major: "E9851F", Minor: "5A6B82" }[n.severity];
       s.addShape(pptx.ShapeType.rect, { x: 0.5, y: 0.35, w: 1.4, h: 0.45, fill: { color: sevColor } });
-      s.addText(n.severity + (n.repeated ? " · R" : ""), { x: 0.5, y: 0.35, w: 1.4, h: 0.45, fontFace: F, fontSize: 13, bold: true, color: n.severity === "Major" ? "2B1700" : "FFFFFF", align: "center" });
-      s.addText(`${n.ref} · ${n.classification}`, { x: 2.05, y: 0.33, w: 9, h: 0.5, fontFace: F, fontSize: 16, bold: true, color: NV });
+      s.addText(n.severity + (n.repeated ? " (R)" : ""), { x: 0.5, y: 0.35, w: 1.4, h: 0.45, fontFace: F, fontSize: 13, bold: true, color: n.severity === "Major" ? "2B1700" : "FFFFFF", align: "center" });
+      s.addText(`${n.ref}: ${n.classification}`, { x: 2.05, y: 0.33, w: 9, h: 0.5, fontFace: F, fontSize: 16, bold: true, color: NV });
       const ph = n.photos && n.photos[0] ? await photoData(n.photos[0]) : null;
       if (ph) { const sz = await imgSize(ph); const maxW = 6.2, maxH = 5.6; let w = maxW, h = w * sz.h / sz.w; if (h > maxH) { h = maxH; w = h * sz.w / sz.h; } s.addImage({ data: ph, x: 0.5, y: 1.1, w, h }); }
       else s.addText("No photo", { x: 0.5, y: 1.1, w: 6.2, h: 4.6, fill: { color: "EEF2F6" }, fontFace: F, fontSize: 16, color: "8494AA", align: "center", valign: "middle" });

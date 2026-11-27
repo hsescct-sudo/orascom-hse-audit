@@ -20,7 +20,7 @@ export async function render(ctx) {
   const proj = M.project(a.project_id);
   const me = M.me();
   const locked = () => a.status === "approved" || !M.canEdit() || (a.status === "submitted" && !M.isAdmin());
-  setTitle(a.ref, `${d.short} · ${proj.name}`);
+  setTitle(a.ref, `${d.short}, ${proj.name}`);
 
   const stepKey = "oc-audit-step-" + a.id;
   let step = ctx.query.step || sessionStorage.getItem(stepKey) || "info";
@@ -95,7 +95,7 @@ export async function render(ctx) {
       </div>
       <button class="btn sm ghost" type="button" id="how">How is this calculated?</button>`;
     view.querySelector("#how").onclick = () => howDialog(d, sc);
-    view.querySelector("#dock").innerHTML = `${mtag(sc.total)}<span class="d-t">${sc.ratedCount}/${sc.itemCount} rated<br>${sc.seriousCount ? `${sc.seriousCount} serious · ` : ""}${M.auditNCRs(a).length} NCRs</span>${step !== "finish" ? `<button class="btn sm" type="button" id="dock-next">Next</button>` : ""}`;
+    view.querySelector("#dock").innerHTML = `${mtag(sc.total)}<span class="d-t">${sc.ratedCount}/${sc.itemCount} rated<br>${sc.seriousCount ? `${sc.seriousCount} serious, ` : ""}${M.auditNCRs(a).length} NCRs</span>${step !== "finish" ? `<button class="btn sm" type="button" id="dock-next">Next</button>` : ""}`;
     const dn = view.querySelector("#dock-next"); if (dn) dn.onclick = nextStep;
     view.querySelectorAll("[data-pscore]").forEach(el => { const p = sc.parts.find(x => x.id === el.dataset.pscore); el.innerHTML = p && p.score != null ? mtag(p.score * 100) : `<span class="muted small">not rated</span>`; });
   }
@@ -104,7 +104,7 @@ export async function render(ctx) {
     view.querySelector("#meta").innerHTML = `
       <div class="stack" style="gap:8px;font-size:14px">
         <div class="row" style="justify-content:space-between"><b>${esc(a.ref)}</b>${auditChip(a)}</div>
-        <div><span class="muted">Project</span><br><b>${esc(proj.name)}</b><br><span class="muted small">${esc(proj.code)} · ${esc(proj.city)}, ${esc(proj.country)}</span></div>
+        <div><span class="muted">Project</span><br><b>${esc(proj.name)}</b><br><span class="muted small">${esc(proj.code)}, ${esc(proj.city)}, ${esc(proj.country)}</span></div>
         <div class="row" style="justify-content:space-between"><span class="muted">Date</span><b>${esc(fmtDate(a.date))}</b></div>
         <div class="row" style="justify-content:space-between"><span class="muted">Audit number</span><b>${a.number}</b></div>
         <div class="row" style="justify-content:space-between"><span class="muted">Previous score</span>${prev ? mtag(M.score(prev).total) : '<span class="muted">First audit</span>'}</div>
@@ -162,7 +162,7 @@ export async function render(ctx) {
   function stepInfo(el) {
     el.innerHTML = `<div class="stack">
       <section class="panel">
-        <div class="panel-h"><h2>Audit info</h2><span class="muted">${esc(d.reportTitle)} · ${esc(d.formRef)} Rev ${esc(d.formRev)}</span></div>
+        <div class="panel-h"><h2>Audit info</h2><span class="muted">${esc(d.reportTitle)}, ${esc(d.formRef)} Rev ${esc(d.formRev)}</span></div>
         ${d.purpose ? `<p class="muted" style="max-width:75ch">${esc(d.purpose)}</p>` : ""}
         <div class="grid3">
           <label class="fld"><span>${esc(d.short)} date</span><input type="date" data-f="date" value="${esc(a.date)}"></label>
@@ -204,11 +204,11 @@ export async function render(ctx) {
     const cand = M.carryCandidates(a);
     const decided = id => (a.carry || []).find(c => c.ncr_id === id);
     el.innerHTML = `<section class="panel">
-      <div class="panel-h"><h2>Open NCRs from the last audit</h2><span class="muted">${esc(prev.ref)} · ${esc(fmtDate(prev.date))}</span></div>
+      <div class="panel-h"><h2>Open NCRs from the last audit</h2><span class="muted">${esc(prev.ref)}, ${esc(fmtDate(prev.date))}</span></div>
       <p class="muted" style="max-width:75ch">Check each one on site. If it is still not closed, it becomes a <b>repeated NCR</b> in this audit and takes ${esc(M.ruleText(d).repeated)} off the score.</p>
       <div>${cand.map(n => { const c = decided(n.id); return `<div class="carry-row" data-n="${esc(n.id)}">
         <div><div class="row" style="gap:6px">${sevChip(n.severity)}<span class="ref num" style="font-weight:700;color:var(--navy)">${esc(n.ref)}</span><span class="muted small">${esc(n.classification)}</span></div>
-          <div style="margin-top:4px">${esc(n.description)}</div><div class="muted small">${esc(n.location || "")}${n.due_date ? ` · deadline ${esc(fmtDate(n.due_date))}` : ""}</div></div>
+          <div style="margin-top:4px">${esc(n.description)}</div><div class="muted small">${esc(n.location || "")}${n.due_date ? `, deadline ${esc(fmtDate(n.due_date))}` : ""}</div></div>
         <div class="seg" role="group" aria-label="Result on site"><button type="button" data-res="closed" aria-pressed="${c && c.result === "closed"}">Closed</button><button type="button" data-res="open" aria-pressed="${c && c.result === "open"}">Still open</button></div>
       </div>`; }).join("")}</div></section>
       <div class="row" style="margin-top:14px"><button class="btn primary lg" type="button" data-next>Next: ${esc(d.id === "full" ? "Appraisal" : "Checklist")}</button></div>`;
@@ -291,7 +291,7 @@ export async function render(ctx) {
     const list = M.auditNCRs(a);
     const ro = locked();
     el.innerHTML = `<section class="panel">
-      <div class="panel-h"><h2>NCRs in this audit</h2><span class="muted">${list.length} raised · NCR form ${esc(d.ncrFormRef)}</span>${ro ? "" : `<button class="btn primary act" type="button" id="add-ncr">${ICON.plus}<span>Raise NCR</span></button>`}</div>
+      <div class="panel-h"><h2>NCRs in this audit</h2><span class="muted">${list.length} raised, NCR form ${esc(d.ncrFormRef)}</span>${ro ? "" : `<button class="btn primary act" type="button" id="add-ncr">${ICON.plus}<span>Raise NCR</span></button>`}</div>
       ${list.length ? `<div id="ncr-list"></div>` : `<div class="empty"><h3>No NCRs yet</h3><p>Raise an NCR for each violation you see. Add photos from the camera.</p></div>`}
     </section>
     <div class="row" style="margin-top:14px"><button class="btn primary lg" type="button" data-next>Next: Good practice</button></div>`;
@@ -386,7 +386,7 @@ export async function render(ctx) {
       ${a.status === "draft" && M.canEdit() ? `<div class="row">${isLead && M.isAdmin()
         ? `<button class="btn primary lg" type="button" id="approve-now">Approve and lock</button><button class="btn lg" type="button" id="submit">Send for approval</button>`
         : `<button class="btn primary lg" type="button" id="submit">Send for approval</button>`}</div>` : ""}
-      ${(a.history || []).length ? `<section class="panel"><div class="panel-h"><h2>History</h2></div>${a.history.map(h => `<div class="small">${esc(fmtDate(h.at.slice(0, 10)))} · ${esc(h.by)} · ${esc(h.what)}</div>`).join("")}</section>` : ""}
+      ${(a.history || []).length ? `<section class="panel"><div class="panel-h"><h2>History</h2></div>${a.history.map(h => `<div class="small">${esc(fmtDate(h.at.slice(0, 10)))}, ${esc(h.by)}: ${esc(h.what)}</div>`).join("")}</section>` : ""}
     </div>`;
     el.addEventListener("click", async e => {
       const g = e.target.closest("[data-go]"); if (g) return goStep(g.dataset.go);
@@ -428,7 +428,7 @@ export async function render(ctx) {
 }
 
 function howDialog(d, sc) {
-  const rows = sc.parts.map(p => `<tr><th colspan="5" style="background:#eef2f6">${esc(d.id === "full" ? `${p.code}: ${p.name}` : `${p.code}. ${p.name}`)} · ${p.share}% · part score ${fmtScore(p.score == null ? null : p.score * 100)}</th></tr>` +
+  const rows = sc.parts.map(p => `<tr><th colspan="5" style="background:#eef2f6">${esc(d.id === "full" ? `${p.code}: ${p.name}` : `${p.code}. ${p.name}`)} (${p.share}%), part score ${fmtScore(p.score == null ? null : p.score * 100)}</th></tr>` +
     p.items.map(it => `<tr><td>${esc(it.title)}</td><td class="num">${it.weight}</td><td class="num">${it.state === "na" ? "N/A" : it.state === "open" ? "–" : it.value + "%"}</td><td class="num">${it.share ? it.share.toFixed(2) + "%" : "–"}</td><td class="num">${it.points ? it.points.toFixed(2) : "–"}</td></tr>`).join("")).join("");
   dialog({
     title: "How the score is calculated", wide: true,
@@ -445,7 +445,7 @@ function howDialog(d, sc) {
 function reportMail(a) {
   const d = M.def(a.module), p = M.project(a.project_id), sc = M.score(a), list = M.auditNCRs(a);
   const l = linkOf(a.module, a.project_id);
-  const subject = `${d.short} report ${a.ref} · ${p.name} · ${fmtDate(a.date)}`;
+  const subject = `${d.short} report ${a.ref}, ${p.name}, ${fmtDate(a.date)}`;
   const counts = ["Serious", "Major", "Minor"].map(s => `${list.filter(n => n.severity === s).length} ${s.toLowerCase()}`).join(", ");
   const body = [`Dear ${p.name} team,`, "",
     `Please find attached the Corporate HSE ${d.short} report ${a.ref} of ${fmtDate(a.date)}.`, "",

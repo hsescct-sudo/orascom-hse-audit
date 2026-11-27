@@ -66,7 +66,7 @@ async function renderChecklist(root, ctx) {
 
   const status = () => {
     const el = root.querySelector("#fs-save"); if (!el) return;
-    el.textContent = saving ? "Saving…" : failed ? "Not saved — check the connection" : "Saved";
+    el.textContent = saving ? "Saving…" : failed ? "Not saved. Check the connection" : "Saved";
     el.className = "pill " + (saving ? "" : failed ? "warn" : "ok");
   };
   const track = async p => { saving++; status(); try { const r = await p; failed = false; return r; } catch (e) { failed = true; toast(e.message, "error"); throw e; } finally { saving--; status(); } };
@@ -90,7 +90,7 @@ async function renderChecklist(root, ctx) {
     const t = tally();
     return `<div class="form-top card">
       <div class="ft-row"><div><a class="back" href="#/audit/${id}">‹ Audit ${aRef(audit.ref)}</a><h1 class="ft-title">${esc(audit.projects?.name || "")}</h1>
-        <p class="muted small">${fmtDate(audit.audit_date)} · ${audit.audit_type === "corporate" ? "Corporate" : "Project"} audit · ${esc(audit.auditor || "")}</p></div>
+        <p class="muted small">${fmtDate(audit.audit_date)}, ${audit.audit_type === "corporate" ? "Corporate" : "Project"} audit, ${esc(audit.auditor || "")}</p></div>
         <span class="pill ok" id="fs-save">Saved</span></div>
       <div class="ft-prog"><span class="hbar big"><i style="width:${(100 * t.done) / TOTAL_CHECKS}%"></i></span><span class="small">${t.done} / ${TOTAL_CHECKS} checked</span><b class="small ${t.findings ? "t-over" : ""}">${t.findings} findings</b></div>
     </div>`;
@@ -99,7 +99,7 @@ async function renderChecklist(root, ctx) {
   function topicsView() {
     return `<div class="topic-grid">${TOPICS.map((t, i) => { const s = topicTally(t.code); return `<button class="topic-card ${s.done === s.n ? "done" : ""}" data-topic="${t.code}">
       <span class="tc-code">${t.code}</span><span class="tc-name">${i + 1}. ${esc(t.name)}</span>
-      <span class="tc-meta"><span class="hbar"><i style="width:${(100 * s.done) / s.n}%"></i></span>${s.done}/${s.n}${s.nc ? ` · <b class="t-over">${s.nc} NC</b>` : ""}</span></button>`; }).join("")}</div>
+      <span class="tc-meta"><span class="hbar"><i style="width:${(100 * s.done) / s.n}%"></i></span>${s.done}/${s.n}${s.nc ? `, <b class="t-over">${s.nc} NC</b>` : ""}</span></button>`; }).join("")}</div>
       <div class="btnrow center"><button class="btn primary" data-act="finish">Finish &amp; submit</button></div>`;
   }
 
@@ -167,7 +167,7 @@ async function renderChecklist(root, ctx) {
     return `<div class="tophead"><button class="btn sm ghost" data-act="topics">‹ Back to checklist</button></div>
       <h2 class="ttl">Review &amp; submit</h2>
       <div class="kpis small"><div class="kpi"><span>Checked</span><b>${t.done}/${TOTAL_CHECKS}</b></div><div class="kpi"><span>Compliance</span><b>${t.comp == null ? "—" : t.comp + "%"}</b></div><div class="kpi"><span>Findings</span><b>${t.findings}</b></div><div class="kpi"><span>Corrected on the spot</span><b>${findings.filter(f => f.fixed_on_spot).length}</b></div></div>
-      ${gaps.length ? `<div class="panel warn"><b>${gaps.length} finding(s) are missing details for the report</b><ul>${gaps.map(({ f, g }) => `<li><button class="linkish" data-goto="${f.item_id || "x:" + f.id}" data-topic-of="${f.topic}">${esc(f.item_id || "Other finding")}</button> — ${g.join(", ")}</li>`).join("")}</ul></div>` : `<div class="panel ok">All findings have the details the report needs.</div>`}
+      ${gaps.length ? `<div class="panel warn"><b>${gaps.length} finding(s) are missing details for the report</b><ul>${gaps.map(({ f, g }) => `<li><button class="linkish" data-goto="${f.item_id || "x:" + f.id}" data-topic-of="${f.topic}">${esc(f.item_id || "Other finding")}</button>: ${g.join(", ")}</li>`).join("")}</ul></div>` : `<div class="panel ok">All findings have the details the report needs.</div>`}
       <label class="fld"><span>Purpose &amp; scope</span><textarea id="fx-scope" rows="4">${esc(audit.scope || defaultScope(audit, audit.projects?.name))}</textarea></label>
       <label class="fld"><span>Conclusion</span><textarea id="fx-concl" rows="4">${esc(audit.conclusion || defaultConclusion({ ...audit, checks }, findings))}</textarea></label>
       <div class="btnrow"><button class="btn primary" data-act="submit">Submit audit</button><button class="btn ghost" data-act="savedraft">Save and continue later</button></div>
