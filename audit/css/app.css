@@ -537,3 +537,23 @@ input[type=number] { -moz-appearance: textfield; }
   .topbar #actions { order: 2; }
   .people .pp + .pp { border-top: 1px solid var(--line-soft); padding-top: 12px; }
 }
+
+/* ---------- one look with the main page and Flash (Nov 2026) ---------- */
+.gate-art { padding-bottom: 0; background: radial-gradient(90% 120% at 90% -10%, rgba(13, 76, 150, .55), transparent 60%), #001a38; }
+.gate-art .stag::before { background: #001a38; }
+.gate-sky { display: block; width: calc(100% + 112px); margin: -6px -56px 0; height: clamp(130px, 13vw, 210px); }
+@media (prefers-reduced-motion: no-preference) {
+  .gate-art h1, .gate-art h1 + p, .gate-card { animation: oc-rise .7s cubic-bezier(.2, .7, .2, 1) both; }
+  .gate-art h1 + p { animation-delay: .08s; } .gate-card { animation-delay: .14s; }
+  .gate-tags .stag { animation: oc-rise .6s cubic-bezier(.2, .7, .2, 1) both; }
+  .gate-tags .stag:nth-child(2) { animation-delay: .1s; } .gate-tags .stag:nth-child(3) { animation-delay: .16s; } .gate-tags .stag:nth-child(4) { animation-delay: .22s; }
+  .view.enter > * { animation: oc-in .32s ease both; }
+  .dlg { animation: oc-pop .2s cubic-bezier(.2, .7, .2, 1) both; }
+  @keyframes oc-rise { from { opacity: 0; transform: translateY(16px); } }
+  @keyframes oc-in { from { opacity: 0; transform: translateY(6px); } }
+  @keyframes oc-pop { from { opacity: 0; transform: translateY(8px) scale(.985); } }
+}
+@media (max-width: 860px) {
+  .gate-art { padding-bottom: 0; }
+  .gate-sky { width: calc(100% + 44px); margin: 4px -22px 0; height: 110px; }
+}

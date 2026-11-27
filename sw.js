@@ -1,14 +1,14 @@
 // Service worker: makes the site installable as a phone app and lets it open without signal.
 // App files: network first (so every deploy shows up at once), cached copy when offline.
 // Libraries from the CDN: cached after the first load. Supabase (data, photos, sign-in) is never cached.
-const VERSION = "2026-10-05-4";
+const VERSION = "2026-11-28-1";
 const CACHE = "hse-audit-" + VERSION;
 const SHELL = [
   "./", "index.html", "manifest.json", "css/app.css",
-  "js/config.js", "js/app.js", "js/data.js", "js/ui.js", "js/checklist.js", "js/settings.js", "js/pwa.js", "js/importer.js", "js/report.js", "js/pptx.js",
+  "js/config.js", "js/app.js", "js/cards.js", "js/data.js", "js/ui.js", "js/checklist.js", "js/settings.js", "js/pwa.js", "js/importer.js", "js/report.js", "js/pptx.js",
   "js/views/dashboard.js", "js/views/register.js", "js/views/finding.js", "js/views/audits.js", "js/views/audit.js", "js/views/form.js",
   "js/views/import.js", "js/views/projects.js", "js/views/admins.js", "js/views/settings.js", "js/views/help.js",
-  "assets/orascom-logo.png", "assets/favicon.png", "assets/icons/icon-192.png", "assets/icons/icon-512.png", "assets/icons/apple-touch-icon.png",
+  "assets/orascom-logo.png", "assets/skyline.svg", "assets/favicon.png", "assets/icons/icon-192.png", "assets/icons/icon-512.png", "assets/icons/apple-touch-icon.png",
 ];
 const CDN = /^https:\/\/(cdn\.jsdelivr\.net|unpkg\.com|cdnjs\.cloudflare\.com)\//;
 

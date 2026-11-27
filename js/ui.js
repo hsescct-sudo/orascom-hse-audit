@@ -208,6 +208,7 @@ export async function saveBlob(blob, filename) {
 }
 
 export const ICON = {
+  home: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z" fill="currentColor" opacity=".9"/></svg>',
   x: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
   dash: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 13h6V4H4zm0 7h6v-5H4zm10 0h6v-9h-6zm0-16v5h6V4z" fill="currentColor"/></svg>',
   list: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 6h2v2H4zm4 0h12v2H8zM4 11h2v2H4zm4 0h12v2H8zm-4 5h2v2H4zm4 0h12v2H8z" fill="currentColor"/></svg>',

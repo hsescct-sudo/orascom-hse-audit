@@ -3,6 +3,7 @@ import { createSupabaseApi, createDemoApi } from "./data.js";
 import { $, esc, toast, ICON, dialog } from "./ui.js";
 import { loadSettings, SETTINGS } from "./settings.js";
 import { installAvailable, installApp, onInstallChange, registerServiceWorker, watchConnection } from "./pwa.js";
+import "./cards.js";
 
 const CFG = window.HSE_CONFIG || {};
 const useDemo = CFG.demo || !CFG.supabaseUrl || !CFG.supabaseKey;
@@ -152,6 +153,7 @@ function renderChrome(active) {
   const cur = active || parseHash().name;
   $("#side").innerHTML = NAV.filter(n => !n[3] || isAdmin()).map(([k, label, icon]) =>
     `<a href="#/${k}" class="${cur === k || (k === "audits" && (cur === "audit" || cur === "form")) || (k === "register" && cur === "finding") ? "on" : ""}">${icon}<span>${label}</span></a>`).join("")
+    + `<a href="start/" class="side-all">${ICON.home}<span>All HSE systems</span></a>`
     + `<div class="side-foot">${isAdmin() ? "Administration" : esc(me.project_name || "")}</div>`;
   $("#who").innerHTML = `<span class="role ${isAdmin() ? "adm" : "prj"}">${isAdmin() ? "Admin" : esc(me.project_code || "Project")}</span>
     <button class="linkish" data-name title="Change your name">${esc(me.name || "Add your name")}</button>`;
@@ -163,10 +165,14 @@ async function renderLogin() {
   let projects = [];
   try { projects = await api.loginProjects(); } catch (e) { /* shown below */ }
   app.innerHTML = `<div class="login">
-    <div class="login-card">
-      <img class="login-logo" src="assets/orascom-logo.png" alt="Orascom Construction">
-      <h1>HSE Flash Audit System</h1>
-      <p class="muted">Corporate HSE · audits, findings and closure tracking</p>
+    <section class="login-art">
+      <div class="login-top"><span class="login-logo"><img src="assets/orascom-logo.png" alt="Orascom Construction"></span><span class="login-unit"><b>Corporate HSE</b><small>Audit system</small></span><a class="login-back" href="start/">${ICON.home}<span>All HSE systems</span></a></div>
+      <div class="login-intro"><h2>Flash Audit</h2><p>Quick site checks with the Flash checklist. Findings go to the project, and the project closes them with photos.</p></div>
+      <img class="login-sky" src="assets/skyline.svg" alt="">
+    </section>
+    <div class="login-side"><div class="login-card">
+      <h1>Sign in</h1>
+      <p class="muted">Project teams choose their project. Corporate HSE uses Administration.</p>
       ${api.mode === "demo" ? `<p class="demo-note">Demo mode with sample data. Every password is <b>demo1234</b>.</p>` : ""}
       <div class="tabs" role="tablist">
         <button role="tab" class="tab on" data-tab="project" aria-selected="true">Project</button>
@@ -186,7 +192,7 @@ async function renderLogin() {
       </form>
       <p class="login-err" id="lerr" role="alert"></p>
       <button class="btn ghost wide install-login" id="inst-login" ${installAvailable() ? "" : "hidden"}>${ICON.phone} Install the app on this phone</button>
-    </div>
+    </div></div>
   </div>`;
   $("#inst-login").addEventListener("click", installApp);
   onInstallChange(() => { const b = $("#inst-login"); if (b) b.hidden = !installAvailable(); });
@@ -216,8 +222,11 @@ async function renderLogin() {
   });
 }
 
-async function afterSignIn() {
+async function afterSignIn({ restored = false } = {}) {
   const w = await api.whoami();
+  // The sign-in is shared with HSE Audit and Lifting. An account that is only in those systems
+  // stays signed in there: Flash shows its sign-in page and leaves the session alone.
+  if (!w && restored) { const e = new Error("You are signed in to HSE Audit and Lifting. Flash Audit needs a project or administration sign-in."); e.keep = true; throw e; }
   if (!w) { await api.signOut(); throw new Error("This account isn't linked to a project or to the administration."); }
   Object.assign(me, w);
   me.name = me.name || savedName() || (w.role === "admin" ? (w.display_name || "Administration") : "");
@@ -244,7 +253,7 @@ registerServiceWorker(() => { const b = $("#upd-bar"); if (b) b.hidden = false; 
 (async function boot() {
   try {
     const s = await api.session();
-    if (s) { me.name = savedName(); await afterSignIn(); return; }
-  } catch (e) { /* fall through to login */ }
+    if (s) { me.name = savedName(); await afterSignIn({ restored: true }); return; }
+  } catch (e) { if (e && e.keep) { await renderLogin(); const el = document.getElementById("lerr"); if (el) el.textContent = e.message; return; } }
   renderLogin();
 })();

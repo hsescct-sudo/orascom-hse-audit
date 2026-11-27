@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 250" preserveAspectRatio="xMidYMax slice">
+  <!-- Site skyline used on the sign-in pages: combined-cycle plant, tower crane, frame with scaffold, viaduct. -->
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      .hook { transform-origin: 846px 36px; animation: swing 7s ease-in-out infinite; }
+      @keyframes swing { 0%, 100% { transform: rotate(-2.2deg); } 50% { transform: rotate(2.2deg); } }
+    }
+  </style>
+  <g fill="#062a55">
+    <rect x="96" y="150" width="190" height="100"/><rect x="286" y="176" width="150" height="74"/>
+    <rect x="168" y="62" width="24" height="88"/><rect x="214" y="44" width="24" height="106"/>
+    <rect x="1000" y="96" width="168" height="154"/>
+    <rect x="1200" y="186" width="240" height="12"/>
+  </g>
+  <g fill="none" stroke="#3f74b5" stroke-width="1.6" stroke-linejoin="round">
+    <path d="M0 249.5H1440"/>
+    <path d="M96 250V150H286V250M286 176H436V250M108 172H274M108 194H274M108 216H274"/>
+    <path d="M168 150V62H192V150M214 150V44H238V150M168 76H192M214 58H238"/>
+    <path d="M300 196H422M318 176V250M354 176V250M390 176V250"/>
+    <path d="M640 250V32H656V250M640 250L656 230L640 210L656 190L640 170L656 150L640 130L656 110L640 90L656 70L640 50L656 32"/>
+    <path d="M560 32H960M560 44H960M560 32V44M590 32L602 44L614 32L626 44L638 32M672 32L684 44L696 32L708 44L720 32L732 44L744 32L756 44L768 32L780 44L792 32L804 44L816 32L828 44L840 32L852 44L864 32L876 44L888 32L900 44L912 32L924 44L936 32L948 44L960 32"/>
+    <path d="M648 32L648 6M648 6L560 32M648 6L960 32"/>
+    <path d="M570 44H612V66H570Z"/>
+    <path d="M1000 250V96H1168V250M1000 124H1168M1000 152H1168M1000 180H1168M1000 208H1168M1000 236H1168M1042 96V250M1084 96V250M1126 96V250"/>
+    <path d="M1168 110H1190V250M1168 138H1190M1168 166H1190M1168 194H1190M1168 222H1190M1168 110L1190 138L1168 166L1190 194L1168 222L1190 250"/>
+    <path d="M1200 186H1440M1200 198H1440M1230 198V250M1310 198V250M1390 198V250M1230 210Q1270 238 1310 210M1310 210Q1350 238 1390 210"/>
+  </g>
+  <g class="hook" fill="none" stroke="#8fb6e6" stroke-width="1.6">
+    <path d="M838 44H854V52H838Z"/>
+    <path d="M846 52V150"/>
+    <path d="M846 150q-7 4 0 11q7 4 5-4"/>
+    <path d="M846 161L818 176M846 161L874 176" stroke="#5f8fca"/>
+    <rect x="806" y="176" width="80" height="12" fill="#f5b400" stroke="none"/>
+    <path d="M806 182H886" stroke="#111a26" stroke-width="1" stroke-dasharray="8 8"/>
+  </g>
+</svg>

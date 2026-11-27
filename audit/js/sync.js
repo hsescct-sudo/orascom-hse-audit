@@ -15,15 +15,49 @@ const emit = () => { for (const fn of listeners) { try { fn({ ...st }); } catch 
 export const status = () => ({ ...st });
 export const on = fn => { listeners.add(fn); return () => listeners.delete(fn); };
 
+// One sign-in for Flash Audit, HSE Audit and Lifting: all three keep the session under the same key.
+export const SHARED_KEY = "hse-audit-auth";
+const OLD_KEY = "oc-hse-audit-auth"; // used by this app before 28 Nov 2026
+function moveOldSession() {
+  try {
+    const old = localStorage.getItem(OLD_KEY);
+    if (!old) return;
+    localStorage.setItem(SHARED_KEY, old); // this device's audit user keeps working, even offline
+    localStorage.removeItem(OLD_KEY);
+  } catch (e) { /* private mode */ }
+}
 async function getClient() {
   if (client) return client;
   const sb = await ensureSupabase();
-  // Own storage key: the Flash Audit system on the same site keeps its own sign-in.
-  client = sb.createClient(CFG.supabaseUrl, CFG.supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, storageKey: "oc-hse-audit-auth" } });
+  moveOldSession();
+  client = sb.createClient(CFG.supabaseUrl, CFG.supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, storageKey: SHARED_KEY } });
   return client;
 }
 
+// Already signed in through Flash Audit (or another tab)? Then no second sign-in is needed.
+// Never signs anyone out: a Flash project login stays signed in to Flash.
+export async function sharedSignIn() {
+  if (!CFG.supabaseUrl || !navigator.onLine) return null;
+  try { if (!localStorage.getItem(SHARED_KEY) && !localStorage.getItem(OLD_KEY)) return null; } catch (e) { return null; }
+  const c = await getClient();
+  const { data: sess } = await c.auth.getSession();
+  if (!sess || !sess.session) return null;
+  const { data, error } = await c.rpc("ha_me");
+  if (error) return null;
+  const me = Array.isArray(data) ? data[0] : data;
+  if (!me) return null;
+  return saveMember(me);
+}
+async function saveMember(me) {
+  const member = { id: me.id, kind: "member", name: me.name, email: me.email, role: me.role, position: me.position || "", active: true, must_change: !!me.must_change };
+  await S.meta("me", member);
+  if (!S.get(member.id)) await S.putMany([{ ...member, updated_at: new Date(0).toISOString() }], { fromServer: true, silent: true });
+  return member;
+}
+
+const plain = m => Object.assign(new Error(m), { plain: true }); // our own message, shown as it is
 const nice = e => {
+  if (e && e.plain) return e.message;
   const m = String((e && (e.message || e.error_description)) || e || "");
   const code = (e && e.code) || "";
   if (/Invalid login credentials/i.test(m)) return "Wrong e-mail or password.";
@@ -46,10 +80,7 @@ export async function signIn(email, password) {
   if (e2) { console.error("ha_me", e2); await c.auth.signOut(); throw new Error(nice(e2)); }
   const me = Array.isArray(data) ? data[0] : data;
   if (!me) { await c.auth.signOut(); throw new Error("This e-mail is not in the audit system. Ask Corporate HSE to add you under Auditors and users."); }
-  const member = { id: me.id, kind: "member", name: me.name, email: me.email, role: me.role, position: me.position || "", active: true, must_change: !!me.must_change };
-  await S.meta("me", member);
-  if (!S.get(member.id)) await S.putMany([{ ...member, updated_at: new Date(0).toISOString() }], { fromServer: true, silent: true });
-  return member;
+  return saveMember(me);
 }
 
 // The person sets their own password (first sign-in, or from Settings).
@@ -123,7 +154,11 @@ export async function syncNow(loud = false) {
     try {
       const c = await getClient();
       const { data: sess } = await c.auth.getSession();
-      if (!sess || !sess.session) { st.needLogin = true; throw new Error("Your sign-in has ended. Sign in again to send your changes."); }
+      if (!sess || !sess.session) { st.needLogin = true; throw plain("Your sign-in has ended. Sign in again to send your changes."); }
+      // The sign-in is shared with Flash: if someone else signed in there on this device, don't send as them.
+      const me = await S.meta("me");
+      const who = String((sess.session.user && sess.session.user.email) || "").toLowerCase();
+      if (me && me.email && who && who !== String(me.email).toLowerCase()) { st.needLogin = true; throw plain(`${who} is signed in on this device. Sign out and sign in again as ${me.email} to send your changes.`); }
       st.needLogin = false;
       await pushPhotos(c);
       await pushDocs(c);

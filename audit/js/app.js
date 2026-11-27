@@ -26,6 +26,7 @@ const MODULE_PAGES = ["home", "dashboard", "plan", "audits", "audit", "ncrs", "n
 let state = { module: "full", page: "dashboard", id: null, query: {} };
 let cleanup = null;
 let renderToken = 0;
+let lastPage = "";
 
 export const go = hash => { if (location.hash === hash) route(); else location.hash = hash; };
 export const link = (page, id, m = state.module) => `#/${MODULE_PAGES.includes(page) ? m + "/" : ""}${page}${id ? "/" + encodeURIComponent(id) : ""}`;
@@ -87,15 +88,17 @@ function gate() {
         <div class="stag yellow sm"><b class="s-score">68<small>%</small></b><span class="s-label">Low</span></div>
         <div class="stag red sm"><b class="s-score">58<small>%</small></b><span class="s-label">No compliance</span></div>
       </div>
+      <img class="gate-sky" src="../assets/skyline.svg" alt="">
     </section>
     <section class="gate-form">
       <form class="gate-card" id="signin" autocomplete="on">
         <h2>Sign in</h2>
+        <p class="muted" style="margin:-6px 0 0">HSE Audit and Lifting</p>
         ${cloud ? `
         <label class="fld"><span>E-mail</span><input name="email" type="email" required autocomplete="username"></label>
         <label class="fld"><span>Password</span><input name="password" type="password" required autocomplete="current-password"></label>
         <button class="btn primary lg" type="submit">Sign in</button>
-        <p class="muted small" id="gate-msg">Your account is created by Corporate HSE. After the first sign-in you can work offline.</p>
+        <p class="muted small" id="gate-msg">Your account is created by Corporate HSE. The same sign-in opens Flash Audit. After the first sign-in you can work offline.</p>
         <div class="or">or</div>` : ""}
         <button class="btn lg" type="button" id="demo">Try it with sample data</button>
         <p class="muted small">Sample data stays on this device only. It shows how the system works with the company projects.</p>
@@ -113,14 +116,22 @@ function gate() {
     e.preventDefault();
     const msg = $("#gate-msg"); const btn = f.querySelector("button[type=submit]");
     btn.disabled = true; btn.textContent = "Signing in…";
-    try {
-      const who = await Sync.signIn(f.email.value.trim(), f.password.value);
-      if (who.must_change) await newPassword(who);
-      M.setMe(who);
-      await S.meta("mode", "cloud");
-      await startSession("cloud");
-    } catch (err) { msg.textContent = err.message; msg.style.color = "var(--g-red)"; btn.disabled = false; btn.textContent = "Sign in"; }
+    try { await finishSignIn(await Sync.signIn(f.email.value.trim(), f.password.value)); }
+    catch (err) { msg.textContent = err.message; msg.style.color = "var(--g-red)"; btn.disabled = false; btn.textContent = "Sign in"; }
   };
+  // Signed in already in Flash Audit on this device: go straight in.
+  if (cloud) Sync.sharedSignIn().then(async who => {
+    const btn = f.querySelector("button[type=submit]");
+    if (!who || !document.getElementById("signin") || btn.disabled) return; // already signing in by hand
+    btn.disabled = true; btn.textContent = `Signing in as ${who.name}…`;
+    await finishSignIn(who);
+  }).catch(() => { /* stay on the sign-in page */ });
+}
+async function finishSignIn(who) {
+  if (who.must_change) await newPassword(who);
+  M.setMe(who);
+  await S.meta("mode", "cloud");
+  await startSession("cloud");
 }
 
 // First sign-in with a temporary password: the person sets their own before going on.
@@ -298,6 +309,9 @@ async function route() {
     view.innerHTML = "";
     const ctx = { module: state.module, def: M.def(state.module), id: state.id, query: state.query, view };
     cleanup = (await mod.render(ctx)) || null;
+    // a short fade when a new page opens; not when the same page re-draws with new data
+    const key = `${state.module}/${state.page}/${state.id || ""}`;
+    if (key !== lastPage) { view.classList.add("enter"); lastPage = key; }
     window.scrollTo(0, 0);
   } catch (e) {
     console.error(e);
