@@ -71,7 +71,10 @@ export async function render(ctx) {
   function drawSteps() {
     const list = steps();
     if (!list.some(s => s.id === step)) step = "info";
-    view.querySelector("#steps").innerHTML = list.map((s, i) => `<a href="#" data-step="${s.id}" ${s.id === step ? 'aria-current="step"' : ""} class="${stepDone(s.id) ? "done" : ""}"><span class="n">${stepDone(s.id) ? ICON.check : i + 1}</span>${esc(s.label)}</a>`).join("");
+    const nav = view.querySelector("#steps");
+    nav.innerHTML = list.map((s, i) => `<a href="#" data-step="${s.id}" ${s.id === step ? 'aria-current="step"' : ""} class="${stepDone(s.id) ? "done" : ""}"><span class="n">${stepDone(s.id) ? ICON.check : i + 1}</span>${esc(s.label)}</a>`).join("");
+    const cur = nav.querySelector("[aria-current]");
+    if (cur && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = cur.offsetLeft - (nav.clientWidth - cur.offsetWidth) / 2;
   }
   view.querySelector("#steps").addEventListener("click", e => { const s = e.target.closest("[data-step]"); if (!s) return; e.preventDefault(); goStep(s.dataset.step); });
   function goStep(id) { step = id; sessionStorage.setItem(stepKey, id); drawSteps(); drawStep(); window.scrollTo({ top: 0 }); }
@@ -133,7 +136,8 @@ export async function render(ctx) {
     const old = view.querySelector("#step"); const el = old.cloneNode(false); old.replaceWith(el);
     const ro = locked();
     ({ info: stepInfo, last: stepLast, score: stepScore, ncrs: stepNcrs, good: stepGood, close: stepClose, finish: stepFinish, history: stepHistory }[step] || stepInfo)(el, ro);
-    if (ro) el.querySelectorAll("input, textarea, select, .rate button, [data-ro]").forEach(x => { if (!x.closest(".allow-ro")) x.disabled = true; });
+    el.classList.toggle("ro", ro);
+    if (ro) el.querySelectorAll("input, textarea, select, .rate button, [data-ro], [data-padd], [data-pdel], [data-eadd], [data-edel], [data-ncr]").forEach(x => { if (!x.closest(".allow-ro")) x.disabled = true; });
   }
 
   function people(listName, title, hint) {
@@ -143,15 +147,16 @@ export async function render(ctx) {
       <button class="btn sm ghost" type="button" data-padd="${listName}" style="margin-top:8px">${ICON.plus}<span>Add person</span></button></section>`;
   }
   function bindPeople(el) {
-    el.addEventListener("input", e => { const i = e.target.closest("[data-pi]"); if (!i) return; const ln = i.closest("[data-list]").dataset.list; a[ln][+i.dataset.pi][i.dataset.pk] = i.value; save(); });
+    el.addEventListener("input", e => { const i = e.target.closest("[data-pi]"); if (!i || locked()) return; const ln = i.closest("[data-list]").dataset.list; a[ln][+i.dataset.pi][i.dataset.pk] = i.value; save(); });
     el.addEventListener("click", e => {
       const add = e.target.closest("[data-padd]"); const del = e.target.closest("[data-pdel]");
+      if ((add || del) && locked()) return;
       if (add) { const ln = add.dataset.padd; a[ln] = [...(a[ln] || []), { name: "", position: "" }]; save(); drawStep(); }
       if (del) { const ln = del.closest("[data-list]").dataset.list; a[ln].splice(+del.dataset.pdel, 1); save(); drawStep(); }
     });
   }
   function bindFields(el) {
-    el.addEventListener("input", e => { const f = e.target.closest("[data-f]"); if (!f) return; a[f.dataset.f] = f.type === "number" ? (f.value === "" ? "" : +f.value) : f.value; save(); });
+    el.addEventListener("input", e => { const f = e.target.closest("[data-f]"); if (!f || locked()) return; a[f.dataset.f] = f.type === "number" ? (f.value === "" ? "" : +f.value) : f.value; save(); });
   }
 
   function stepInfo(el) {
@@ -180,13 +185,14 @@ export async function render(ctx) {
   function equipmentPanel() {
     return `<section class="panel"><div class="panel-h"><h2>Lifting equipment on site</h2><span class="muted">Number and ownership</span></div>
       <div class="tscroll"><table class="tbl" id="eq"><thead><tr><th>Equipment</th><th style="width:110px">Number</th><th style="width:150px">Owned / rental</th><th style="width:44px"></th></tr></thead><tbody>
-      ${(a.equipment || []).map((e, i) => `<tr><td><input class="inp" data-ei="${i}" data-ek="desc" value="${esc(e.desc)}" aria-label="Equipment"></td><td><input class="inp" type="number" min="0" inputmode="numeric" data-ei="${i}" data-ek="count" value="${esc(e.count)}" aria-label="Number"></td><td><select class="inp" data-ei="${i}" data-ek="owner" aria-label="Ownership">${["Owned", "Rental"].map(o => `<option ${o === e.owner ? "selected" : ""}>${o}</option>`).join("")}</select></td><td><button class="icon-btn" type="button" data-edel="${i}" aria-label="Remove">${ICON.trash}</button></td></tr>`).join("")}
+      ${(a.equipment || []).map((e, i) => `<tr><td class="c-full"><input class="inp" data-ei="${i}" data-ek="desc" value="${esc(e.desc)}" aria-label="Equipment"></td><td><input class="inp" type="number" min="0" inputmode="numeric" data-ei="${i}" data-ek="count" value="${esc(e.count)}" aria-label="Number"></td><td><select class="inp" data-ei="${i}" data-ek="owner" aria-label="Ownership">${["Owned", "Rental"].map(o => `<option ${o === e.owner ? "selected" : ""}>${o}</option>`).join("")}</select></td><td><button class="icon-btn" type="button" data-edel="${i}" aria-label="Remove">${ICON.trash}</button></td></tr>`).join("")}
       </tbody></table></div><button class="btn sm ghost" type="button" data-eadd style="margin-top:8px">${ICON.plus}<span>Add equipment</span></button></section>`;
   }
   function bindEquipment(el) {
-    el.addEventListener("input", e => { const i = e.target.closest("[data-ei]"); if (!i) return; a.equipment[+i.dataset.ei][i.dataset.ek] = i.dataset.ek === "count" ? (i.value === "" ? "" : +i.value) : i.value; save(); });
-    el.addEventListener("change", e => { const i = e.target.closest("select[data-ei]"); if (!i) return; a.equipment[+i.dataset.ei].owner = i.value; save(); });
+    el.addEventListener("input", e => { const i = e.target.closest("[data-ei]"); if (!i || locked()) return; a.equipment[+i.dataset.ei][i.dataset.ek] = i.dataset.ek === "count" ? (i.value === "" ? "" : +i.value) : i.value; save(); });
+    el.addEventListener("change", e => { const i = e.target.closest("select[data-ei]"); if (!i || locked()) return; a.equipment[+i.dataset.ei].owner = i.value; save(); });
     el.addEventListener("click", e => {
+      if (locked()) return;
       if (e.target.closest("[data-eadd]")) { a.equipment = [...(a.equipment || []), { desc: "", count: "", owner: "Owned" }]; save(); drawStep(); }
       const del = e.target.closest("[data-edel]"); if (del) { a.equipment.splice(+del.dataset.edel, 1); save(); drawStep(); }
     });
@@ -354,14 +360,14 @@ export async function render(ctx) {
     ];
     const isLead = a.lead_id === me.id || M.isAdmin();
     el.innerHTML = `<div class="stack">
-      <section class="panel" style="display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:center">
+      <section class="panel fin-hero">
         ${tag(sc.total, { size: "xl", white: true })}
         <div><h2 style="font-size:24px">${sc.grade ? esc(sc.grade.appraisal) : "Not scored yet"}</h2>
           <p class="muted">${esc(d.scoreLabel)} ${fmtScore(sc.total)}${sc.base != null && (sc.serious || sc.repeated) ? ` (${fmtScore(sc.base)} before deductions)` : ""}. ${list.length} NCR${list.length === 1 ? "" : "s"}: ${["Serious", "Major", "Minor"].map(s => `${list.filter(n => n.severity === s).length} ${s.toLowerCase()}`).join(", ")}${sc.repeatedCount ? `, ${sc.repeatedCount} repeated` : ""}.</p>
           ${sc.grade && d.id === "full" ? `<p class="small muted">HSE evaluation share for this grade: ${sc.grade.bonus}% of the profit share / bonus allocated to HSE.</p>` : ""}</div>
       </section>
       <section class="panel"><div class="panel-h"><h2>Before you send</h2></div>
-        <div class="stack" style="gap:8px">${checks.map(([ok, t, note, st]) => `<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line-soft);padding-bottom:8px"><span class="row" style="gap:10px"><span style="width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:${ok ? "var(--g-green)" : note === "Optional" ? "#c8d2de" : "var(--g-orange)"};color:#fff">${ok ? ICON.check : "!"}</span>${esc(t)}</span><span class="row">${note && !ok ? `<span class="muted small">${esc(note)}</span>` : ""}${!ok ? `<button class="btn sm ghost allow-ro" data-go="${st}" type="button">Open</button>` : ""}</span></div>`).join("")}</div>
+        <div class="chks">${checks.map(([ok, t, note, st]) => `<div class="chk"><span class="chk-i" style="background:${ok ? "var(--g-green)" : note === "Optional" ? "#c8d2de" : "var(--g-orange)"}">${ok ? ICON.check : "!"}</span><span class="chk-t">${esc(t)}${note && !ok ? `<small>${esc(note)}</small>` : ""}</span>${!ok ? `<button class="btn sm ghost allow-ro" data-go="${st}" type="button">Open</button>` : ""}</div>`).join("")}</div>
       </section>
       <section class="panel"><div class="panel-h"><h2>Reports</h2><span class="muted">Work with no internet too</span></div>
         <div class="row allow-ro">

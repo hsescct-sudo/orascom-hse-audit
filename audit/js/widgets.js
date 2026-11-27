@@ -69,6 +69,7 @@ export async function startAudit(module, { project_id = "", plan_id = "" } = {})
 export function photoStrip(el, ids, { onChange, readOnly = false, max = 12, label = "Add photo" } = {}) {
   let list = [...(ids || [])];
   async function draw() {
+    if (readOnly && !list.length) { el.innerHTML = `<p class="muted small" style="margin:0">No photos.</p>`; return; }
     const thumbs = await Promise.all(list.map(async id => ({ id, url: await S.photoURL(id) })));
     el.innerHTML = `<div class="photos">${thumbs.map((t, i) => `<div class="ph" data-i="${i}" style="${t.url ? `background-image:url('${t.url}')` : ""}" role="button" aria-label="Photo ${i + 1}" tabindex="0">${t.url ? "" : `<span class="small muted" style="display:grid;place-items:center;height:100%;padding:4px;text-align:center">On another device</span>`}${readOnly ? "" : `<button type="button" data-del="${i}" aria-label="Remove photo">${ICON.x}</button>`}</div>`).join("")}
       ${readOnly || list.length >= max ? "" : photoInputs("photo-btn", `data-add accept="image/*"`, label)}</div>`;

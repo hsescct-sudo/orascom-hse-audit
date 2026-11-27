@@ -19,7 +19,7 @@ export async function render(ctx) {
   view.className = "view narrow";
   view.innerHTML = `<div class="stack">
     <div class="panel" style="padding:0"><div class="tscroll"><table class="tbl"><thead><tr><th>Name</th><th>Position</th><th>E-mail</th><th>Role</th>${admin && cloud ? "<th>Sign-in</th>" : ""}<th></th></tr></thead><tbody>
-      ${list.map(m => `<tr class="${admin ? "click" : ""}" data-m="${esc(m.id)}"><td><b style="font-weight:600">${esc(m.name)}</b></td><td>${esc(m.position || "")}</td><td>${esc(m.email || "")}</td><td><span class="chip">${esc(ROLE[m.role] || m.role)}</span></td>${admin && cloud ? `<td class="small" data-login="${esc((m.email || "").toLowerCase())}"><span class="muted">…</span></td>` : ""}<td>${m.active === false ? '<span class="chip">Off</span>' : ""}</td></tr>`).join("")}
+      ${list.map(m => `<tr class="${admin ? "click" : ""}" data-m="${esc(m.id)}"><td class="c-ref"><b style="font-weight:600">${esc(m.name)}</b></td><td>${esc(m.position || "")}</td><td>${esc(m.email || "")}</td><td class="c-end"><span class="chip">${esc(ROLE[m.role] || m.role)}</span></td>${admin && cloud ? `<td class="small" data-login="${esc((m.email || "").toLowerCase())}"><span class="muted">…</span></td>` : ""}<td>${m.active === false ? '<span class="chip">Off</span>' : ""}</td></tr>`).join("")}
     </tbody></table></div></div>
     <section class="panel"><div class="panel-h"><h2>Roles</h2></div>${Object.keys(ROLE).map(r => `<p><b>${ROLE[r]}.</b> ${ROLE_TXT[r]}</p>`).join("")}
       ${cloud && admin ? `<p class="muted small">To let someone sign in: add them here with their work e-mail, open their row and choose <b>Make sign-in</b>. The system gives a temporary password. They set their own at the first sign-in.</p>` : ""}</section></div>`;

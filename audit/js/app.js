@@ -76,7 +76,7 @@ function gate() {
   $("#root").innerHTML = `
   <div class="gate">
     <section class="gate-art">
-      <div class="brand"><span class="brand-logo"><img src="assets/orascom-logo.png" alt="Orascom Construction"></span><span class="brand-name">Corporate HSE<span>Audit system</span></span></div>
+      <div class="gate-top"><div class="brand"><span class="brand-logo"><img src="assets/orascom-logo.png" alt="Orascom Construction"></span><span class="brand-name">Corporate HSE<span>Audit system</span></span></div><a class="gate-back" href="../start/">${ICON.back}<span>All HSE systems</span></a></div>
       <div>
         <h1>Every project audited, scored and followed up.</h1>
         <p>Plan the year, audit on site with or without internet, score with the company form, raise NCRs with photos, and send the report before you leave the site.</p>
@@ -96,7 +96,7 @@ function gate() {
         <label class="fld"><span>Password</span><input name="password" type="password" required autocomplete="current-password"></label>
         <button class="btn primary lg" type="submit">Sign in</button>
         <p class="muted small" id="gate-msg">Your account is created by Corporate HSE. After the first sign-in you can work offline.</p>
-        <div class="row" style="justify-content:center;color:var(--faint)">or</div>` : ""}
+        <div class="or">or</div>` : ""}
         <button class="btn lg" type="button" id="demo">Try it with sample data</button>
         <p class="muted small">Sample data stays on this device only. It shows how the system works with the company projects.</p>
       </form>
@@ -157,6 +157,25 @@ export async function ensureBaseData() {
   if (!S.all("project").length) await S.putMany(projectDocs(now));
   if (!S.all("member").length) await S.putMany(memberDocs(now));
 }
+
+// Phones show table rows as cards. Each cell gets its column name so the card can show it.
+function labelTables() {
+  document.querySelectorAll("table.tbl").forEach(t => {
+    const heads = [...t.querySelectorAll("thead th")].map(th => th.textContent.trim());
+    if (!heads.length) return;
+    t.querySelectorAll("tbody tr").forEach(tr => {
+      let i = 0;
+      for (const td of tr.children) {
+        const span = +td.getAttribute("colspan") || 1;
+        if (span === 1 && heads[i] && !td.hasAttribute("data-l")) td.setAttribute("data-l", heads[i]);
+        i += span;
+      }
+    });
+  });
+}
+let labelQueued = false;
+new MutationObserver(() => { if (labelQueued) return; labelQueued = true; requestAnimationFrame(() => { labelQueued = false; labelTables(); }); })
+  .observe(document.body, { childList: true, subtree: true });
 
 // ---------- frame ----------
 function frame() {

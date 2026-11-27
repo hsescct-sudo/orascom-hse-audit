@@ -21,7 +21,7 @@ export async function render(ctx) {
   view.innerHTML = `
     <div class="row" style="margin-bottom:12px;gap:8px" id="states">
       ${[["", "All", all.length], ["open", "Open", counts("open")], ["overdue", "Past deadline", counts("overdue")], ["closed", "Closed", counts("closed")], ["review", "Evidence under review", counts("review")], ["carried", "Repeated in next audit", counts("carried")]]
-        .map(([k, l, c]) => `<button class="btn sm ${f.state === k ? "primary" : ""}" data-st="${k}" type="button">${l} <span class="num" style="opacity:.75">${c}</span></button>`).join("")}
+        .map(([k, l, c]) => `<button class="btn sm ${f.state === k ? "primary" : ""}" data-st="${k}" type="button">${l} <span class="num ${k === "overdue" && c ? "cnt-red" : ""}">${c}</span></button>`).join("")}
     </div>
     <div class="filters" style="margin-bottom:14px">
       <input type="search" id="q" placeholder="Search finding, ref, location" aria-label="Search">
@@ -31,7 +31,7 @@ export async function render(ctx) {
       <select id="fy" aria-label="Year"><option value="">All years</option>${years.map(y => `<option>${y}</option>`).join("")}</select>
       <span class="muted small" id="cnt"></span>
     </div>
-    <div class="panel" style="padding:0"><div class="tscroll" style="max-height:calc(100vh - 260px)"><table class="tbl"><thead><tr><th>Ref</th><th>Project</th><th>Date</th><th>Type</th><th>Finding</th><th>Classification</th><th>Responsible</th><th>Deadline</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table></div></div>`;
+    <div class="panel" style="padding:0"><div class="tscroll tall"><table class="tbl"><thead><tr><th>Ref and date</th><th>Project</th><th>Type</th><th>Finding</th><th>Responsible</th><th>Deadline</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table></div></div>`;
   function filtered() {
     const q = f.q.toLowerCase();
     return all.filter(n => (!f.project || n.project_id === f.project) && (!f.state || M.ncrState(n, today) === f.state) &&
@@ -45,12 +45,12 @@ export async function render(ctx) {
     view.querySelector("#rows").innerHTML = shown.length ? shown.map(n => {
       const p = M.project(n.project_id); const st = M.ncrState(n, today);
       const late = st === "overdue" ? `<br><span class="small" style="color:var(--g-red);font-weight:600">${daysBetween(n.due_date, today)} days late</span>` : "";
-      return `<tr class="click" data-n="${esc(n.id)}"><td class="ref">${esc(n.ref)}</td><td style="min-width:160px"><b style="font-weight:600">${esc(p.code)}</b> <span class="muted small">${esc(p.name)}</span></td><td class="nowrap">${esc(fmtDate(n.date))}</td>
-        <td class="nowrap">${sevChip(n.severity)} ${repChip(n)}</td><td class="wrap" style="min-width:260px">${esc(n.description)}${n.location ? `<br><span class="muted small">${esc(n.location)}</span>` : ""}</td>
-        <td style="min-width:150px">${esc(n.classification)}</td><td style="min-width:130px">${esc(n.responsible_name || "")}${n.responsible_position ? `<br><span class="muted small">${esc(n.responsible_position)}</span>` : ""}</td>
-        <td class="nowrap">${esc(fmtDate(n.due_date))}${late}</td><td>${ncrChip(n)}</td></tr>`;
-    }).join("") + (list.length > shown.length ? `<tr><td colspan="9" class="muted small">Showing the first ${shown.length}. Use the filters or export to Excel to see all.</td></tr>` : "")
-      : `<tr><td colspan="9"><div class="empty"><h3>No NCRs match</h3><p>${all.length ? "Change the filters." : "NCRs raised in audits appear here."}</p></div></td></tr>`;
+      return `<tr class="click" data-n="${esc(n.id)}"><td class="c-ref"><span class="ref">${esc(n.ref)}</span><br><span class="muted small nowrap">${esc(fmtDate(n.date))}</span></td><td class="c-proj"><b style="font-weight:600">${esc(p.code)}</b><br><span class="muted small">${esc(p.name)}</span></td>
+        <td><span class="chips">${sevChip(n.severity)}${repChip(n)}</span></td><td class="wrap c-wide">${esc(n.description)}<br><span class="muted small">${[n.location, n.classification].filter(Boolean).map(esc).join(" · ")}</span></td>
+        <td style="min-width:120px">${esc(n.responsible_name || "")}${n.responsible_position ? `<br><span class="muted small">${esc(n.responsible_position)}</span>` : ""}</td>
+        <td class="nowrap">${esc(fmtDate(n.due_date))}${late}</td><td class="c-end">${ncrChip(n)}</td></tr>`;
+    }).join("") + (list.length > shown.length ? `<tr><td colspan="7" class="muted small">Showing the first ${shown.length}. Use the filters or export to Excel to see all.</td></tr>` : "")
+      : `<tr><td colspan="7"><div class="empty"><h3>No NCRs match</h3><p>${all.length ? "Change the filters." : "NCRs raised in audits appear here."}</p></div></td></tr>`;
   }
   view.querySelector("#states").addEventListener("click", e => { const b = e.target.closest("[data-st]"); if (!b) return; f.state = b.dataset.st; view.querySelectorAll("#states .btn").forEach(x => x.classList.toggle("primary", x === b)); draw(); });
   view.querySelector("#q").addEventListener("input", e => { f.q = e.target.value; draw(); });

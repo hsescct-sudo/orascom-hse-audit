@@ -30,7 +30,7 @@ export async function render(ctx) {
     view.querySelector("#rows").innerHTML = list.length ? list.map(a => {
       const p = M.project(a.project_id); const ns = M.auditNCRs(a); const open = ns.filter(n => n.status === "Open").length;
       const lead = M.member(a.lead_id);
-      return `<tr class="click" data-a="${esc(a.id)}"><td class="ref">${esc(a.ref)}</td><td class="wrap"><b style="font-weight:600">${esc(p.name)}</b><br><span class="muted small">${esc(p.code)} · ${esc(p.city)}</span></td><td class="nowrap">${esc(fmtDate(a.date))}</td><td>${esc(lead ? lead.name : (a.auditors[0] || {}).name || "")}</td><td>${auditChip(a)}</td><td class="num nowrap">${ns.length}${open ? ` <span class="muted small">(${open} open)</span>` : ""}</td><td style="text-align:right">${mtag(M.score(a).total)}</td></tr>`;
+      return `<tr class="click" data-a="${esc(a.id)}"><td class="ref c-ref">${esc(a.ref)}</td><td class="wrap c-wide"><b style="font-weight:600">${esc(p.name)}</b><br><span class="muted small">${esc(p.code)} · ${esc(p.city)}</span></td><td class="nowrap">${esc(fmtDate(a.date))}</td><td>${esc(lead ? lead.name : (a.auditors[0] || {}).name || "")}</td><td>${auditChip(a)}</td><td class="num nowrap">${ns.length}${open ? ` <span class="muted small">(${open} open)</span>` : ""}</td><td class="c-end" style="text-align:right">${mtag(M.score(a).total)}</td></tr>`;
     }).join("") : `<tr><td colspan="7"><div class="empty"><h3>No audits match</h3><p>${all.length ? "Change the filters." : `Start the first ${esc(def.short)} audit.`}</p></div></td></tr>`;
   };
   view.querySelector("#q").addEventListener("input", e => { f.q = e.target.value; draw(); });

@@ -30,7 +30,7 @@ export async function render(ctx) {
     view.querySelector("#cnt").textContent = `${rows.length} project${rows.length === 1 ? "" : "s"}`;
     view.querySelector("#rows").innerHTML = rows.map(p => {
       const lf = M.lastAuditOf("full", p.id), ll = M.lastAuditOf("lifting", p.id);
-      return `<tr class="${admin ? "click" : ""}" data-p="${esc(p.id)}"><td class="ref">${esc(p.code)}</td><td class="wrap"><b style="font-weight:600">${esc(p.name)}</b>${p.active === false ? ' <span class="chip">Closed</span>' : ""}</td><td>${esc(p.city)}</td><td>${esc(p.country)}</td><td>${esc(p.bu || "")}</td><td>${esc(p.director || "")}</td>
+      return `<tr class="${admin ? "click" : ""}" data-p="${esc(p.id)}"><td class="ref c-ref">${esc(p.code)}</td><td class="wrap c-wide"><b style="font-weight:600">${esc(p.name)}</b>${p.active === false ? ' <span class="chip">Closed</span>' : ""}</td><td>${esc(p.city)}</td><td>${esc(p.country)}</td><td>${esc(p.bu || "")}</td><td>${esc(p.director || "")}</td>
         <td style="text-align:right">${lf ? `<a href="${link("audit", lf.id, "full")}" title="${esc(lf.ref)}">${mtag(M.score(lf).total)}</a>` : '<span class="muted small">–</span>'}</td>
         <td style="text-align:right">${ll ? `<a href="${link("audit", ll.id, "lifting")}" title="${esc(ll.ref)}">${mtag(M.score(ll).total)}</a>` : '<span class="muted small">–</span>'}</td></tr>`;
     }).join("");
