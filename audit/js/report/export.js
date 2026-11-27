@@ -299,3 +299,71 @@ export async function pptReport(a) {
   } catch (e) { console.error(e); toast(e.message || "Couldn't make the PowerPoint.", "error"); }
   finally { busy.done(); }
 }
+
+// ---------- Project e-mails: template to fill, and reading it back ----------
+const PE_SHEET = "Project e-mails";
+const PE_COLS = ["Project ID", "Code", "Project", "City", "Country", "JV (Yes/No)", "Project HSE Manager e-mail", "Project Manager e-mail", "Other e-mails (comma between)"];
+export async function projectEmailsTemplate() {
+  const busy = busyOverlay("Making the Excel file…");
+  try {
+    const ExcelJS = await ensureExcelJS();
+    const wb = new ExcelJS.Workbook(); wb.creator = "OC Corporate HSE Audit";
+    const ws = wb.addWorksheet(PE_SHEET, { views: [{ state: "frozen", xSplit: 3, ySplit: 1 }] });
+    headerRow(ws, 1, PE_COLS, [12, 9, 40, 14, 14, 11, 34, 34, 40]);
+    ws.getRow(1).height = 32;
+    for (let i = 6; i <= 9; i++) ws.getCell(1, i).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF1E3" } };
+    const list = M.projects().filter(p => p.active !== false).sort((a, b) => String(a.code).localeCompare(String(b.code)));
+    list.forEach((p, i) => {
+      const r = i + 2; const em = String(p.contact_emails || "").split(/[\s,;]+/).filter(Boolean);
+      [p.id, p.code, p.name, p.city, p.country, p.jv ? "Yes" : "No", em[0] || "", em[1] || "", em.slice(2).join(", ")].forEach((v, j) => {
+        const c = ws.getCell(r, j + 1); c.value = v; cellStyle(c, { color: j === 0 ? "FF8A94A6" : null, size: j === 0 ? 8 : 10 });
+      });
+      ws.getCell(r, 6).dataValidation = { type: "list", allowBlank: true, formulae: ['"Yes,No"'] };
+    });
+    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: PE_COLS.length } };
+    const how = wb.addWorksheet("How to fill");
+    how.getColumn(1).width = 100;
+    ["How to fill this sheet",
+      "1. Write the e-mails of each project in the orange columns: Project HSE Manager, Project Manager, and any other e-mails (comma between them).",
+      "2. Write Yes in JV for joint venture projects. Projects outside Egypt don't need Yes; the system knows them from the country.",
+      "3. Don't change the Project ID column. The system uses it to find the project.",
+      "4. Save the file, then in the audit system open Projects, click Import e-mails and choose this file.",
+      "5. The system shows what will change before it saves. Wrong e-mails are listed so you can fix them.",
+      "These e-mails get the audit report e-mail, the project link and the NCR reminders."].forEach((t, i) => {
+      const c = how.getCell(i + 1, 1); c.value = t; c.font = { name: "Calibri", size: i ? 11 : 14, bold: !i }; c.alignment = { wrapText: true, vertical: "top" };
+    });
+    const buf = await wb.xlsx.writeBuffer();
+    await saveBlob(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `Project e-mails ${todayISO()}.xlsx`);
+  } catch (e) { toast(e.message, "error"); } finally { busy.done(); }
+}
+
+// Reads the filled template. Returns the changes to show before saving.
+export async function readProjectEmails(file) {
+  const ExcelJS = await ensureExcelJS();
+  const wb = new ExcelJS.Workbook(); await wb.xlsx.load(await file.arrayBuffer());
+  const ws = wb.getWorksheet(PE_SHEET) || wb.worksheets[0];
+  if (!ws) throw new Error("This file has no sheet.");
+  const txt = v => (v == null ? "" : typeof v === "object" ? (v.text || v.result || (v.richText ? v.richText.map(x => x.text).join("") : v.hyperlink ? String(v.hyperlink).replace(/^mailto:/i, "") : "")) : String(v)).trim();
+  const head = []; ws.getRow(1).eachCell((c, i) => { head[i] = txt(c.value).toLowerCase(); });
+  const col = re => head.findIndex(h => h && re.test(h));
+  const ci = { id: col(/^project id/), code: col(/^code/), name: col(/^project$/), jv: col(/^jv/), hse: col(/hse manager/), pm: col(/project manager/), other: col(/other/) };
+  if (ci.hse < 0 && ci.pm < 0 && ci.other < 0) throw new Error("This is not the project e-mails file. Download the template from Projects first.");
+  const ok = e => /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(e);
+  const byId = new Map(M.projects().map(p => [p.id, p]));
+  const byCode = new Map(M.projects().map(p => [String(p.code || "").toLowerCase(), p]));
+  const byName = new Map(M.projects().map(p => [String(p.name || "").toLowerCase(), p]));
+  const changes = [], bad = [], unknown = [];
+  ws.eachRow((row, r) => {
+    if (r === 1) return;
+    const g = i => (i > 0 ? txt(row.getCell(i).value) : "");
+    const p = byId.get(g(ci.id)) || byCode.get(g(ci.code).toLowerCase()) || byName.get(g(ci.name).toLowerCase());
+    const raw = [g(ci.hse), g(ci.pm), g(ci.other)].join(",").split(/[\s,;]+/).map(x => x.replace(/^mailto:/i, "").toLowerCase()).filter(Boolean);
+    if (!p) { if (raw.length || g(ci.name)) unknown.push(g(ci.name) || g(ci.code) || `row ${r}`); return; }
+    const good = [...new Set(raw.filter(ok))];
+    raw.filter(e => !ok(e)).forEach(e => bad.push(`${p.name}: ${e}`));
+    const jv = ci.jv > 0 ? /^(y|yes|نعم)$/i.test(g(ci.jv)) : !!p.jv;
+    const emails = good.join(", ");
+    if (emails !== String(p.contact_emails || "") || jv !== !!p.jv) changes.push({ p, emails, jv });
+  });
+  return { changes, bad, unknown };
+}

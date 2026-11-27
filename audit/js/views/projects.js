@@ -9,7 +9,14 @@ export async function render(ctx) {
   const { view } = ctx;
   setTitle("Projects", "Shared by HSE Audit and Lifting");
   const admin = M.isAdmin();
-  if (admin) setActions(`<button class="btn primary" type="button" id="add">${ICON.plus}<span>Add project</span></button>`).querySelector("#add").onclick = () => edit();
+  if (admin) {
+    const act = setActions(`<button class="btn" type="button" id="pe-get" title="Download the project e-mails template" aria-label="E-mails template">${ICON.xls}<span>E-mails template</span></button><button class="btn" type="button" id="pe-put" title="Import the filled e-mails template" aria-label="Import e-mails">${ICON.upload}<span>Import e-mails</span></button><input type="file" id="pe-file" accept=".xlsx" hidden><button class="btn primary" type="button" id="add">${ICON.plus}<span>Add project</span></button>`);
+    act.querySelector("#add").onclick = () => edit();
+    act.querySelector("#pe-get").onclick = async () => { const m = await import("../report/export.js"); m.projectEmailsTemplate(); };
+    const fi = act.querySelector("#pe-file");
+    act.querySelector("#pe-put").onclick = () => fi.click();
+    fi.onchange = async () => { const f = fi.files[0]; fi.value = ""; if (f) importEmails(f); };
+  }
   const list = M.projects();
   const countries = [...new Set(list.map(p => p.country))].sort();
   let f = { q: "", country: "", active: "1" };
@@ -59,4 +66,27 @@ async function edit(p = null) {
   });
   if (!r) return;
   await S.put({ ...x, ...r }); toast("Project saved.", "ok"); rerender();
+}
+
+// Read the filled e-mails template, show what changes, then save.
+async function importEmails(file) {
+  let res;
+  try { const m = await import("../report/export.js"); res = await m.readProjectEmails(file); }
+  catch (e) { toast(e.message || "This file couldn't be read.", "error"); return; }
+  const { changes, bad, unknown } = res;
+  const n = changes.reduce((s, c) => s + (c.emails ? c.emails.split(", ").length : 0), 0);
+  const ok = await dialog({
+    title: "Import project e-mails", wide: true,
+    body: (changes.length ? `<p><b>${changes.length}</b> project${changes.length === 1 ? "" : "s"} will change, with <b>${n}</b> e-mail${n === 1 ? "" : "s"} in total.</p>
+      <div class="tscroll" style="max-height:300px"><table class="tbl"><thead><tr><th>Project</th><th>E-mails</th><th>JV</th></tr></thead><tbody>
+      ${changes.map(c => `<tr><td>${esc(c.p.name)}</td><td class="small">${esc(c.emails || "(none)")}</td><td>${c.jv ? "Yes" : "No"}</td></tr>`).join("")}</tbody></table></div>`
+      : `<p>Nothing to change. The e-mails in the file are the same as in the system.</p>`)
+      + (bad.length ? `<p style="color:var(--g-red);margin-top:10px"><b>Not saved, check these e-mails:</b><br>${bad.map(esc).join("<br>")}</p>` : "")
+      + (unknown.length ? `<p class="muted small" style="margin-top:8px">Rows not found in the projects list: ${unknown.map(esc).join(", ")}</p>` : ""),
+    actions: changes.length ? [{ label: "Cancel", value: false }, { label: "Save e-mails", kind: "primary", value: true }] : [{ label: "Close", kind: "primary", value: false }],
+  });
+  if (!ok) return;
+  await S.putMany(changes.map(c => ({ ...c.p, contact_emails: c.emails, jv: c.jv })));
+  toast(`E-mails saved for ${changes.length} project${changes.length === 1 ? "" : "s"}.`, "ok");
+  rerender();
 }
