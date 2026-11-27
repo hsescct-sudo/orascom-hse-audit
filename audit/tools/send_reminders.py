@@ -241,7 +241,12 @@ def main():
         print("Test run: every e-mail goes to the sending mailbox only.")
     sent = failed = 0
     ctx = ssl.create_default_context()
-    with smtplib.SMTP_SSL(env("SMTP_HOST", "smtp.gmail.com"), int(env("SMTP_PORT", "465")), context=ctx, timeout=60) as s:
+    host, port = env("SMTP_HOST", "smtp.gmail.com"), int(env("SMTP_PORT", "465"))
+    # 465: Gmail and most providers (SSL). 587: Outlook / Microsoft 365 (STARTTLS).
+    conn = smtplib.SMTP_SSL(host, port, context=ctx, timeout=60) if port == 465 else smtplib.SMTP(host, port, timeout=60)
+    with conn as s:
+        if port != 465:
+            s.starttls(context=ctx)
         s.login(user, pw)
         for m in mails:
             msg = EmailMessage()
