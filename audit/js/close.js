@@ -169,4 +169,5 @@ function mountForm(el, n) {
 
 // another link opened in the same tab
 window.addEventListener("hashchange", () => location.reload());
-load();
+if (window.top !== window.self) document.body.innerHTML = "<p style='padding:24px'>Open this link in its own window.</p>";
+else load();

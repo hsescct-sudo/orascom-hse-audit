@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: read
+  actions: write   # only to keep this daily run switched on (last step)
 
 jobs:
   remind:
@@ -37,3 +38,11 @@ jobs:
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
           FORCE: ${{ github.event.inputs.force == 'true' && '1' || '0' }}
         run: python3 audit/tools/send_reminders.py
+
+      - name: Keep this daily run switched on
+        # GitHub switches off daily runs in repos with no changes for 60 days.
+        if: github.event_name == 'schedule'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/audit-reminders.yml/enable"

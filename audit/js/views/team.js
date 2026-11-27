@@ -68,11 +68,12 @@ async function edit(m = null) {
   rerender();
 }
 
-// Readable temporary password, e.g. Oc-4821-kdtq
+// Readable temporary password, e.g. Kd7q-4m2x-Pz9a (no 0/O or 1/l/I to mix up)
 function tempPassword() {
-  const a = new Uint32Array(8); crypto.getRandomValues(a);
-  const L = "abcdefghjkmnpqrstuvwxyz";
-  return `Oc-${String(a[0] % 9000 + 1000)}-${[1, 2, 3, 4].map(i => L[a[i] % L.length]).join("")}`;
+  const L = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const a = new Uint32Array(12); crypto.getRandomValues(a);
+  const ch = [...a].map(x => L[x % L.length]);
+  return [ch.slice(0, 4), ch.slice(4, 8), ch.slice(8, 12)].map(g => g.join("")).join("-");
 }
 
 async function makeLogin(m) {

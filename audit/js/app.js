@@ -28,12 +28,12 @@ let cleanup = null;
 let renderToken = 0;
 
 export const go = hash => { if (location.hash === hash) route(); else location.hash = hash; };
-export const link = (page, id, m = state.module) => `#/${MODULE_PAGES.includes(page) ? m + "/" : ""}${page}${id ? "/" + id : ""}`;
+export const link = (page, id, m = state.module) => `#/${MODULE_PAGES.includes(page) ? m + "/" : ""}${page}${id ? "/" + encodeURIComponent(id) : ""}`;
 export const currentModule = () => state.module;
 
 function parse() {
   const [path, qs] = location.hash.replace(/^#\/?/, "").split("?");
-  const parts = path.split("/").filter(Boolean);
+  const parts = path.split("/").filter(Boolean).map(x => { try { return decodeURIComponent(x); } catch (e) { return x; } });
   const query = Object.fromEntries(new URLSearchParams(qs || ""));
   if (MODULE_IDS.includes(parts[0])) return { module: parts[0], page: parts[1] || "dashboard", id: parts[2] || null, query };
   return { module: state.module, page: parts[0] || defaultPage(), id: parts[1] || null, query };
@@ -41,6 +41,7 @@ function parse() {
 const defaultPage = () => (M.me() && M.me().role === "auditor" ? "home" : "dashboard");
 
 async function boot() {
+  if (window.top !== window.self) { document.body.innerHTML = "<p style=\"padding:24px\">Open the audit system in its own window.</p>"; return; }
   registerSW(); // save the app on the device from the first visit, even before sign-in
   try { await S.openStore(); }
   catch (e) { $("#root").innerHTML = `<div class="empty" style="padding-top:20vh"><h3>This browser can't save data</h3><p>${esc(e.message)}</p></div>`; return; }
