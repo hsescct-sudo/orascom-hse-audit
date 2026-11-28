@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMax slice">
+  <!-- A site at sunrise: power plant stacks, a tower crane slewing slowly, a frame under construction,
+       aircraft warning lights. Used behind the main page and the sign-in page. -->
+  <style>
+    .blink { animation: blink 2.4s steps(1, end) infinite; }
+    .b2 { animation-delay: -.6s; } .b3 { animation-delay: -1.2s; } .b4 { animation-delay: -1.8s; }
+    .jib { transform-box: view-box; transform-origin: 768px 385px; animation: slew 16s ease-in-out infinite alternate; }
+    .glow { transform-box: view-box; transform-origin: 1250px 800px; animation: breathe 7s ease-in-out infinite alternate; }
+    .sun { animation: up 40s ease-out both; }
+    @keyframes blink { 0% { opacity: .9; } 50% { opacity: .1; } }
+    @keyframes slew { from { transform: scaleX(1); } to { transform: scaleX(.55); } }
+    @keyframes breathe { from { transform: scale(.92); opacity: .75; } to { transform: scale(1.08); opacity: 1; } }
+    @keyframes up { from { transform: translateY(60px); } to { transform: translateY(0); } }
+    @media (prefers-reduced-motion: reduce) { .blink, .jib, .glow, .sun { animation: none; } }
+  </style>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1d3a"/><stop offset=".38" stop-color="#22406d"/><stop offset=".62" stop-color="#6b5a7e"/><stop offset=".84" stop-color="#d0805d"/><stop offset="1" stop-color="#f2ad62"/>
+    </linearGradient>
+    <radialGradient id="sunlight"><stop offset="0" stop-color="#ffd590" stop-opacity=".9"/><stop offset=".35" stop-color="#ffc27a" stop-opacity=".45"/><stop offset="1" stop-color="#ffb070" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1440" height="900" fill="url(#sky)"/>
+  <g class="sun">
+    <circle class="glow" cx="1250" cy="800" r="260" fill="url(#sunlight)"/>
+    <circle cx="1250" cy="800" r="48" fill="#ffe4ad"/>
+  </g>
+  <path fill="#5a4560" opacity=".85" d="M0 900V790H60V770H110V785H170V760H230V780H300V772H380V790H460V768H520V786H600V775H700V792H800V770H880V784H960V766H1040V782H1120V772H1200V790H1290V774H1360V786H1440V900Z"/>
+  <g fill="#0b1527">
+    <rect x="120" y="660" width="210" height="160"/>
+    <rect x="150" y="520" width="34" height="140"/>
+    <rect x="230" y="480" width="34" height="180"/>
+    <rect x="330" y="700" width="230" height="120"/>
+    <path d="M330 700L445 678L560 700Z"/>
+    <rect x="760" y="384" width="16" height="436"/>
+    <path d="M768 330L758 384H778Z"/>
+    <rect x="752" y="418" width="32" height="20"/>
+    <rect x="518" y="600" width="4" height="220"/><rect x="506" y="596" width="28" height="8"/>
+    <rect x="1058" y="610" width="4" height="210"/><rect x="1046" y="606" width="28" height="8"/>
+    <rect x="0" y="818" width="1440" height="82"/>
+  </g>
+  <path d="M150 520C140 470 170 440 160 400C152 368 175 345 168 315" fill="none" stroke="#e9d6d0" stroke-width="10" stroke-linecap="round" opacity=".18"/>
+  <path d="M230 480C222 430 250 400 242 360C236 330 256 305 250 275" fill="none" stroke="#e9d6d0" stroke-width="12" stroke-linecap="round" opacity=".16"/>
+  <g class="jib">
+    <rect x="600" y="380" width="470" height="10" fill="#0b1527"/>
+    <path d="M768 330L604 380M768 330L1066 380" stroke="#0b1527" stroke-width="3"/>
+    <rect x="612" y="390" width="40" height="22" fill="#0b1527"/>
+    <path d="M990 390V560" stroke="#0b1527" stroke-width="2"/>
+    <rect x="962" y="560" width="56" height="12" fill="#0b1527"/>
+    <circle class="blink b2" cx="1066" cy="383" r="3.5" fill="#ff4b3e"/>
+  </g>
+  <g fill="none" stroke="#0b1527" stroke-width="5"><path d="M1110 820V560H1330V820M1110 600H1330M1110 640H1330M1110 680H1330M1110 720H1330M1110 760H1330M1165 560V820M1220 560V820M1275 560V820"/></g>
+  <g fill="#ff4b3e"><circle class="blink" cx="167" cy="520" r="3.5"/><circle class="blink b3" cx="247" cy="480" r="3.5"/><circle class="blink b4" cx="768" cy="330" r="3.5"/></g>
+</svg>

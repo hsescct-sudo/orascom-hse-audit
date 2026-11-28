@@ -77,35 +77,34 @@ async function startSession(mode) {
 function gate() {
   const cloud = !!CFG.supabaseUrl;
   $("#root").innerHTML = `
-  <div class="gate">
-    <section class="gate-art">
-      <div class="gate-top"><div class="brand"><span class="brand-logo"><img src="assets/orascom-logo.png" alt="Orascom Construction"></span><span class="brand-name">Corporate HSE<span>Audit system</span></span></div><a class="gate-back" href="../start/">${ICON.back}<span>All HSE systems</span></a></div>
-      <div>
+  <div class="signin">
+    <img class="signin-sky" src="../assets/sunrise.svg" alt="">
+    <header class="signin-top">
+      <span class="brand-logo"><img src="assets/orascom-logo.png" alt="Orascom Construction"></span><span class="signin-unit">Corporate HSE</span>
+      <a class="signin-back" href="../start/" aria-label="All HSE systems">${ICON.back}<span>All HSE systems</span></a>
+    </header>
+    <main class="signin-main">
+      <div class="signin-intro">
         <h1>Corporate HSE audits</h1>
-        <p>Audit on site with or without internet. Score with the company form, raise NCRs with photos and send the report before you leave the site.</p>
+        <p>One sign-in for Flash Audit, HSE Audit and Lifting.</p>
+        <div class="signin-types" aria-hidden="true"><span><i style="background:#f5b400"></i>Flash Audit</span><span><i style="background:#2fb36d"></i>HSE Audit</span><span><i style="background:#4d97e6"></i>Lifting</span></div>
       </div>
-      <div class="gate-tags" aria-hidden="true">
-        <div class="stag green"><b class="s-score">91<small>%</small></b><span class="s-label">Full compliance</span></div>
-        <div class="stag orange sm"><b class="s-score">79<small>%</small></b><span class="s-label">Relative</span></div>
-        <div class="stag yellow sm"><b class="s-score">68<small>%</small></b><span class="s-label">Low</span></div>
-        <div class="stag red sm"><b class="s-score">58<small>%</small></b><span class="s-label">No compliance</span></div>
+      <div class="signin-col">
+        <form class="signin-card" id="signin" autocomplete="on">
+          <div><h2>Sign in</h2><p class="muted">For administrators, approvers and auditors.</p></div>
+          ${cloud ? `
+          <label class="fld"><span>Work e-mail</span><input name="email" type="email" required autocomplete="username" placeholder="name@orascom.com"></label>
+          <label class="fld"><span>Password</span><input name="password" type="password" required autocomplete="current-password"></label>
+          <button class="btn primary lg" type="submit">Sign in</button>
+          <p class="muted small" id="gate-msg">Forgot the password? Corporate HSE gives you a new one from Auditors and users.</p>
+          <p class="signin-note">Project teams don't sign in. They close their NCRs from the link in the audit e-mail.</p>
+          <div class="or">or</div>` : ""}
+          <button class="btn lg" type="button" id="demo">Try it with sample data</button>
+          <p class="muted small">Sample data stays on this device only.</p>
+        </form>
+        <p class="signin-off">After the first sign-in the system works on site without internet.</p>
       </div>
-      <img class="gate-sky" src="../assets/skyline.svg" alt="">
-    </section>
-    <section class="gate-form">
-      <form class="gate-card" id="signin" autocomplete="on">
-        <h2>Sign in</h2>
-        <p class="muted" style="margin:-6px 0 0">Flash Audit, HSE Audit and Lifting</p>
-        ${cloud ? `
-        <label class="fld"><span>E-mail</span><input name="email" type="email" required autocomplete="username"></label>
-        <label class="fld"><span>Password</span><input name="password" type="password" required autocomplete="current-password"></label>
-        <button class="btn primary lg" type="submit">Sign in</button>
-        <p class="muted small" id="gate-msg">Your account is created by Corporate HSE. The same sign-in opens Flash Audit. After the first sign-in you can work offline.</p>
-        <div class="or">or</div>` : ""}
-        <button class="btn lg" type="button" id="demo">Try it with sample data</button>
-        <p class="muted small">Sample data stays on this device only. It shows how the system works with the company projects.</p>
-      </form>
-    </section>
+    </main>
   </div>`;
   $("#demo").onclick = async () => {
     const btn = $("#demo"); btn.disabled = true; btn.textContent = "Loading sample data…";

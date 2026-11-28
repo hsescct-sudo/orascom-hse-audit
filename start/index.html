@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://weczibogscuosnjevdde.supabase.co; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Corporate HSE Audits</title>
   <meta name="description" content="Orascom Construction Corporate HSE audit system: Flash Audit, HSE Audit and Lifting Assessment.">
-  <meta name="theme-color" content="#001a38">
+  <meta name="theme-color" content="#0a1d3a">
   <link rel="icon" href="../audit/assets/icon-64.png">
   <style>
     @font-face { font-family: "Barlow"; font-weight: 400; font-display: swap; src: url(../audit/fonts/barlow-latin-400-normal.woff2) format("woff2"); }
@@ -15,214 +15,153 @@
     @font-face { font-family: "Barlow Semi Condensed"; font-weight: 600; font-display: swap; src: url(../audit/fonts/barlow-semi-condensed-latin-600-normal.woff2) format("woff2"); }
     @font-face { font-family: "Barlow Semi Condensed"; font-weight: 700; font-display: swap; src: url(../audit/fonts/barlow-semi-condensed-latin-700-normal.woff2) format("woff2"); }
     :root {
-      --night: #001a38; --night-2: #002650; --navy: #003876; --steel: #0d4c96;
-      --paper: #eef2f6; --card: #ffffff; --ink: #0d1a2c; --muted: #56657b; --line: #d5dde8;
-      /* ISO 7010 safety sign colours. Each system keeps its sign colour everywhere. */
-      --warn: #f5b400; --warn-ink: #111a26; --safe: #1d8f52; --mand: #1060b0; --gear: #4f5d72;
+      --night: #0a1d3a; --ink: #111a26; --soft: #dfe6f0;
+      /* ISO 7010 safety sign colours. Each audit type keeps its colour everywhere. */
+      --warn: #f5b400; --safe: #1d8f52; --mand: #1060b0;
       --cond: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
     }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
     html, body { margin: 0; }
-    body { font: 400 16px/1.5 "Barlow", system-ui, sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+    body { font: 400 16px/1.5 "Barlow", system-ui, sans-serif; background: var(--night); color: #fff; min-height: 100vh; -webkit-font-smoothing: antialiased; }
     a { color: inherit; }
-    :focus-visible { outline: 3px solid #6fa8ff; outline-offset: 3px; }
-    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+    :focus-visible { outline: 3px solid #ffd27a; outline-offset: 3px; }
 
-    /* ---------- hero ---------- */
-    .hero { position: relative; background: var(--night); color: #fff; overflow: hidden; }
-    .top { position: relative; display: flex; align-items: center; gap: 14px; padding-top: 22px; }
-    .logo { background: #fff; border-radius: 8px; padding: 7px 11px; display: inline-flex; }
-    .logo img { height: 24px; display: block; }
-    .unit b { display: block; font: 700 18px/1.1 var(--cond); }
-    .unit span { font-size: 13px; color: #9fb3cc; }
-    .me { margin-left: auto; display: inline-flex; align-items: center; gap: 9px; font-size: 14px; color: #c9d6e8; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .12); padding: 7px 12px 7px 9px; border-radius: 99px; max-width: 46vw; }
-    .me i { width: 9px; height: 9px; border-radius: 50%; background: #34c37a; box-shadow: 0 0 0 3px rgba(52, 195, 122, .2); flex: none; }
+    .page { position: relative; min-height: 100vh; min-height: 100svh; overflow: hidden; display: flex; flex-direction: column; }
+    .sky { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 100%; pointer-events: none; }
+    .wrap { position: relative; width: 100%; max-width: 1240px; margin: 0 auto; padding: 0 28px; }
+
+    header.wrap { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-top: 22px; }
+    .logo { background: #fff; border-radius: 8px; padding: 6px 10px; display: inline-flex; }
+    .logo img { height: 22px; display: block; }
+    .unit { font: 700 18px/1 var(--cond); }
+    .me { margin-left: auto; display: inline-flex; align-items: center; gap: 10px; font-size: 14px; color: #e3eaf3; border: 1px solid rgba(255, 255, 255, .2); border-radius: 99px; padding: 4px 14px 4px 4px; max-width: 100%; }
+    .me b { width: 30px; height: 30px; border-radius: 50%; background: #fff; color: var(--night); display: grid; place-items: center; font: 700 13px/1 var(--cond); flex: none; }
     .me span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .intro { position: relative; padding: 60px 0 34px; max-width: 760px; }
-    h1 { margin: 0; font: 700 clamp(40px, 6.2vw, 76px)/.98 var(--cond); letter-spacing: -.005em; }
-    .intro p { margin: 18px 0 0; font-size: 18px; color: #b9c8db; max-width: 56ch; }
-    .skyline { position: relative; width: 100%; height: clamp(150px, 17.4vw, 330px); display: block; pointer-events: none; }
 
-    /* ---------- the three systems ---------- */
-    main { position: relative; margin-top: -56px; }
-    .systems { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-    .sys { --c: var(--navy); --t: #fff; display: flex; flex-direction: column; background: var(--card); border-radius: 14px; overflow: hidden; text-decoration: none; color: var(--ink);
-      box-shadow: 0 1px 0 rgba(13, 26, 44, .05), 0 18px 40px -24px rgba(0, 26, 56, .55); transition: transform .25s cubic-bezier(.2, .7, .2, 1), box-shadow .25s; }
-    .sys:hover { transform: translateY(-4px); box-shadow: 0 1px 0 rgba(13, 26, 44, .05), 0 26px 50px -24px rgba(0, 26, 56, .65); }
-    .sys:focus-visible { outline-color: var(--c); }
-    /* the header band reads like a site safety sign */
-    .band { display: flex; align-items: center; gap: 14px; background: var(--c); color: var(--t); padding: 18px 20px; min-height: 96px; }
-    .band svg { width: 58px; height: 58px; flex: none; }
-    .band h2 { margin: 0; font: 700 30px/1 var(--cond); }
-    .band small { display: block; font: 600 14px/1.2 var(--cond); opacity: .82; margin-top: 4px; }
-    .s-flash { --c: var(--warn); --t: var(--warn-ink); } .s-audit { --c: var(--safe); } .s-lift { --c: var(--mand); }
-    .body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 14px; flex: 1; }
-    .body p { margin: 0; color: var(--muted); font-size: 15.5px; }
-    .body ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 7px; font-size: 15px; }
-    .body li { display: flex; gap: 10px; align-items: baseline; }
-    .body li::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--c); flex: none; transform: translateY(-1px); }
-    .go { margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 10px; background: var(--navy); color: #fff; font-weight: 600; font-size: 15px; transition: background .2s; }
-    .sys:hover .go { background: var(--steel); }
+    main.wrap { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 30px; padding-top: 10px; padding-bottom: 30px; }
+    .intro { flex: 1 1 420px; min-width: 0; }
+    h1 { margin: 0; font: 700 78px/.95 var(--cond); }
+    .lead { margin: 18px 0 0; font-size: 18px; color: var(--soft); max-width: 42ch; }
+    .picks { display: grid; gap: 10px; margin-top: 30px; max-width: 440px; }
+    .pick { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; text-align: left; font: inherit; color: #fff; cursor: pointer; border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, .18); background: rgba(10, 29, 58, .3); padding: 12px 16px; transition: background .3s, border-color .3s; }
+    .pick:hover { background: rgba(255, 255, 255, .08); }
+    .pick[aria-pressed="true"] { background: rgba(255, 255, 255, .16); border-color: rgba(255, 255, 255, .7); }
+    .pick i { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+    .pick b { display: block; font: 700 20px/1.1 var(--cond); }
+    .pick small { font-size: 13.5px; color: var(--soft); }
+    .links { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 26px; font-size: 14.5px; font-weight: 600; }
+    .links a { color: #ffe7c4; }
+    .links a:hover { color: #fff; }
 
-    .settings { margin-top: 18px; display: flex; align-items: center; gap: 16px; width: 100%; text-align: left; font: inherit; color: inherit; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; cursor: pointer; transition: border-color .2s; }
-    .settings:hover { border-color: #aebdd0; }
-    .settings svg { width: 42px; height: 42px; flex: none; }
-    .settings b { display: block; font: 700 20px/1.1 var(--cond); }
-    .settings span { color: var(--muted); font-size: 14.5px; }
-    .settings em { margin-left: auto; font-style: normal; font-weight: 600; font-size: 14.5px; color: var(--navy); white-space: nowrap; }
-    footer { padding: 34px 0 40px; color: var(--muted); font-size: 13.5px; }
+    /* the turning prism: one face per audit type */
+    .stage { flex: 1 1 520px; height: 600px; position: relative; perspective: 1600px; perspective-origin: 50% 10%; }
+    .ground { position: absolute; left: 50%; bottom: 40px; width: 360px; height: 46px; margin-left: -180px; border-radius: 50%; background: radial-gradient(closest-side, rgba(10, 20, 39, .6), rgba(10, 20, 39, 0)); }
+    .stage-in { position: absolute; inset: 0; }
+    .float { position: absolute; left: 50%; top: 70px; width: 300px; height: 380px; margin-left: -150px; transform-style: preserve-3d; }
+    .prism { position: absolute; inset: 0; transform-style: preserve-3d; transform: rotateX(-12deg) rotateY(0deg); transition: transform 1.2s cubic-bezier(.65, 0, .35, 1); }
+    .cap { position: absolute; left: 0; top: 0; width: 300px; height: 260px; transform-origin: 50% 0; transform: translateZ(86.6px) rotateX(-90deg); clip-path: polygon(0 0, 100% 0, 50% 100%); background: #3a5a86; }
+    .face { position: absolute; left: 0; top: 0; width: 300px; height: 380px; padding: 30px 28px; display: flex; flex-direction: column; gap: 10px; text-decoration: none;
+      backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 4px; }
+    .face:nth-of-type(1) { transform: rotateY(0deg) translateZ(86.6px); background: var(--warn); color: var(--ink); }
+    .face:nth-of-type(2) { transform: rotateY(120deg) translateZ(86.6px); background: var(--safe); }
+    .face:nth-of-type(3) { transform: rotateY(240deg) translateZ(86.6px); background: var(--mand); }
+    .face svg { width: 108px; height: 108px; }
+    .face h2 { margin: 10px 0 0; font: 700 42px/1 var(--cond); }
+    .face p { margin: 0; font-size: 15.5px; line-height: 1.45; }
+    .face .form { margin-top: auto; font: 700 15px/1.2 "Barlow", sans-serif; }
+    .face .go { align-self: flex-start; display: inline-flex; align-items: center; min-height: 44px; padding: 0 22px; border-radius: 99px; font-weight: 600; font-size: 15px; background: #fff; }
+    .face:nth-of-type(1) .go { background: var(--ink); color: #fff; }
+    .face:nth-of-type(2) .go { color: #145c37; }
+    .face:nth-of-type(3) .go { color: #0b4f95; }
+    .face:hover .go { text-decoration: underline; }
+    .shade { position: absolute; inset: 0; background: #000; pointer-events: none; opacity: 0; transition: opacity 1.2s cubic-bezier(.65, 0, .35, 1); border-radius: 4px; }
 
-    dialog { border: 0; border-radius: 14px; padding: 0; width: min(460px, calc(100vw - 32px)); box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .5); color: var(--ink); }
-    dialog::backdrop { background: rgba(0, 26, 56, .55); }
-    .dlg { padding: 22px; }
-    .dlg h3 { margin: 0 0 4px; font: 700 26px/1.1 var(--cond); }
-    .dlg > p { margin: 0 0 16px; color: var(--muted); font-size: 14.5px; }
-    .pick { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 10px; color: inherit; text-decoration: none; margin-bottom: 10px; }
-    .pick:hover, .pick:focus-visible { border-color: var(--navy); outline: none; background: #f6f9fd; }
-    .pick b { display: block; font-size: 16px; } .pick span { color: var(--muted); font-size: 13.5px; }
-    .pick svg { flex: none; }
-    .close { margin-top: 6px; width: 100%; min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+    footer.wrap { padding-bottom: 22px; font-size: 14px; color: var(--soft); }
 
-    @media (max-width: 960px) {
-      .systems { grid-template-columns: 1fr; max-width: 560px; }
-      .settings { max-width: 560px; }
-    }
-    @media (max-width: 560px) {
-      .wrap { padding: 0 16px; }
-      .top { padding-top: 14px; }
-      .unit span { display: none; }
-      .me { font-size: 13px; max-width: 52vw; }
-      .intro { padding: 34px 0 22px; }
-      .intro p { font-size: 16px; }
-      main { margin-top: -40px; }
-      .band { min-height: 0; padding: 14px 16px; }
-      .band svg { width: 46px; height: 46px; }
-      .band h2 { font-size: 26px; }
-      .body { padding: 14px 16px 16px; gap: 12px; }
-      .settings em { display: none; }
-    }
-
-    /* ---------- one load sequence; nothing moves for people who turn motion off ---------- */
     @media (prefers-reduced-motion: no-preference) {
-      .intro { animation: rise .7s cubic-bezier(.2, .7, .2, 1) both; }
-      .skyline .draw { stroke-dasharray: 1600; stroke-dashoffset: 1600; animation: draw 2.4s cubic-bezier(.4, .1, .2, 1) .15s forwards; }
-      .skyline .fill { opacity: 0; animation: fade 1.2s ease 1.1s forwards; }
-      .skyline .hook { transform-origin: 846px 36px; animation: swing 7s ease-in-out 2.2s infinite; }
-      .sys, .settings { animation: rise .7s cubic-bezier(.2, .7, .2, 1) both; }
-      .sys:nth-child(1) { animation-delay: .25s; } .sys:nth-child(2) { animation-delay: .35s; } .sys:nth-child(3) { animation-delay: .45s; } .settings { animation-delay: .55s; }
-      @keyframes rise { from { opacity: 0; transform: translateY(18px); } }
-      @keyframes draw { to { stroke-dashoffset: 0; } }
-      @keyframes fade { to { opacity: 1; } }
-      @keyframes swing { 0%, 100% { transform: rotate(-2.2deg); } 50% { transform: rotate(2.2deg); } }
+      .float { animation: hover 6s ease-in-out infinite alternate; }
+      .in { animation: rise .9s cubic-bezier(.2, .7, .2, 1) both; }
+      .stage.in { animation-delay: .12s; }
+    }
+    @keyframes hover { from { transform: translateY(-8px); } to { transform: translateY(8px); } }
+    /* hold still while the pointer or keyboard is on it, so the button is easy to hit */
+    .stage:hover .float, .stage:focus-within .float { animation-play-state: paused; }
+    @keyframes rise { from { opacity: 0; transform: translateY(22px); } }
+    @media (prefers-reduced-motion: reduce) { .prism, .shade { transition: none; } }
+    @media (max-width: 860px) {
+      h1 { font-size: 56px; }
+      .stage { height: 470px; flex-basis: 100%; }
+      .stage-in { transform: scale(.82); transform-origin: 50% 0; }
+      .float { top: 20px; }
+      .ground { bottom: 30px; }
+    }
+    @media (max-width: 420px) {
+      .wrap { padding: 0 16px; }
+      h1 { font-size: 46px; }
     }
   </style>
 </head>
 <body>
-  <header class="hero">
-    <div class="wrap">
-      <div class="top">
-        <span class="logo"><img src="../audit/assets/orascom-logo.png" alt="Orascom Construction"></span>
-        <div class="unit"><b>Corporate HSE</b><span>Audit system</span></div>
-        <div class="me" id="me" hidden><i></i><span id="me-t"></span></div>
-      </div>
-      <div class="intro">
+  <div class="page">
+    <img class="sky" src="../assets/sunrise.svg" alt="">
+    <header class="wrap">
+      <span class="logo"><img src="../audit/assets/orascom-logo.png" alt="Orascom Construction"></span>
+      <span class="unit">Corporate HSE</span>
+      <div class="me" id="me" hidden><b id="me-i"></b><span id="me-t"></span></div>
+    </header>
+
+    <main class="wrap">
+      <div class="intro in">
         <h1>Corporate HSE audits</h1>
-        <p>Flash checks, full HSE audits and lifting assessments for every Orascom project, in one system.</p>
+        <p class="lead">Flash checks, full HSE audits and lifting assessments. One system and one sign-in.</p>
+        <div class="picks" role="group" aria-label="Audit types">
+          <button type="button" class="pick" data-k="0" aria-pressed="true"><i style="background:var(--warn)"></i><span><b>Flash Audit</b><small>Quick site checks, form F-HSE-0075</small></span></button>
+          <button type="button" class="pick" data-k="1" aria-pressed="false"><i style="background:#2fb36d"></i><span><b>HSE Audit</b><small>Full audit, form F-HSE-078</small></span></button>
+          <button type="button" class="pick" data-k="2" aria-pressed="false"><i style="background:#4d97e6"></i><span><b>Lifting</b><small>Assessment, form F-HSE-0175</small></span></button>
+        </div>
+        <nav class="links" aria-label="Administration"><a href="../audit/#/settings">Settings</a><a href="../audit/#/team">Auditors and users</a><a href="../audit/#/projects">Projects</a></nav>
       </div>
-    </div>
-    <!-- Site skyline: a combined-cycle plant, a tower crane, a frame under construction and a viaduct.
-         To use a site photo instead, replace this svg with <img class="skyline" src="photos/hero.jpg" alt=""> -->
-    <svg class="skyline" viewBox="0 0 1440 250" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-      <g fill="#062a55" class="fill">
-        <rect x="96" y="150" width="190" height="100"/><rect x="286" y="176" width="150" height="74"/>
-        <rect x="168" y="62" width="24" height="88"/><rect x="214" y="44" width="24" height="106"/>
-        <rect x="1000" y="96" width="168" height="154"/>
-        <rect x="1200" y="186" width="240" height="12"/>
-      </g>
-      <g fill="none" stroke="#3f74b5" stroke-width="1.6" stroke-linejoin="round" class="draw">
-        <path d="M0 249.5H1440"/>
-        <!-- combined-cycle plant -->
-        <path d="M96 250V150H286V250M286 176H436V250M108 172H274M108 194H274M108 216H274"/>
-        <path d="M168 150V62H192V150M214 150V44H238V150M168 76H192M214 58H238"/>
-        <path d="M300 196H422M318 176V250M354 176V250M390 176V250"/>
-        <!-- tower crane -->
-        <path d="M640 250V32H656V250M640 250L656 230L640 210L656 190L640 170L656 150L640 130L656 110L640 90L656 70L640 50L656 32"/>
-        <path d="M560 32H960M560 44H960M560 32V44M590 32L602 44L614 32L626 44L638 32M672 32L684 44L696 32L708 44L720 32L732 44L744 32L756 44L768 32L780 44L792 32L804 44L816 32L828 44L840 32L852 44L864 32L876 44L888 32L900 44L912 32L924 44L936 32L948 44L960 32"/>
-        <path d="M648 32L648 6M648 6L560 32M648 6L960 32"/>
-        <path d="M570 44H612V66H570Z"/>
-        <!-- frame under construction with scaffold -->
-        <path d="M1000 250V96H1168V250M1000 124H1168M1000 152H1168M1000 180H1168M1000 208H1168M1000 236H1168M1042 96V250M1084 96V250M1126 96V250"/>
-        <path d="M1168 110H1190V250M1168 138H1190M1168 166H1190M1168 194H1190M1168 222H1190M1168 110L1190 138L1168 166L1190 194L1168 222L1190 250"/>
-        <!-- viaduct -->
-        <path d="M1200 186H1440M1200 198H1440M1230 198V250M1310 198V250M1390 198V250M1230 210Q1270 238 1310 210M1310 210Q1350 238 1390 210"/>
-      </g>
-      <!-- the hook and its load swing slowly -->
-      <g class="hook" fill="none" stroke="#8fb6e6" stroke-width="1.6">
-        <path d="M838 44H854V52H838Z" class="trolley"/>
-        <path d="M846 52V150"/>
-        <path d="M846 150q-7 4 0 11q7 4 5-4"/>
-        <path d="M846 161L818 176M846 161L874 176" stroke="#5f8fca"/>
-        <rect x="806" y="176" width="80" height="12" fill="#f5b400" stroke="none"/>
-        <path d="M806 182H886" stroke="#111a26" stroke-width="1" stroke-dasharray="8 8"/>
-      </g>
-    </svg>
-  </header>
 
-  <main class="wrap">
-    <div class="systems">
-      <a class="sys s-flash" href="../audit/#/flash">
-        <div class="band">
-          <svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 6 L91 84 Q93 89 88 89 H8 Q3 89 5 84 Z" fill="#111a26"/><path d="M48 19 L80.5 79.5 H15.5 Z" fill="#f5b400"/><path d="M53 33 L38 58 H48 L43 74 L59 47 H49 Z" fill="#111a26"/></svg>
-          <div><h2>Flash Audit</h2><small>Quick site check, form F-HSE-0075</small></div>
+      <div class="stage in" id="stage">
+        <div class="ground" aria-hidden="true"></div>
+        <div class="stage-in">
+          <div class="float">
+            <div class="prism" id="prism">
+              <div class="cap" aria-hidden="true"></div>
+              <a class="face s-flash" href="../audit/#/flash">
+                <svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 6 L91 84 Q93 89 88 89 H8 Q3 89 5 84 Z" fill="#111a26"/><path d="M48 19 L80.5 79.5 H15.5 Z" fill="#f5b400"/><path d="M53 33 L38 58 H48 L43 74 L59 47 H49 Z" fill="#111a26"/></svg>
+                <h2>Flash Audit</h2>
+                <p>Walk the site with 109 checks: Yes, No or N/A. Each No is an NCR the project closes from the e-mail link.</p>
+                <span class="form">Form F-HSE-0075</span>
+                <span class="go">Open Flash Audit</span>
+                <span class="shade"></span>
+              </a>
+              <a class="face s-audit" href="../audit/#/full">
+                <svg viewBox="0 0 96 96" aria-hidden="true"><rect x="22" y="16" width="52" height="66" rx="6" fill="#fff"/><rect x="35" y="9" width="26" height="14" rx="5" fill="#fff" stroke="#1d8f52" stroke-width="4"/><path d="M33 51 l10 10 l21 -23" fill="none" stroke="#1d8f52" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <h2>HSE Audit</h2>
+                <p>The full audit with the company score, NCRs with photos and the report before you leave the site.</p>
+                <span class="form">Form F-HSE-078</span>
+                <span class="go">Open HSE Audit</span>
+                <span class="shade"></span>
+              </a>
+              <a class="face s-lift" href="../audit/#/lifting">
+                <svg viewBox="0 0 96 96" aria-hidden="true"><rect x="34" y="8" width="28" height="24" rx="7" fill="#fff"/><circle cx="48" cy="20" r="5.5" fill="#1060b0"/><rect x="44" y="31" width="8" height="14" fill="#fff"/><path d="M48 44 V52 A15 15 0 1 1 33 67 V59" fill="none" stroke="#fff" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <h2>Lifting</h2>
+                <p>Lifting operations, equipment and competence on site, with its own score and NCR register.</p>
+                <span class="form">Form F-HSE-0175</span>
+                <span class="go">Open Lifting</span>
+                <span class="shade"></span>
+              </a>
+            </div>
+          </div>
         </div>
-        <div class="body">
-          <p>Walk the site with the Flash checklist. Each No becomes an NCR, and the project closes it from the link in the e-mail.</p>
-          <ul><li>109 checks: Yes, No or N/A, with the live score</li><li>Flash NCR register</li><li>Same approval and project link as the other audits</li></ul>
-          <span class="go">Open Flash Audit</span>
-        </div>
-      </a>
-      <a class="sys s-audit" href="../audit/#/full">
-        <div class="band">
-          <svg viewBox="0 0 96 96" aria-hidden="true"><rect x="4" y="4" width="88" height="88" rx="12" fill="#fff" fill-opacity=".14"/><rect x="25" y="20" width="46" height="58" rx="5" fill="#fff"/><rect x="36" y="14" width="24" height="12" rx="4" fill="#fff" stroke="#1d8f52" stroke-width="4"/><path d="M34 52 l9 9 l19 -21" fill="none" stroke="#1d8f52" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <div><h2>HSE Audit</h2><small>Full audit, form F-HSE-078</small></div>
-        </div>
-        <div class="body">
-          <p>The full audit with the company score. Raise NCRs with photos and send the report before you leave the site.</p>
-          <ul><li>21-item appraisal with the live score</li><li>NCR register, form F-HSE-0003</li><li>Year plan and e-mail reminders</li></ul>
-          <span class="go">Open HSE Audit</span>
-        </div>
-      </a>
-      <a class="sys s-lift" href="../audit/#/lifting">
-        <div class="band">
-          <svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="44" fill="#fff" fill-opacity=".14"/><rect x="35" y="14" width="26" height="22" rx="6" fill="#fff"/><circle cx="48" cy="25" r="5" fill="#1060b0"/><rect x="44.5" y="35" width="7" height="12" fill="#fff"/><path d="M48 46 V53 A13 13 0 1 1 35 66 V59" fill="none" stroke="#fff" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <div><h2>Lifting</h2><small>Assessment, form F-HSE-0175</small></div>
-        </div>
-        <div class="body">
-          <p>Check lifting operations, equipment and competence on site, with its own score and NCR register.</p>
-          <ul><li>57-item lifting checklist</li><li>Lifting equipment on site</li><li>Lifting NCR register</li></ul>
-          <span class="go">Open Lifting</span>
-        </div>
-      </a>
-    </div>
-    <button class="settings" type="button" id="settings">
-      <svg viewBox="0 0 96 96" aria-hidden="true"><rect x="4" y="4" width="88" height="88" rx="44" fill="#4f5d72"/><path fill="#fff" fill-rule="evenodd" d="M44 18h8l1.6 7.4a23 23 0 0 1 6.2 2.6l6.4-4.1 5.7 5.7-4.1 6.4a23 23 0 0 1 2.6 6.2L78 44v8l-7.4 1.6a23 23 0 0 1-2.6 6.2l4.1 6.4-5.7 5.7-6.4-4.1a23 23 0 0 1-6.2 2.6L52 78h-8l-1.6-7.4a23 23 0 0 1-6.2-2.6l-6.4 4.1-5.7-5.7 4.1-6.4a23 23 0 0 1-2.6-6.2L18 52v-8l7.4-1.6a23 23 0 0 1 2.6-6.2l-4.1-6.4 5.7-5.7 6.4 4.1a23 23 0 0 1 6.2-2.6zM48 37a11 11 0 1 0 0 22a11 11 0 1 0 0-22z"/></svg>
-      <div><b>Settings</b><span>Users, projects, scoring rules and reminders. Administrators only.</span></div>
-      <em>Open settings</em>
-    </button>
-  </main>
-  <footer class="wrap">Orascom Construction, Corporate HSE. One sign-in for all three audit types. Project teams don't sign in: they close their NCRs from the link in the audit e-mail.</footer>
+      </div>
+    </main>
 
-  <dialog id="dlg" aria-labelledby="dlg-t">
-    <div class="dlg">
-      <h3 id="dlg-t">Settings</h3>
-      <p>One set of settings for all three audit types. Administrators only.</p>
-      <a class="pick" href="../audit/#/settings"><svg width="36" height="36" viewBox="0 0 96 96" aria-hidden="true"><rect x="4" y="4" width="88" height="88" rx="12" fill="#1d8f52"/><path d="M30 50 l12 12 l24 -28" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>HSE Audit and Lifting</b><span>Scoring, reminders, presentation data, sign-ins</span></div></a>
-      <a class="pick" href="../audit/#/team"><svg width="36" height="36" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="44" fill="#4f5d72"/><circle cx="48" cy="38" r="13" fill="#fff"/><path d="M24 74c3-13 13-19 24-19s21 6 24 19z" fill="#fff"/></svg><div><b>Auditors and users</b><span>Add people and make their sign-ins</span></div></a>
-      <a class="pick" href="../audit/#/projects"><svg width="36" height="36" viewBox="0 0 96 96" aria-hidden="true"><rect x="4" y="4" width="88" height="88" rx="12" fill="#003876"/><path d="M26 74V36l22-12 22 12v38H56V56H40v18z" fill="#fff"/></svg><div><b>Projects</b><span>Project list, e-mails, JV</span></div></a>
-      <button class="close" type="button" id="dlg-x">Close</button>
-    </div>
-  </dialog>
+    <footer class="wrap">Orascom Construction, Corporate HSE. Project teams don't sign in: they close their NCRs from the link in the audit e-mail.</footer>
+  </div>
   <script src="start.js"></script>
 </body>
 </html>
