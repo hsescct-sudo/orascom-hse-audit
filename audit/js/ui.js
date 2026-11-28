@@ -214,6 +214,7 @@ export const ICON = {
   cal: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M7 2h2v2h6V2h2v2h3a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3zm-2 7v10h14V9zm2 2h3v3H7z" fill="currentColor"/></svg>',
   flag: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 2h2v1h11l-2 5 2 5H7v9H5zm2 3v6h8.1l-1.2-3 1.2-3z" fill="currentColor"/></svg>',
   star: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 2l3 6.6 7 .8-5.2 4.8 1.4 7L12 17.6 5.8 21.2l1.4-7L2 9.4l7-.8z" fill="currentColor"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M13.5 2 5 13.5h6L10 22l9-12.5h-6.2z" fill="currentColor"/></svg>',
   hat: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10 4h4l1 1.5V9c2.9.9 5 3.6 5 6.8V17h2v3H2v-3h2v-1.2C4 12.6 6.1 9.9 9 9V5.5zm1 2v5.5H9v-.4C7.2 12 6 13.8 6 15.8V17h12v-1.2c0-2-1.2-3.8-3-4.7v.4h-2V6z" fill="currentColor"/></svg>',
   crane: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 2h2v3h13v3h-2v6h-2V8H8v12h3v2H2v-2h4V8H3V5h3zm11 13h2l1 3h-4z" fill="currentColor"/></svg>',
   home: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 3l9 8h-3v9h-5v-6h-2v6H6v-9H3z" fill="currentColor"/></svg>',

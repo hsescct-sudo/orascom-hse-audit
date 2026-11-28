@@ -6,7 +6,7 @@ import { esc, fmtDate, todayISO, daysBetween, shrinkImage, photoInputs, lightbox
 const CFG = window.HSE_AUDIT_CONFIG || {};
 const BUCKET = CFG.photoBucket || "audit-photos";
 const token = new URLSearchParams(location.hash.slice(1)).get("t") || "";
-const MOD = { full: "HSE Audit", lifting: "Lifting Assessment" };
+const MOD = { full: "HSE Audit", lifting: "Lifting Assessment", flash: "Flash Audit" };
 const SEV = { Serious: "Serious", Major: "Major", Minor: "Minor" };
 const $ = s => document.querySelector(s);
 let client = null;

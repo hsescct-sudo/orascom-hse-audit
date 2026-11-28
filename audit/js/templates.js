@@ -1,7 +1,10 @@
-// The two audit forms, written as data. Text, weights and lists come from
-// F-HSE-078 Rev 06 (OC HSE Audit Report) and F-HSE-0175 Rev 02 (Lifting
-// Operation Assessment). Obvious typos were fixed; nothing else was changed.
+// The three audit forms, written as data. Text, weights and lists come from
+// F-HSE-078 Rev 06 (OC HSE Audit Report), F-HSE-0175 Rev 02 (Lifting
+// Operation Assessment) and F-HSE-0075 (HSE Flash Audit). Obvious typos were
+// fixed; nothing else was changed.
 // Admins can edit lists and texts from Settings; these are the defaults.
+
+import { FLASH_PARTS } from "./flash.js";
 
 export const ROOT_CAUSES = ["Lack of Training", "Lack of Supervision", "Lack of Resources", "Management", "Other"];
 export const SEVERITIES = ["Minor", "Major", "Serious"];
@@ -37,6 +40,8 @@ export const FULL = {
   ncrFormRev: "07",
   prefix: "HSE",
   scoreLabel: "Audit score",
+  what: "HSE audit", startLabel: "Start an HSE audit", peopleLabel: "Auditors", dateLabel: "Audit date",
+  scoreStep: "Appraisal", sectionsLabel: "Ratings by element", partTitle: p => `${p.code}: ${p.name}`, itemNo: (it, k) => k,
   parts: [
     {
       id: "p1", code: "Part 1", name: "Site HSE Performance Appraisal", share: 90,
@@ -91,6 +96,10 @@ export const LIFTING = {
   ncrFormRev: "07",
   prefix: "LFT",
   scoreLabel: "Assessment score",
+  what: "lifting assessment", startLabel: "Start a lifting assessment", peopleLabel: "Assessors", dateLabel: "Assessment date",
+  scoreStep: "Checklist", sectionsLabel: "Ratings by section", partTitle: p => `${p.code}. ${p.name}`, itemNo: it => it.id,
+  summaryLabel: "Lifting assessment summary", purposeLabel: "Purpose of the lifting assessment", checklistTitle: "Lifting Assessment Appraisal Checklist",
+  sheetTitle: "Lifting Assessment Report", appraisalSheet: "Appraisal Sheet",
   purpose: "Lifting and rigging are among the most important activities to monitor and assess. This periodic audit checks the safe use of lifting equipment and lifting accessories against health and safety requirements, and checks that each lifting operation is well planned.",
   parts: [
     {
@@ -204,8 +213,41 @@ export const LIFTING = {
   ],
 };
 
-export const MODULES = { full: FULL, lifting: LIFTING };
-export const MODULE_IDS = ["full", "lifting"];
+const NCR_FLASH = FLASH_PARTS.map(p => p.name);
+
+export const FLASH = {
+  id: "flash",
+  short: "Flash Audit",
+  name: "HSE Flash Audit",
+  reportTitle: "HSE Flash Audit Report",
+  formRef: "F-HSE-0075",
+  formRev: "01",
+  ncrFormRef: "F-HSE-0003",
+  ncrFormRev: "07",
+  prefix: "FA",
+  scoreLabel: "Checklist compliance",
+  what: "Flash audit", startLabel: "Start a Flash audit", peopleLabel: "Auditors", dateLabel: "Audit date",
+  scoreStep: "Checklist", sectionsLabel: "Compliance by topic", partTitle: p => p.name, itemNo: it => it.id,
+  summaryLabel: "Flash audit summary", purposeLabel: "Purpose of the Flash audit", checklistTitle: "HSE Flash Audit Checklist",
+  sheetTitle: "HSE Flash Audit Report", appraisalSheet: "Checklist",
+  purpose: "A short site visit that checks the high-risk activities against the company rules: work at height, lifting, permits, confined spaces, electrical, line of fire, falling objects, excavation, traffic, emergency, fire, housekeeping and PPE.",
+  // Each check is Yes, No or N/A. The score is the share of Yes among the checks that apply.
+  binary: true, countScore: true,
+  parts: FLASH_PARTS,
+  // The risk of a check sets the NCR type when the answer is No.
+  riskSeverity: { High: "Serious", Med: "Major", Low: "Minor" },
+  deductions: { serious: 0, repeated: 0 },
+  seriousNote: "Flash audits have no deductions. The score is the share of checks met.",
+  ncrClasses: NCR_FLASH,
+  goodClasses: GOOD_PRACTICE,
+  ncrClause: NCR_DEFAULT_CLAUSE,
+  ncrRequirement: NCR_DEFAULT_REQUIREMENT,
+  hasMeetings: false,
+  hasEquipment: false,
+};
+
+export const MODULES = { full: FULL, lifting: LIFTING, flash: FLASH };
+export const MODULE_IDS = ["full", "lifting", "flash"];
 
 // Settings can override lists and item texts; this merges them over the defaults.
 export function moduleDef(id, settings) {

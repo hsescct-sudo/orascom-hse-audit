@@ -32,7 +32,7 @@ export async function render(ctx) {
   view.className = "view narrow";
   view.innerHTML = `<div class="stack">
     ${alertBar}
-    ${M.canEdit() ? `<button class="btn primary lg" type="button" id="start" style="justify-self:start">${ICON.play}<span>${def.id === "full" ? "Start an HSE audit" : "Start a lifting assessment"}</span></button>` : ""}
+    ${M.canEdit() ? `<button class="btn primary lg" type="button" id="start" style="justify-self:start">${ICON.play}<span>${esc(def.startLabel)}</span></button>` : ""}
     ${waiting.length ? `<section class="panel"><div class="panel-h"><h2>Waiting for your approval</h2><span class="muted">${waiting.length}</span></div>${waiting.map(a => card(esc(M.project(a.project_id).name), `<span class="ref num" style="font:700 13px var(--f-cond);color:var(--navy)">${esc(a.ref)}</span>`, mtag(M.score(a).total), `data-a="${esc(a.id)}"`, onDate(a.date))).join("")}</section>` : ""}
     ${tosend.length ? `<section class="panel"><div class="panel-h"><h2>Reports to e-mail to the project</h2><span class="muted">${tosend.length}</span></div>${tosend.map(a => card(esc(M.project(a.project_id).name), `<span class="ref num" style="font:700 13px var(--f-cond);color:var(--navy)">${esc(a.ref)}</span>`, mtag(M.score(a).total), `data-a="${esc(a.id)}" data-step="finish"`, onDate(a.date))).join("")}</section>` : ""}
     <section class="panel"><div class="panel-h"><h2>In progress</h2><span class="muted">Saved on this device</span></div>

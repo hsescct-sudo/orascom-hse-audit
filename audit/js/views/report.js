@@ -33,7 +33,7 @@ export async function render(ctx) {
 const head = (d, title, ref, rev) => `<div class="rep-head"><div><img src="assets/orascom-logo.png" alt="Orascom Construction" style="width:100%;max-width:130px"></div><div><h1>${esc(title)}</h1></div><div><span>Form Ref.: <b>${esc(ref)}</b></span><span>Form Rev.: <b>${esc(rev)}</b></span><span>HSE Dept.</span></div></div>`;
 const ppl = (list, title) => `<table><thead><tr><th colspan="2">${esc(title)}</th></tr><tr><th style="width:50%">Name</th><th>Position</th></tr></thead><tbody>${(list || []).filter(p => p.name || p.position).map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.position)}</td></tr>`).join("") || `<tr><td colspan="2">–</td></tr>`}</tbody></table>`;
 const bands = d => `<table class="bandtbl"><thead><tr><th colspan="2">Classification of project's grade</th><th>Audit criteria</th></tr></thead><tbody>
-  ${GRADES.map((g, i) => `<tr><td style="background:${COLORS.grade[g.code]}"></td><td>${g.min === 85 ? "From 85% and above" : g.min === 75 ? "From 75% to 84%" : g.min === 65 ? "From 65% to 74%" : "From 0% to 64%"}: ${esc(g.label)}.</td><td>${i === 0 ? `One or more serious NCRs deduct ${d.deductions.serious}% from the overall score.` : i === 1 ? `Each repeated NCR deducts ${d.deductions.repeated}% from the overall score.` : ""}</td></tr>`).join("")}</tbody></table>`;
+  ${GRADES.map((g, i) => `<tr><td style="background:${COLORS.grade[g.code]}"></td><td>${g.min === 85 ? "From 85% and above" : g.min === 75 ? "From 75% to 84%" : g.min === 65 ? "From 65% to 74%" : "From 0% to 64%"}: ${esc(g.label)}.</td><td>${d.countScore ? (i === 0 ? "Each check is Yes, No or N/A. The score is the share of Yes among the checks that apply." : i === 1 ? "Each No is an NCR on that check. N/A checks are left out." : "") : i === 0 ? `One or more serious NCRs deduct ${d.deductions.serious}% from the overall score.` : i === 1 ? `Each repeated NCR deducts ${d.deductions.repeated}% from the overall score.` : ""}</td></tr>`).join("")}</tbody></table>`;
 const photosBlock = (ids, urls) => (ids || []).length ? `<div class="gv">${ids.map(id => urls[id] ? `<img src="${urls[id]}" alt="Site photo">` : "").join("")}</div>` : `<p class="muted">No photos.</p>`;
 
 function history(a) {
@@ -64,6 +64,22 @@ function appraisal(a, d, sc) {
   return sc.parts.map(p => `<table><thead><tr><th style="width:40px">Ser</th><th>${esc(d.id === "full" ? `${p.code} ${p.name} (${p.share}%)` : `${p.code}- ${p.name} (${p.share}%)`)}</th><th style="width:60px">Weight</th><th style="width:70px">Rating</th><th style="width:80px">Points</th></tr></thead><tbody>
     ${p.items.map(it => { k++; const def = d.parts.find(x => x.id === p.id).items.find(x => x.id === it.id); return `<tr><td>${d.id === "full" ? k : esc(it.id)}</td><td><b>${esc(it.title)}</b>: ${esc(def.text)}${a.notes && a.notes[it.id] ? `<br><i>Note: ${esc(a.notes[it.id])}</i>` : ""}</td><td>${it.weight}</td><td style="${it.state === "na" ? "background:#d9dee5" : ""}">${it.state === "na" ? "N/A" : it.state === "open" ? "–" : it.value + "%"}</td><td>${it.state === "rated" ? (it.weight * it.value / 100).toFixed(1) : "–"}</td></tr>`; }).join("")}
     <tr><th colspan="4">Total ${esc(p.code)}</th><th>${fmtScore(p.score == null ? null : p.score * 100)}</th></tr></tbody></table>`).join("");
+}
+// Flash audit: each check is Yes, No or N/A; the score is the share of Yes.
+function flashChecklist(a, d, sc) {
+  const ans = it => it.state === "na" ? "N/A" : it.state === "open" ? "–" : it.value >= 100 ? "Yes" : "No";
+  const bg = it => it.state === "na" ? "background:#d9dee5" : it.state === "rated" && it.value < 100 ? "background:#f8d7d5;font-weight:700" : "";
+  return sc.parts.map(p => `<table><thead><tr><th style="width:62px">Ref</th><th>${esc(p.name)}</th><th style="width:56px">Risk</th><th style="width:70px">Answer</th></tr></thead><tbody>
+    ${p.items.map(it => { const def = M.findItem(d, it.id) || {}; return `<tr><td>${esc(it.id)}</td><td>${esc(it.title)}${a.notes && a.notes[it.id] ? `<br><i>Note: ${esc(a.notes[it.id])}</i>` : ""}</td><td>${esc(def.risk || "")}</td><td style="${bg(it)}">${ans(it)}</td></tr>`; }).join("")}
+    <tr><th colspan="3">Compliance, ${esc(p.name)}</th><th>${fmtScore(p.score == null ? null : p.score * 100)}</th></tr></tbody></table>`).join("");
+}
+function flashConclusion(d, sc) {
+  const all = sc.parts.flatMap(p => p.items);
+  const yes = all.filter(it => it.state === "rated" && it.value >= 100).length, no = all.filter(it => it.state === "rated" && it.value < 100).length, na = all.filter(it => it.state === "na").length;
+  return `<table><thead><tr><th>Topic</th><th style="width:140px">Compliance</th></tr></thead><tbody>${sc.parts.map(p => `<tr><td>${esc(p.name)}</td><td>${p.score == null ? "N/A" : fmtScore(p.score * 100)}</td></tr>`).join("")}
+    <tr><td>Checks: ${yes} yes, ${no} no, ${na} N/A</td><td></td></tr>
+    <tr><th>Checklist compliance</th><th style="background:${sc.grade ? COLORS.grade[sc.grade.code] : "#eee"};color:${sc.grade && ["orange", "yellow"].includes(sc.grade.code) ? "#2b1700" : "#fff"}">${fmtScore(sc.total)} (${esc(sc.grade ? sc.grade.label : "")})</th></tr></tbody></table>
+    <p class="small">The score is the share of Yes among the checks that apply. N/A checks are left out.</p>`;
 }
 function conclusion(d, sc) {
   const rows = sc.parts.map(p => `<tr><td>${esc(d.id === "full" ? `${p.code} ${p.name} (${p.share}%)` : `${p.code}- ${p.name}`)}</td><td>${p.score == null ? "N/A" : ((p.score * 100) * p.share / 100).toFixed(1) + "%"}</td></tr>`).join("");
@@ -108,19 +124,19 @@ function liftReport(a, d, urls) {
   const lead = (a.auditors || [])[0] || {};
   return `<div class="rep">
     ${head(d, d.reportTitle, d.formRef, d.formRev)}
-    <table><tbody><tr><th style="width:110px">Project</th><td>${esc(p.name)} (${esc(p.code)})</td><th style="width:130px">Assessment date</th><td style="width:130px">${esc(fmtDate(a.date))}</td><th style="width:60px">Ref</th><td style="width:130px">${esc(a.ref)}</td></tr></tbody></table>
-    <table><tbody><tr><th style="width:200px">Purpose of the lifting assessment</th><td>${esc(d.purpose)}</td></tr></tbody></table>
-    <table><tbody><tr><th>Assessment score</th><td><b>${fmtScore(sc.total)}</b> (${esc(sc.grade ? sc.grade.label : "")})</td><th>Auditor's name</th><td>${esc(lead.name || "")}</td><th>Auditor's title</th><td>${esc(lead.position || "")}</td></tr></tbody></table>
+    <table><tbody><tr><th style="width:110px">Project</th><td>${esc(p.name)} (${esc(p.code)})</td><th style="width:130px">${esc(d.dateLabel)}</th><td style="width:130px">${esc(fmtDate(a.date))}</td><th style="width:60px">Ref</th><td style="width:130px">${esc(a.ref)}</td></tr></tbody></table>
+    <table><tbody><tr><th style="width:200px">${esc(d.purposeLabel)}</th><td>${esc(d.purpose)}</td></tr></tbody></table>
+    <table><tbody><tr><th>${esc(d.scoreLabel)}</th><td><b>${fmtScore(sc.total)}</b> (${esc(sc.grade ? sc.grade.label : "")})</td><th>Auditor's name</th><td>${esc(lead.name || "")}</td><th>Auditor's title</th><td>${esc(lead.position || "")}</td></tr></tbody></table>
     ${bands(d)}
-    <h2>Lifting assessment summary</h2><p>${esc(a.summary || "–")}</p>
-    <h2>Lifting equipment statistics</h2><table><thead><tr><th>Ser.</th><th>Lifting equipment description</th><th>No.</th><th>Owned / rental</th></tr></thead><tbody>${(a.equipment || []).map((e, i) => `<tr><td>${i + 1}</td><td>${esc(e.desc)}</td><td>${esc(e.count === "" ? "–" : e.count)}</td><td>${esc(e.owner)}</td></tr>`).join("")}</tbody></table>
+    <h2>${esc(d.summaryLabel)}</h2><p>${esc(a.summary || "–")}</p>
+    ${d.hasEquipment ? `<h2>Lifting equipment statistics</h2><table><thead><tr><th>Ser.</th><th>Lifting equipment description</th><th>No.</th><th>Owned / rental</th></tr></thead><tbody>${(a.equipment || []).map((e, i) => `<tr><td>${i + 1}</td><td>${esc(e.desc)}</td><td>${esc(e.count === "" ? "–" : e.count)}</td><td>${esc(e.owner)}</td></tr>`).join("")}</tbody></table>` : ""}
     <h2>General view</h2>${photosBlock(a.photos, urls)}
     <h2>The observed violations</h2>${violations(a, urls)}
     <h2>Good practice</h2>${goodTable(a)}
     <div style="break-before:page"></div>
-    ${head(d, "Lifting Assessment Appraisal Checklist", d.formRef, d.formRev)}
-    ${appraisal(a, d, sc)}
-    ${conclusion(d, sc)}
+    ${head(d, d.checklistTitle, d.formRef, d.formRev)}
+    ${d.binary ? flashChecklist(a, d, sc) : appraisal(a, d, sc)}
+    ${d.binary ? flashConclusion(d, sc) : conclusion(d, sc)}
     ${a.status === "approved" ? `<p class="small">Approved by ${esc(a.approved_by || "")} on ${esc(fmtDate((a.approved_at || "").slice(0, 10)))}.</p>` : `<p class="small"><b>${a.status === "submitted" ? "Waiting approval." : "Draft. Not approved yet."}</b></p>`}
   </div>`;
 }

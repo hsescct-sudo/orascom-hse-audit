@@ -39,6 +39,7 @@ export const audits = m => S.all("audit").filter(a => a.module === m).sort(byDat
 export const ncrs = m => S.all("ncr").filter(n => n.module === m);
 export const goods = m => S.all("good").filter(g => g.module === m);
 export const plans = m => S.all("plan").filter(p => p.module === m);
+export const findItem = (d, id) => { for (const p of d.parts) { const it = p.items.find(x => x.id === id); if (it) return { ...it, part: p.id, partName: p.name }; } return null; };
 export const auditNCRs = a => S.all("ncr").filter(n => n.audit_id === a.id).sort((x, y) => (x.seq || 0) - (y.seq || 0));
 export const auditGoods = a => S.all("good").filter(g => g.audit_id === a.id).sort((x, y) => (x.created_at || "").localeCompare(y.created_at || ""));
 

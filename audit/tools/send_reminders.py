@@ -33,7 +33,7 @@ import urllib.request
 from email.message import EmailMessage
 from email.utils import formataddr, make_msgid
 
-MOD = {"full": "HSE Audit", "lifting": "Lifting"}
+MOD = {"full": "HSE Audit", "lifting": "Lifting", "flash": "Flash Audit"}
 SOON_DAYS = 3        # NCRs due in the next 3 days get a reminder too
 SEND_LATE_DAYS = 7   # P-20 7.4: report to the project within 7 days
 REVIEW_DAYS = 2      # evidence waiting for the auditor longer than this
@@ -118,7 +118,7 @@ def build(data, app_url, test=False):
             lines = [f"Dear {p.get('name', 'project')} team,", "",
                      f"{len(items)} Corporate HSE audit NCR{'s' if len(items) != 1 else ''} need{'s' if len(items) == 1 else ''} your action"
                      + (f", {len(late)} past the deadline." if late else "."), ""]
-            for mod in ("full", "lifting"):
+            for mod in ("full", "lifting", "flash"):
                 part = sorted([n for n in items if n["module"] == mod], key=lambda n: n.get("due_date") or "")
                 if not part:
                     continue

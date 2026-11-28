@@ -23,7 +23,7 @@ export async function startAudit(module, { project_id = "", plan_id = "" } = {})
       <div class="row">${team.map(m => `<label class="tick"><input type="checkbox" value="${esc(m.id)}" ${(plan && (plan.team_ids || []).includes(m.id)) ? "checked" : ""}>${esc(m.name)}</label>`).join("")}</div></fieldset>
     <p class="muted small" id="na-hint"></p>`;
   const res = await dialog({
-    title: d.id === "full" ? "Start an HSE audit" : "Start a lifting assessment", body, wide: true,
+    title: d.startLabel, body, wide: true,
     actions: [{ label: "Cancel", value: null }, {
       label: "Start the audit", kind: "primary",
       validate: w => (!w.querySelector("#na-p").value ? "Choose the project." : !w.querySelector("#na-d").value ? "Enter the date." : null),
@@ -34,7 +34,7 @@ export async function startAudit(module, { project_id = "", plan_id = "" } = {})
         const pid = w.querySelector("#na-p").value; if (!pid) { w.querySelector("#na-hint").textContent = ""; return; }
         const last = M.lastAuditOf(module, pid);
         const open = last ? M.auditNCRs(last).filter(n => n.status === "Open").length : 0;
-        const what = d.id === "full" ? "HSE audit" : "lifting assessment";
+        const what = d.what;
         w.querySelector("#na-hint").textContent = last ? `Last ${what} on this project: ${last.ref} (${last.date}). ${open ? `${open} NCR${open > 1 ? "s are" : " is"} still open; you will check ${open > 1 ? "them" : "it"} on site.` : "All its NCRs are closed."}` : `This is the first ${what} on this project.`;
       };
       w.querySelector("#na-p").addEventListener("change", hint); hint();
@@ -95,25 +95,25 @@ export function photoStrip(el, ids, { onChange, readOnly = false, max = 12, labe
 }
 
 // ---------- NCR form ----------
-export async function editNCR(audit, ncr = null, { item_id = "" } = {}) {
+export async function editNCR(audit, ncr = null, { item_id = "", severity = "", classification = "", description = "" } = {}) {
   const d = M.def(audit.module);
   const isNew = !ncr;
   const seq = isNew ? M.auditNCRs(audit).reduce((m, n) => Math.max(m, n.seq || 0), 0) + 1 : ncr.seq;
   const n = ncr ? { ...ncr } : {
     id: S.uid("ncr"), kind: "ncr", module: audit.module, audit_id: audit.id, project_id: audit.project_id, seq, ref: `${audit.ref}-${String(seq).padStart(2, "0")}`,
-    date: audit.date, severity: "Minor", repeated: false, classification: "", item_id, clause: d.ncrClause, requirement: d.ncrRequirement,
-    description: "", location: "", root_causes: [], other_cause: "", action_required: "Correct the condition, find the root cause and stop it happening again. Send evidence photos.",
-    photos: [], responsible_name: "", responsible_position: "", due_date: addDays(audit.date, M.DUE_DAYS.Minor), status: "Open",
+    date: audit.date, severity: severity || "Minor", repeated: false, classification, item_id, clause: d.ncrClause, requirement: d.ncrRequirement,
+    description, location: "", root_causes: [], other_cause: "", action_required: "Correct the condition, find the root cause and stop it happening again. Send evidence photos.",
+    photos: [], responsible_name: "", responsible_position: "", due_date: addDays(audit.date, M.DUE_DAYS[severity || "Minor"]), status: "Open",
     ca_text: "", ca_date: "", followup_name: "", followup_position: "", followup_date: "", comments: "",
   };
   const prevNCRs = M.ncrs(audit.module).filter(x => x.project_id === audit.project_id && x.audit_id !== audit.id && !x.deleted).sort((x, y) => String(y.date).localeCompare(String(x.date)));
   const items = d.parts.flatMap(p => p.items.map(it => ({ ...it, part: p })));
   let photoCtl = null;
   const body = `
-    <div class="sev-pick" role="radiogroup" aria-label="NCR type">${SEVERITIES.map(s => `<label class="s-${s}"><input type="radio" name="sev" value="${s}" ${n.severity === s ? "checked" : ""}><b>${s}</b><small>${s === "Serious" ? "Stop work now, −15% once" : s === "Major" ? `Close in ${M.DUE_DAYS.Major} days` : `Close in ${M.DUE_DAYS.Minor} days`}</small></label>`).join("")}</div>
-    ${n.repeated ? `<p class="chip rep" style="justify-self:start">Repeated from the last audit, −${d.deductions.repeated}%</p>` : ""}
+    <div class="sev-pick" role="radiogroup" aria-label="NCR type">${SEVERITIES.map(s => `<label class="s-${s}"><input type="radio" name="sev" value="${s}" ${n.severity === s ? "checked" : ""}><b>${s}</b><small>${s === "Serious" ? `Stop work now${d.deductions.serious ? `, −${d.deductions.serious}% once` : ""}` : s === "Major" ? `Close in ${M.DUE_DAYS.Major} days` : `Close in ${M.DUE_DAYS.Minor} days`}</small></label>`).join("")}</div>
+    ${n.repeated ? `<p class="chip rep" style="justify-self:start">Repeated from the last audit${d.deductions.repeated ? `, −${d.deductions.repeated}%` : ""}</p>` : ""}
     <fieldset class="fld" style="border:1px solid var(--line);border-radius:10px;padding:10px;margin:0"><span>Repeated violation (P-20 §7.3)</span>
-      <label class="tick"><input type="checkbox" id="nc-rep" ${n.repeated ? "checked" : ""} ${n.repeat_of ? "disabled" : ""}>This violation was found before on this project (open or closed), −${d.deductions.repeated}%</label>
+      <label class="tick"><input type="checkbox" id="nc-rep" ${n.repeated ? "checked" : ""} ${n.repeat_of ? "disabled" : ""}>This violation was found before on this project (open or closed)${d.deductions.repeated ? `, −${d.deductions.repeated}%` : ""}</label>
       <div class="grid2" style="margin-top:6px">
         <label class="fld"><span>Previous NCR / notice</span><select id="nc-prev"><option value="">Not linked</option>${prevNCRs.map(p => `<option value="${esc(p.id)}" ${p.id === (n.repeat_link || n.repeat_of) ? "selected" : ""}>${esc(p.ref)}, ${esc(p.date)}, ${esc(p.status)}, ${esc((p.description || "").slice(0, 50))}</option>`).join("")}</select></label>
         <label class="fld"><span>Notice ref. (if outside the system)</span><input id="nc-notice" value="${esc(n.repeat_notice || "")}" placeholder="e.g. HSE notice no."></label>
@@ -138,7 +138,7 @@ export async function editNCR(audit, ncr = null, { item_id = "" } = {}) {
       <div class="stack" style="margin-top:10px">
         <div class="grid2">
           <label class="fld"><span>Standard clause</span><input id="nc-cl" value="${esc(n.clause || "")}"></label>
-          <label class="fld"><span>Appraisal item (optional)</span><select id="nc-it"><option value="">None</option>${items.map(it => `<option value="${esc(it.id)}" ${it.id === n.item_id ? "selected" : ""}>${esc(it.part.code)}, ${esc(it.title)}</option>`).join("")}</select></label>
+          <label class="fld"><span>${d.binary ? "Checklist item" : "Appraisal item"} (optional)</span><select id="nc-it"><option value="">None</option>${items.map(it => `<option value="${esc(it.id)}" ${it.id === n.item_id ? "selected" : ""}>${esc(it.part.code)}, ${esc(it.title)}</option>`).join("")}</select></label>
         </div>
         <label class="fld"><span>Requirement</span><textarea id="nc-req">${esc(n.requirement || d.ncrRequirement)}</textarea></label>
       </div></details>

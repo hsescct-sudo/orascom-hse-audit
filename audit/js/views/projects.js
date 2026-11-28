@@ -7,7 +7,7 @@ import { mtag } from "../components.js";
 
 export async function render(ctx) {
   const { view } = ctx;
-  setTitle("Projects", "Shared by HSE Audit and Lifting");
+  setTitle("Projects", "Shared by Flash Audit, HSE Audit and Lifting");
   const admin = M.canApprove();
   if (admin) {
     const act = setActions(`<button class="btn" type="button" id="pe-get" title="Download the project e-mails template" aria-label="E-mails template">${ICON.xls}<span>E-mails template</span></button><button class="btn" type="button" id="pe-put" title="Import the filled e-mails template" aria-label="Import e-mails">${ICON.upload}<span>Import e-mails</span></button><input type="file" id="pe-file" accept=".xlsx" hidden><button class="btn primary" type="button" id="add">${ICON.plus}<span>Add project</span></button>`);
@@ -23,16 +23,17 @@ export async function render(ctx) {
   view.innerHTML = `<div class="filters" style="margin-bottom:14px"><input type="search" id="q" placeholder="Search project, city, code" aria-label="Search">
     <select id="fc" aria-label="Country"><option value="">All countries</option>${countries.map(c => `<option>${esc(c)}</option>`).join("")}</select>
     <select id="fa" aria-label="Active"><option value="1">Active projects</option><option value="0">Closed projects</option><option value="">All</option></select><span class="muted small" id="cnt"></span></div>
-    <div class="panel" style="padding:0"><div class="tscroll"><table class="tbl"><thead><tr><th>Code</th><th>Project</th><th>City</th><th>Country</th><th>Business unit</th><th>Project director</th><th style="text-align:right">HSE Audit</th><th style="text-align:right">Lifting</th></tr></thead><tbody id="rows"></tbody></table></div></div>`;
+    <div class="panel" style="padding:0"><div class="tscroll"><table class="tbl"><thead><tr><th>Code</th><th>Project</th><th>City</th><th>Country</th><th>Business unit</th><th>Project director</th><th style="text-align:right">HSE Audit</th><th style="text-align:right">Lifting</th><th style="text-align:right">Flash</th></tr></thead><tbody id="rows"></tbody></table></div></div>`;
   const draw = () => {
     const q = f.q.toLowerCase();
     const rows = list.filter(p => (!f.country || p.country === f.country) && (f.active === "" || String(p.active !== false ? 1 : 0) === f.active) && (!q || [p.code, p.name, p.city, p.bu].join(" ").toLowerCase().includes(q)));
     view.querySelector("#cnt").textContent = `${rows.length} project${rows.length === 1 ? "" : "s"}`;
     view.querySelector("#rows").innerHTML = rows.map(p => {
-      const lf = M.lastAuditOf("full", p.id), ll = M.lastAuditOf("lifting", p.id);
+      const lf = M.lastAuditOf("full", p.id), ll = M.lastAuditOf("lifting", p.id), lx = M.lastAuditOf("flash", p.id);
       return `<tr class="${admin ? "click" : ""}" data-p="${esc(p.id)}"><td class="ref c-ref">${esc(p.code)}</td><td class="wrap c-wide"><b style="font-weight:600">${esc(p.name)}</b>${p.active === false ? ' <span class="chip">Closed</span>' : ""}</td><td>${esc(p.city)}</td><td>${esc(p.country)}</td><td>${esc(p.bu || "")}</td><td>${esc(p.director || "")}</td>
         <td style="text-align:right">${lf ? `<a href="${link("audit", lf.id, "full")}" title="${esc(lf.ref)}">${mtag(M.score(lf).total)}</a>` : '<span class="muted small">–</span>'}</td>
-        <td style="text-align:right">${ll ? `<a href="${link("audit", ll.id, "lifting")}" title="${esc(ll.ref)}">${mtag(M.score(ll).total)}</a>` : '<span class="muted small">–</span>'}</td></tr>`;
+        <td style="text-align:right">${ll ? `<a href="${link("audit", ll.id, "lifting")}" title="${esc(ll.ref)}">${mtag(M.score(ll).total)}</a>` : '<span class="muted small">–</span>'}</td>
+        <td style="text-align:right">${lx ? `<a href="${link("audit", lx.id, "flash")}" title="${esc(lx.ref)}">${mtag(M.score(lx).total)}</a>` : '<span class="muted small">–</span>'}</td></tr>`;
     }).join("");
   };
   view.querySelector("#q").addEventListener("input", e => { f.q = e.target.value; draw(); });

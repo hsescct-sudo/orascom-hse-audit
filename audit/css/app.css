@@ -557,3 +557,12 @@ input[type=number] { -moz-appearance: textfield; }
   .gate-art { padding-bottom: 0; }
   .gate-sky { width: calc(100% + 44px); margin: 4px -22px 0; height: 110px; }
 }
+
+/* Flash Audit: each check is Yes, No or N/A */
+.rate .quick.yn button { min-width: 64px; }
+.rate .quick button.yes[aria-pressed="true"] { background: var(--g-green); border-color: var(--g-green); color: #fff; }
+.rate .quick button.no[aria-pressed="true"] { background: var(--g-red); border-color: var(--g-red); color: #fff; }
+.part-h [data-allna] { margin-left: 4px; }
+@media (max-width: 860px) {
+  .rate .quick.yn { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

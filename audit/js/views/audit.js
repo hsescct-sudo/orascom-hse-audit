@@ -49,7 +49,7 @@ export async function render(ctx) {
     return [
       { id: "info", label: "Audit info" },
       ...(cand.length ? [{ id: "last", label: "Last audit NCRs" }] : []),
-      { id: "score", label: d.id === "full" ? "Appraisal" : "Checklist" },
+      { id: "score", label: d.scoreStep },
       { id: "ncrs", label: "NCRs" },
       { id: "good", label: "Good practice" },
       { id: "close", label: d.hasMeetings ? "Photos and close meeting" : "Photos and summary" },
@@ -83,15 +83,15 @@ export async function render(ctx) {
   // ---------- live score ----------
   function drawLive() {
     const sc = M.score(a);
-    const rows = sc.parts.map(p => `<div><span>${esc(d.id === "full" ? `${p.code} (${p.share}%)` : `${p.code}. ${p.name}`)}</span><b>${fmtScore(p.score == null ? null : p.score * 100)}</b></div>`).join("");
+    const rows = sc.parts.map(p => `<div><span>${esc(d.id === "full" ? `${p.code} (${p.share}%)` : d.partTitle(p))}</span><b>${fmtScore(p.score == null ? null : p.score * 100)}</b></div>`).join("");
     view.querySelector("#live").innerHTML = `
       ${tag(sc.total, { white: true, sub: sc.complete ? d.scoreLabel : "Live score" })}
       <div class="progress" aria-label="Items rated"><b style="width:${Math.round(100 * sc.ratedCount / sc.itemCount)}%"></b></div>
-      <div class="small muted">${sc.ratedCount} of ${sc.itemCount} items rated</div>
+      <div class="small muted">${sc.ratedCount} of ${sc.itemCount} ${d.binary ? "checks answered" : "items rated"}</div>
       <div class="lb-rows">${rows}
-        ${sc.base != null ? `<div><span>Before deductions</span><b>${fmtScore(sc.base)}</b></div>` : ""}
+        ${d.countScore ? `<div><span>NCRs raised</span><b>${M.auditNCRs(a).length}</b></div>` : `${sc.base != null ? `<div><span>Before deductions</span><b>${fmtScore(sc.base)}</b></div>` : ""}
         <div><span>Serious NCRs (${sc.seriousCount})</span><b style="color:${sc.serious ? "var(--g-red)" : "inherit"}">${M.minus(sc.serious)}</b></div>
-        <div><span>Repeated NCRs (${sc.repeatedCount})</span><b style="color:${sc.repeated ? "var(--g-red)" : "inherit"}">${sc.repeated ? "−" + sc.repeated + "%" : "0"}</b></div>
+        <div><span>Repeated NCRs (${sc.repeatedCount})</span><b style="color:${sc.repeated ? "var(--g-red)" : "inherit"}">${sc.repeated ? "−" + sc.repeated + "%" : "0"}</b></div>`}
       </div>
       <button class="btn sm ghost" type="button" id="how">How is this calculated?</button>`;
     view.querySelector("#how").onclick = () => howDialog(d, sc);
@@ -181,7 +181,7 @@ export async function render(ctx) {
           <label class="fld"><span>Progress of completion (%)</span><input type="number" inputmode="numeric" min="0" max="100" data-f="completion" value="${esc(a.completion)}" placeholder="e.g. 45"></label>
         </div>
       </section>
-      ${people("auditors", d.id === "full" ? "Auditors" : "Assessors", "Name and position")}
+      ${people("auditors", d.peopleLabel, "Name and position")}
       ${d.hasMeetings ? people("attendees", "Key people at the meeting", "From the project team") : ""}
       ${d.hasMeetings ? `<section class="panel"><div class="grid2">
         <label class="fld"><span>Opening meeting</span><textarea data-f="opening" placeholder="Scope, plan, who attended">${esc(a.opening)}</textarea></label>
@@ -222,7 +222,7 @@ export async function render(ctx) {
           <div style="margin-top:4px">${esc(n.description)}</div><div class="muted small">${esc(n.location || "")}${n.due_date ? `, deadline ${esc(fmtDate(n.due_date))}` : ""}</div></div>
         <div class="seg" role="group" aria-label="Result on site"><button type="button" data-res="closed" aria-pressed="${c && c.result === "closed"}">Closed</button><button type="button" data-res="open" aria-pressed="${c && c.result === "open"}">Still open</button></div>
       </div>`; }).join("")}</div></section>
-      <div class="row" style="margin-top:14px"><button class="btn primary lg" type="button" data-next>Next: ${esc(d.id === "full" ? "Appraisal" : "Checklist")}</button></div>`;
+      <div class="row" style="margin-top:14px"><button class="btn primary lg" type="button" data-next>Next: ${esc(d.scoreStep)}</button></div>`;
     el.querySelector("[data-next]").onclick = nextStep;
     el.addEventListener("click", async e => {
       const b = e.target.closest("[data-res]"); if (!b || locked()) return;
@@ -250,14 +250,15 @@ export async function render(ctx) {
     const corr = M.correctionPct(a);
     let k = 0;
     el.innerHTML = d.parts.map(p => `
-      <div class="part-h"><h2>${esc(d.id === "full" ? `${p.code}: ${p.name}` : `${p.code}. ${p.name}`)}</h2><span class="muted">${p.share}% of the score</span><span class="ps" data-pscore="${p.id}"></span></div>
+      <div class="part-h"><h2>${esc(d.partTitle(p))}</h2><span class="muted">${d.countScore ? `${p.items.length} checks` : `${p.share}% of the score`}</span>${d.binary ? `<button class="btn sm ghost" type="button" data-allna="${esc(p.id)}">Not on this site: rest N/A</button>` : ""}<span class="ps" data-pscore="${p.id}"></span></div>
       ${p.items.map(it => { k++; const v = a.ratings[it.id]; const na = v === NA; return `
       <article class="qcard ${it.critical ? "crit" : ""} ${na ? "is-na" : ""}" data-it="${esc(it.id)}">
-        <div class="q-top"><span class="q-id">${d.id === "full" ? k : esc(it.id)}</span><div style="min-width:0"><div class="q-title">${esc(it.title)}</div><div class="q-text">${esc(it.text)}</div></div><div class="q-w">Weight<b>${it.weight}</b></div></div>
-        <div class="rate">
+        <div class="q-top"><span class="q-id">${esc(String(d.itemNo(it, k)))}</span><div style="min-width:0"><div class="q-title">${esc(it.title)}</div>${it.text ? `<div class="q-text">${esc(it.text)}</div>` : ""}</div>${d.binary ? `<div class="q-w">Risk<b>${esc(it.risk || "")}</b></div>` : `<div class="q-w">Weight<b>${it.weight}</b></div>`}</div>
+        <div class="rate">${d.binary ? `
+          <div class="quick yn" role="group" aria-label="Answer for ${esc(it.id)}"><button type="button" class="yes" data-q="100" aria-pressed="${v === 100}">Yes</button><button type="button" class="no" data-q="0" aria-pressed="${v === 0}">No</button><button type="button" class="na" data-q="na" aria-pressed="${na}">N/A</button></div>` : `
           <div class="val"><input type="number" inputmode="decimal" min="0" max="100" step="1" value="${typeof v === "number" ? v : ""}" placeholder="${na ? "N/A" : "–"}" aria-label="Rating for ${esc(it.title)} in percent"><span>%</span></div>
           <input type="range" min="0" max="100" step="1" value="${typeof v === "number" ? v : 100}" aria-label="Rating slider for ${esc(it.title)}" ${typeof v === "number" ? "" : 'style="opacity:.35"'}>
-          <div class="quick">${QUICK.map(q => `<button type="button" data-q="${q}" aria-pressed="${v === q}">${q}</button>`).join("")}<button type="button" class="na" data-q="na" aria-pressed="${na}">N/A</button></div>
+          <div class="quick">${QUICK.map(q => `<button type="button" data-q="${q}" aria-pressed="${v === q}">${q}</button>`).join("")}<button type="button" class="na" data-q="na" aria-pressed="${na}">N/A</button></div>`}
         </div>
         <div class="q-foot">
           ${it.critical ? `<span class="chip sev-Serious">Serious violations area</span>` : ""}
@@ -274,16 +275,36 @@ export async function render(ctx) {
       if (v === "" || v == null) delete a.ratings[id]; else a.ratings[id] = v;
       card.classList.toggle("is-na", v === NA);
       const num = card.querySelector(".val input"), rng = card.querySelector("input[type=range]");
-      if (document.activeElement !== num) num.value = typeof v === "number" ? v : "";
-      num.placeholder = v === NA ? "N/A" : "–";
-      if (typeof v === "number") { rng.value = v; rng.style.opacity = ""; } else rng.style.opacity = ".35";
+      if (num && document.activeElement !== num) num.value = typeof v === "number" ? v : "";
+      if (num) num.placeholder = v === NA ? "N/A" : "–";
+      if (rng) { if (typeof v === "number") { rng.value = v; rng.style.opacity = ""; } else rng.style.opacity = ".35"; }
       card.querySelectorAll("[data-q]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.q === String(v))));
       save(); drawLive(); drawSteps();
     };
     el.addEventListener("click", async e => {
+      const all = e.target.closest("[data-allna]");
+      if (all && !locked()) {
+        const part = d.parts.find(p => p.id === all.dataset.allna);
+        const open = part.items.filter(it => !isRated(a.ratings[it.id]));
+        if (!open.length) { toast("Every check in this topic is answered."); return; }
+        if (!(await confirmBox(`Mark the ${open.length} unanswered check${open.length > 1 ? "s" : ""} in ${part.name} as N/A?`, { title: "Not on this site", ok: "Mark N/A" }))) return;
+        open.forEach(it => { a.ratings[it.id] = NA; });
+        save(); drawStep(); drawLive(); drawSteps(); return;
+      }
       const card = e.target.closest("[data-it]"); if (!card) return;
       const q = e.target.closest("[data-q]");
-      if (q && !locked()) { const v = q.dataset.q === "na" ? NA : +q.dataset.q; setVal(card, a.ratings[card.dataset.it] === v ? "" : v); return; }
+      if (q && !locked()) {
+        const v = q.dataset.q === "na" ? NA : +q.dataset.q;
+        const nv = a.ratings[card.dataset.it] === v ? "" : v;
+        setVal(card, nv);
+        // Flash: a No is a finding. Open the NCR with the check, its topic and its risk filled in.
+        if (d.binary && nv === 0 && !ncrsByItem[card.dataset.it]) {
+          const it = M.findItem(d, card.dataset.it);
+          const r = await editNCR(a, null, { item_id: it.id, severity: (d.riskSeverity || {})[it.risk] || "Minor", classification: it.partName, description: `Not met: ${it.title}` });
+          if (r) { drawStep(); drawLive(); drawSteps(); }
+        }
+        return;
+      }
       if (e.target.closest("[data-note]")) { const t = card.querySelector("[data-notef]"); t.hidden = !t.hidden; if (!t.hidden) t.focus(); return; }
       if (e.target.closest("[data-ncr]") && !locked()) { const r = await editNCR(a, null, { item_id: card.dataset.it }); if (r) { drawStep(); drawLive(); drawSteps(); } }
     });
@@ -446,15 +467,15 @@ export async function render(ctx) {
 }
 
 function howDialog(d, sc) {
-  const rows = sc.parts.map(p => `<tr><th colspan="5" style="background:#eef2f6">${esc(d.id === "full" ? `${p.code}: ${p.name}` : `${p.code}. ${p.name}`)} (${p.share}%), part score ${fmtScore(p.score == null ? null : p.score * 100)}</th></tr>` +
+  const rows = sc.parts.map(p => `<tr><th colspan="5" style="background:#eef2f6">${esc(d.partTitle(p))}${d.countScore ? "" : ` (${p.share}%)`}, ${d.countScore ? "topic" : "part"} score ${fmtScore(p.score == null ? null : p.score * 100)}</th></tr>` +
     p.items.map(it => `<tr><td>${esc(it.title)}</td><td class="num">${it.weight}</td><td class="num">${it.state === "na" ? "N/A" : it.state === "open" ? "–" : it.value + "%"}</td><td class="num">${it.share ? it.share.toFixed(2) + "%" : "–"}</td><td class="num">${it.points ? it.points.toFixed(2) : "–"}</td></tr>`).join("")).join("");
   dialog({
     title: "How the score is calculated", wide: true,
-    body: `<p class="small">Each part's score is the weighted average of its items (weight × rating). Items marked N/A are left out, and their weight goes to the other items. A rating of 0% counts as zero. Parts are combined by their share. Then one or more Serious NCRs take off ${d.deductions.serious}% once, and each repeated NCR takes off ${d.deductions.repeated}%.</p>
+    body: `${d.countScore ? `<p class="small">Each check is Yes (100%), No (0%) or N/A. The score is the share of Yes among the checks that apply. N/A checks are left out. Flash audits have no deductions.</p>` : `<p class="small">Each part's score is the weighted average of its items (weight × rating). Items marked N/A are left out, and their weight goes to the other items. A rating of 0% counts as zero. Parts are combined by their share. Then one or more Serious NCRs take off ${d.deductions.serious}% once, and each repeated NCR takes off ${d.deductions.repeated}%.</p>`}
       <div class="tscroll"><table class="tbl calc"><thead><tr><th>Item</th><th>Weight</th><th>Rating</th><th>Share of final</th><th>Points</th></tr></thead><tbody>${rows}
       <tr><th colspan="4">Before deductions</th><th class="num">${fmtScore(sc.base)}</th></tr>
-      <tr><td colspan="4">Serious NCRs (${sc.seriousCount})</td><td class="num">${M.minus(sc.serious)}</td></tr>
-      <tr><td colspan="4">Repeated NCRs (${sc.repeatedCount})</td><td class="num">${M.minus(sc.repeated)}</td></tr>
+      ${d.countScore ? "" : `<tr><td colspan="4">Serious NCRs (${sc.seriousCount})</td><td class="num">${M.minus(sc.serious)}</td></tr>
+      <tr><td colspan="4">Repeated NCRs (${sc.repeatedCount})</td><td class="num">${M.minus(sc.repeated)}</td></tr>`}
       <tr><th colspan="4">${esc(d.scoreLabel)}</th><th class="num">${fmtScore(sc.total)}</th></tr></tbody></table></div>`,
   });
 }

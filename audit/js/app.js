@@ -79,7 +79,7 @@ function gate() {
     <section class="gate-art">
       <div class="gate-top"><div class="brand"><span class="brand-logo"><img src="assets/orascom-logo.png" alt="Orascom Construction"></span><span class="brand-name">Corporate HSE<span>Audit system</span></span></div><a class="gate-back" href="../start/">${ICON.back}<span>All HSE systems</span></a></div>
       <div>
-        <h1>HSE Audit and Lifting</h1>
+        <h1>Corporate HSE audits</h1>
         <p>Audit on site with or without internet. Score with the company form, raise NCRs with photos and send the report before you leave the site.</p>
       </div>
       <div class="gate-tags" aria-hidden="true">
@@ -93,7 +93,7 @@ function gate() {
     <section class="gate-form">
       <form class="gate-card" id="signin" autocomplete="on">
         <h2>Sign in</h2>
-        <p class="muted" style="margin:-6px 0 0">HSE Audit and Lifting</p>
+        <p class="muted" style="margin:-6px 0 0">Flash Audit, HSE Audit and Lifting</p>
         ${cloud ? `
         <label class="fld"><span>E-mail</span><input name="email" type="email" required autocomplete="username"></label>
         <label class="fld"><span>Password</span><input name="password" type="password" required autocomplete="current-password"></label>
@@ -224,7 +224,7 @@ function drawNav() {
   const counts = navCounts();
   $("#modsw").innerHTML = MODULE_IDS.map(id => {
     const d = MODULES[id];
-    return `<a href="${link(MODULE_PAGES.includes(p) && !["audit", "ncr", "report"].includes(p) ? p : "dashboard", null, id)}" aria-current="${id === m}"><span class="mi">${id === "full" ? ICON.hat : ICON.crane}</span><span><b>${esc(d.short)}</b><small>${esc(d.formRef)}</small></span></a>`;
+    return `<a href="${link(MODULE_PAGES.includes(p) && !["audit", "ncr", "report"].includes(p) ? p : "dashboard", null, id)}" aria-current="${id === m}"><span class="mi">${id === "full" ? ICON.hat : id === "flash" ? ICON.bolt : ICON.crane}</span><span><b>${esc(d.short)}</b><small>${esc(d.formRef)}</small></span></a>`;
   }).join("");
   $("#modsw-top").innerHTML = `<div class="seg" role="group" aria-label="Audit type">${MODULE_IDS.map(id => `<button type="button" data-mod="${id}" aria-pressed="${id === m}">${esc(MODULES[id].short)}</button>`).join("")}</div>`;
   $("#modsw-top").onclick = e => { const b = e.target.closest("[data-mod]"); if (b) go(link(MODULE_PAGES.includes(p) && !["audit", "ncr", "report"].includes(p) ? p : "dashboard", null, b.dataset.mod)); };

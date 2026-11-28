@@ -39,9 +39,14 @@ export function scoreAudit(def, audit, ncrs = [], opts = {}) {
   });
   const live = parts.filter(p => p.score != null);
   const shareSum = live.reduce((a, p) => a + p.share, 0);
-  const base = shareSum ? (live.reduce((a, p) => a + p.share * p.score, 0) / shareSum) * 100 : null;
-  // How much of the final score each item carries (for the "how is this calculated" view)
-  for (const p of parts) for (const it of p.items) {
+  let base = shareSum ? (live.reduce((a, p) => a + p.share * p.score, 0) / shareSum) * 100 : null;
+  // How much of the final score each item carries (for the "how is this calculated" view).
+  // Flash audit: the score is the share of checks met among the checks that apply.
+  if (def.countScore) {
+    const rated = parts.flatMap(p => p.items.filter(it => it.state === "rated"));
+    base = rated.length ? rated.reduce((a, it) => a + clamp(it.value, 0, 100), 0) / rated.length : null;
+    for (const p of parts) for (const it of p.items) { it.share = it.state === "rated" ? 100 / rated.length : 0; it.points = it.state === "rated" ? it.share * clamp(it.value, 0, 100) / 100 : 0; }
+  } else for (const p of parts) for (const it of p.items) {
     it.share = it.state === "rated" && shareSum && p.wSum ? (p.share / shareSum) * (it.weight / p.wSum) * 100 : 0;
     it.points = it.state === "rated" ? it.share * clamp(it.value, 0, 100) / 100 : 0;
   }

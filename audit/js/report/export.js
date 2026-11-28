@@ -56,7 +56,7 @@ export async function excelReport(a) {
     const wb = new ExcelJS.Workbook(); wb.creator = "OC HSE Audit"; wb.created = new Date();
     const logo = await logoData(); const logoId = logo ? wb.addImage({ base64: logo, extension: "png" }) : null;
     // Sheet 1: report
-    const ws = wb.addWorksheet(d.id === "full" ? "HSE Site Performance Report" : "Lifting Assessment Report", { views: [{ showGridLines: false }], pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+    const ws = wb.addWorksheet(d.id === "full" ? "HSE Site Performance Report" : d.sheetTitle, { views: [{ showGridLines: false }], pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
     [5, 34, 18, 16, 16, 24, 10, 18, 12].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
     titleBlock(wb, ws, logoId, d.reportTitle, d.formRef, d.formRev, 9);
     let r = 4;
@@ -68,7 +68,7 @@ export async function excelReport(a) {
       const c4 = ws.getCell(r, 8); c4.value = v2 == null ? "" : v2; cellStyle(c4);
       r++;
     };
-    line("Project", `${p.name} (${p.code})`, d.id === "full" ? "Audit date" : "Assessment date", fmtDate(a.date));
+    line("Project", `${p.name} (${p.code})`, d.dateLabel, fmtDate(a.date));
     line("Ref", a.ref, d.scoreLabel, `${fmtScore(sc.total)} ${sc.grade ? "· " + sc.grade.label : ""}`);
     if (d.id === "full") {
       const prev = M.previousScore(a), corr = M.correctionPct(a);
@@ -86,7 +86,7 @@ export async function excelReport(a) {
       r++;
     };
     if (d.id === "full") people("Key people attended the meeting", a.attendees);
-    people(d.id === "full" ? "Auditors" : "Assessors", a.auditors);
+    people(d.peopleLabel, a.auditors);
     const para = (title, text) => { ws.mergeCells(r, 1, r, 2); ws.mergeCells(r, 3, r, 9); const t = ws.getCell(r, 1); t.value = title; cellStyle(t, { bold: true, fill: HEAD }); const v = ws.getCell(r, 3); v.value = text || ""; cellStyle(v); ws.getRow(r).height = Math.max(20, Math.ceil(String(text || "").length / 95) * 14); r++; };
     if (d.id === "full") { para("Opening meeting", a.opening); para("Site tour", a.siteTour); para("Close meeting", a.closeMeeting); }
     else { para("Purpose", d.purpose); para("Summary", a.summary); }
@@ -123,32 +123,35 @@ export async function excelReport(a) {
       r += 10;
     }
     // Sheet 2: appraisal with live formulas
-    const ap = wb.addWorksheet(d.id === "full" ? "HSE Performance Grading" : "Appraisal Sheet", { views: [{ showGridLines: false }], pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+    const ap = wb.addWorksheet(d.id === "full" ? "HSE Performance Grading" : d.appraisalSheet, { views: [{ showGridLines: false }], pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
     [7, 70, 9, 10, 10].forEach((w, i) => { ap.getColumn(i + 1).width = w; });
-    titleBlock(wb, ap, logoId, d.id === "full" ? "HSE Performance Appraisal Form" : "Lifting Assessment Appraisal Checklist", d.formRef, d.formRev, 5);
+    titleBlock(wb, ap, logoId, d.id === "full" ? "HSE Performance Appraisal Form" : d.checklistTitle, d.formRef, d.formRev, 5);
     let q = 4; const partCells = [];
     ap.getCell(q, 1).value = "Project"; ap.getCell(q, 2).value = `${p.name} (${p.code}), ${fmtDate(a.date)}`; ap.getCell(q, 1).font = { bold: true }; q += 2;
-    ap.mergeCells(q, 1, q, 5); ap.getCell(q, 1).value = "Rating is 0-100%. N/A items are left out and their weight goes to the other items. 0% counts as zero."; ap.getCell(q, 1).font = { italic: true, size: 9 }; q += 2;
+    ap.mergeCells(q, 1, q, 5); ap.getCell(q, 1).value = d.countScore ? "Yes = 100, No = 0. N/A checks are left out. The score is the share of Yes among the checks that apply." : "Rating is 0-100%. N/A items are left out and their weight goes to the other items. 0% counts as zero."; ap.getCell(q, 1).font = { italic: true, size: 9 }; q += 2;
     sc.parts.forEach(part => {
       const pd = d.parts.find(x => x.id === part.id);
-      ap.mergeCells(q, 1, q, 5); const ph = ap.getCell(q, 1); ph.value = d.id === "full" ? `${part.code}: ${part.name} (${part.share}%)` : `${part.code}- ${part.name} (${part.share}%)`; cellStyle(ph, { bold: true, fill: NAVY, color: "FFFFFFFF" }); q++;
-      headerRow(ap, q, ["Ser", "Item", "Weight", "Rating %", "Points"]); q++;
+      ap.mergeCells(q, 1, q, 5); const ph = ap.getCell(q, 1); ph.value = d.id === "full" ? `${part.code}: ${part.name} (${part.share}%)` : d.countScore ? `${part.name} (${part.items.length} checks)` : `${part.code}- ${part.name} (${part.share}%)`; cellStyle(ph, { bold: true, fill: NAVY, color: "FFFFFFFF" }); q++;
+      headerRow(ap, q, ["Ser", "Item", "Weight", d.countScore ? "Yes/No" : "Rating %", "Points"]); q++;
       const first = q;
       part.items.forEach((it, k) => {
         const txt = pd.items.find(x => x.id === it.id).text;
+        const label = txt ? `${it.title}: ${txt}` : it.title;
         const rating = it.state === "rated" ? it.value : it.state === "na" ? "N/A" : "";
-        const row = [d.id === "full" ? k + 1 : it.id, `${it.title}: ${txt}`, it.weight, rating, { formula: `IF(ISNUMBER(D${q}),C${q}*D${q}/100,"")`, result: it.state === "rated" ? it.weight * it.value / 100 : "" }];
+        const row = [d.id === "full" ? k + 1 : it.id, label, it.weight, rating, { formula: `IF(ISNUMBER(D${q}),C${q}*D${q}/100,"")`, result: it.state === "rated" ? it.weight * it.value / 100 : "" }];
         row.forEach((v, j) => { const c = ap.getCell(q, j + 1); c.value = v; cellStyle(c, { fill: j === 3 && rating === "N/A" ? "FFD9DEE5" : null, align: j >= 2 ? "center" : "left" }); });
-        ap.getRow(q).height = Math.max(28, Math.ceil(txt.length / 80) * 13 + 14); q++;
+        ap.getRow(q).height = Math.max(28, Math.ceil(label.length / 80) * 13 + 14); q++;
       });
       const last = q - 1;
       ap.mergeCells(q, 1, q, 4); const tl = ap.getCell(q, 1); tl.value = `Total ${part.code} (%)`; cellStyle(tl, { bold: true, fill: HEAD });
       const tc = ap.getCell(q, 5); tc.value = { formula: `IFERROR(SUM(E${first}:E${last})/SUMPRODUCT(C${first}:C${last}*ISNUMBER(D${first}:D${last}))*100,"N/A")`, result: part.score == null ? "N/A" : Math.round(part.score * 1000) / 10 }; cellStyle(tc, { bold: true, fill: HEAD, align: "center" }); tc.numFmt = "0.0";
-      partCells.push({ cell: `E${q}`, share: part.share }); q += 2;
+      partCells.push({ cell: `E${q}`, share: part.share, first, last }); q += 2;
     });
     const shareSum = partCells.map(pc => `IF(ISNUMBER(${pc.cell}),${pc.share},0)`).join("+");
     const weighted = partCells.map(pc => `IF(ISNUMBER(${pc.cell}),${pc.cell}*${pc.share},0)`).join("+");
-    const concl = [["Before deductions (%)", { formula: `IFERROR((${weighted})/(${shareSum}),"")`, result: sc.base == null ? "" : Math.round(sc.base * 10) / 10 }],
+    // Flash: the share of Yes over all the checks that apply
+    const countF = `IFERROR((${partCells.map(pc => `SUM(E${pc.first}:E${pc.last})`).join("+")})/(${partCells.map(pc => `COUNT(D${pc.first}:D${pc.last})`).join("+")})*100,"")`;
+    const concl = [["Before deductions (%)", { formula: d.countScore ? countF : `IFERROR((${weighted})/(${shareSum}),"")`, result: sc.base == null ? "" : Math.round(sc.base * 10) / 10 }],
       [`Serious violations (${sc.seriousCount}): ${M.ruleText(d).serious}`, sc.serious, sc.seriousPct], [`Repeated violations (${sc.repeatedCount}): ${M.ruleText(d).repeated}`, sc.repeated, sc.repeatedPct]];
     const baseRow = q, pctMode = M.scoreOpts().deductFrom === "percent";
     concl.forEach(([k, v, pct], i) => {
@@ -261,12 +264,12 @@ export async function pptReport(a) {
     const prev = M.previousScore(a), corr = M.correctionPct(a);
     const stats = [[fmtScore(sc.total), d.scoreLabel], [prev == null ? "–" : fmtScore(prev), "Previous score"], [String(ncrs.length), "NCRs raised"], [String(ncrs.filter(n => n.severity === "Serious").length), "Serious NCRs"], [String(sc.repeatedCount), "Repeated NCRs"], [corr == null ? "–" : corr + "%", "Last audit NCRs corrected"]];
     stats.forEach(([v, l], i) => { const x = 0.5 + (i % 3) * 4.1, y = 1.3 + Math.floor(i / 3) * 1.8; s.addShape(pptx.ShapeType.rect, { x, y, w: 3.8, h: 1.5, fill: { color: "F3F6FA" }, line: { color: "D5DEE8" } }); s.addText(v, { x: x + 0.2, y: y + 0.1, w: 3.4, h: 0.8, fontFace: F, fontSize: 32, bold: true, color: i === 3 && v !== "0" ? "CF2F2B" : NV }); s.addText(l, { x: x + 0.2, y: y + 0.9, w: 3.4, h: 0.4, fontFace: F, fontSize: 14, color: "5A6B82" }); });
-    s.addText([{ text: d.id === "full" ? "Auditors: " : "Assessors: ", options: { bold: true } }, { text: (a.auditors || []).map(x => x.name).filter(Boolean).join(", ") || "–" }, ...(d.id === "full" ? [{ text: "     Manpower: ", options: { bold: true } }, { text: String(a.manpower || "–") }, { text: "     Completion: ", options: { bold: true } }, { text: a.completion !== "" ? a.completion + "%" : "–" }] : [])], { x: 0.5, y: 5.1, w: 12.3, h: 0.5, fontFace: F, fontSize: 14, color: "14233B" });
+    s.addText([{ text: d.peopleLabel + ": ", options: { bold: true } }, { text: (a.auditors || []).map(x => x.name).filter(Boolean).join(", ") || "–" }, ...(d.id === "full" ? [{ text: "     Manpower: ", options: { bold: true } }, { text: String(a.manpower || "–") }, { text: "     Completion: ", options: { bold: true } }, { text: a.completion !== "" ? a.completion + "%" : "–" }] : [])], { x: 0.5, y: 5.1, w: 12.3, h: 0.5, fontFace: F, fontSize: 14, color: "14233B" });
     if (d.id === "full" && a.closeMeeting) s.addText([{ text: "Close meeting: ", options: { bold: true } }, { text: a.closeMeeting }], { x: 0.5, y: 5.6, w: 12.3, h: 1.2, fontFace: F, fontSize: 13, color: "14233B", valign: "top" });
     // scores by part / item
     s = pptx.addSlide({ masterName: "M" });
-    s.addText(d.id === "full" ? "Appraisal by element" : "Assessment by section", { x: 0.5, y: 0.3, w: 9, h: 0.7, fontFace: F, fontSize: 28, bold: true, color: NV });
-    const rows = d.id === "full" ? sc.parts.flatMap(pp => pp.items.filter(it => it.state === "rated").map(it => ({ l: it.title, v: it.value }))) : sc.parts.filter(pp => pp.score != null).map(pp => ({ l: `${pp.code}. ${pp.name}`, v: Math.round(pp.score * 1000) / 10 }));
+    s.addText(d.id === "full" ? "Appraisal by element" : d.sectionsLabel, { x: 0.5, y: 0.3, w: 9, h: 0.7, fontFace: F, fontSize: 28, bold: true, color: NV });
+    const rows = d.id === "full" ? sc.parts.flatMap(pp => pp.items.filter(it => it.state === "rated").map(it => ({ l: it.title, v: it.value }))) : sc.parts.filter(pp => pp.score != null).map(pp => ({ l: d.partTitle(pp), v: Math.round(pp.score * 1000) / 10 }));
     if (rows.length) s.addChart(pptx.ChartType.bar, [{ name: "Rating %", labels: rows.map(x => x.l), values: rows.map(x => x.v) }], { x: 0.5, y: 1.1, w: 12.3, h: 5.8, barDir: "bar", valAxisMaxVal: 100, valAxisMinVal: 0, catAxisLabelFontSize: 10, catAxisLabelFontFace: F, valAxisLabelFontSize: 10, chartColors: rows.map(x => ({ green: "1B9E5A", orange: "E9851F", yellow: "EDBE2C", red: "CF2F2B" }[gradeOf(x.v).code])), showValue: true, dataLabelFontSize: 9, dataLabelFormatCode: "0", catAxisOrientation: "maxMin" });
     // NCRs: one slide each
     for (const n of ncrs.slice(0, 40)) {

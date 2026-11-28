@@ -206,7 +206,68 @@ export function sampleData(now, today = isoOf(new Date())) {
       docs.push({ id: mkId("gp"), kind: "good", module: pl.module, audit_id: audit.id, project_id: proj.id, date, subject: ex.split(" ").slice(0, 4).join(" "), classification: cls, example: ex, photos: [], created_at: audit.created_at, updated_at: audit.updated_at, sample: true });
     }
   }
+  flashSamples({ projects, auditors, members, quality, plan, docs, year, today, now, curMonth, curDay });
   return [...projects, ...members, ...plan, ...docs];
+}
+
+// Flash audits: a separate pass with its own random numbers, so the other sample data stays the same.
+// Twice a year on every second project. Each No in the checklist is an NCR on that check.
+function flashSamples({ projects, auditors, members, quality, plan, docs, year, today, now, curMonth, curDay }) {
+  const R = rng(20261128);
+  const mkId = p => p + "-" + Math.floor(R() * 1e9).toString(36) + Math.floor(R() * 1e6).toString(36);
+  const def = MODULES.flash;
+  const items = def.parts.flatMap(p => p.items.map(it => ({ ...it, partName: p.name })));
+  const mine = [];
+  projects.forEach((p, i) => {
+    if (i % 2) return;
+    const m1 = 1 + ((i * 7) % 6);
+    for (const m of [m1, m1 + 6]) mine.push({ id: mkId("pln"), kind: "plan", module: "flash", year, month: m, project_id: p.id, lead_id: auditors[(i + 1) % auditors.length].id, team_ids: [], created_at: now, updated_at: now, sample: true });
+  });
+  plan.push(...mine);
+  const counters = {};
+  for (const pl of mine.slice().sort((a, b) => a.month - b.month)) {
+    const due = pl.month < curMonth || (pl.month === curMonth && curDay > 20);
+    if (!due || R() < 0.08) continue;
+    const pIdx = projects.findIndex(p => p.id === pl.project_id);
+    const proj = projects[pIdx];
+    counters[proj.id] = (counters[proj.id] || 0) + 1;
+    const date = `${year}-${String(pl.month).padStart(2, "0")}-${String(3 + Math.floor(R() * 22)).padStart(2, "0")}`;
+    if (date > today) continue;
+    const q = Math.min(0.98, quality[pIdx] + 0.2);
+    const ratings = {};
+    for (const it of items) ratings[it.id] = R() < 0.07 ? "na" : R() < q ? 100 : 0;
+    const lead = members.find(m => m.id === pl.lead_id);
+    const ref = `${def.prefix}-${proj.code}-${String(counters[proj.id]).padStart(2, "0")}`;
+    const audit = {
+      id: mkId("aud"), kind: "audit", module: "flash", project_id: proj.id, plan_id: pl.id, ref, number: counters[proj.id], date,
+      status: "approved", lead_id: lead.id, team_ids: [lead.id], auditors: [{ name: lead.name, position: lead.position }], attendees: [],
+      manpower: 150 + Math.floor(R() * 1400), completion: 10 + Math.floor(R() * 85), opening: "", siteTour: "", closeMeeting: "",
+      summary: "Flash visit of the main work fronts with the site HSE manager.", ratings, notes: {}, photos: [], equipment: [], carry: [],
+      created_at: date + "T08:00:00.000Z", updated_at: date + "T15:00:00.000Z", submitted_at: date + "T14:00:00.000Z", approved_at: date + "T16:00:00.000Z", approved_by: "Corporate HSE",
+      sent: R() < 0.9 ? { date: [addDaysISO(date, 1 + Math.floor(R() * 5)), today].sort()[0], to: "Project Manager, Site HSE Manager", ref: "E-mail", by: "Corporate HSE" } : null,
+      sample: true,
+    };
+    pl.audit_id = audit.id;
+    docs.push(audit);
+    let seq = 0;
+    for (const it of items.filter(x => ratings[x.id] === 0)) {
+      seq++;
+      const sev = def.riskSeverity[it.risk] || "Minor";
+      const age = (Date.parse(today) - Date.parse(date)) / 86400000;
+      const closed = R() < Math.min(0.92, age / 70);
+      const caDate = closed ? addDaysISO(date, 1 + Math.floor(R() * (sev === "Minor" ? 25 : 12))) : "";
+      docs.push({
+        id: mkId("ncr"), kind: "ncr", module: "flash", audit_id: audit.id, project_id: proj.id, ref: `${ref}-${String(seq).padStart(2, "0")}`, seq, date,
+        severity: sev, repeated: false, classification: it.partName, item_id: it.id, clause: def.ncrClause,
+        description: `Not met: ${it.title}`, location: LOCATIONS[Math.floor(R() * LOCATIONS.length)], root_causes: [ROOT_CAUSES[Math.floor(R() * ROOT_CAUSES.length)]], other_cause: "",
+        action_required: "Correct the condition, find the root cause and stop it happening again. Send evidence photos.",
+        photos: [], responsible_name: "Site HSE Manager", responsible_position: "HSE Manager", due_date: addDaysISO(date, sev === "Serious" ? 1 : sev === "Major" ? 7 : 14),
+        status: closed ? "Closed" : "Open", ca_text: closed ? "Corrected on site and verified." : "", ca_date: caDate,
+        followup_name: closed ? lead.name : "", followup_position: closed ? lead.position : "", followup_date: closed ? caDate : "", comments: "",
+        created_at: audit.created_at, updated_at: audit.updated_at, sample: true,
+      });
+    }
+  }
 }
 
 function addDaysISO(iso, n) { const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + n); return isoOf(d); }

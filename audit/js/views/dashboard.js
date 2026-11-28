@@ -68,7 +68,7 @@ export async function render(ctx) {
         ${tag(avg, { size: "xl", white: true, sub: scored.length ? `${scored.length} audit${scored.length > 1 ? "s" : ""}` : "" })}
         <div class="hero-txt">
           <h2>${avg == null ? "No scored audits yet" : `${esc(M.grade(avg).appraisal)}`}</h2>
-          <p>Average ${esc(def.scoreLabel.toLowerCase())} of ${scored.length} ${esc(def.short)} audit${scored.length === 1 ? "" : "s"} in ${f.year}${f.country ? " in " + esc(f.country) : ""}. The bar shows each project's latest grade.</p>
+          <p>Average ${esc(def.scoreLabel.toLowerCase())} of ${scored.length} ${esc(def.what)}${scored.length === 1 ? "" : "s"} in ${f.year}${f.country ? " in " + esc(f.country) : ""}. The bar shows each project's latest grade.</p>
           <div class="gradebar" role="img" aria-label="Projects by grade">${GRADES.map(g => byGrade[g.code] ? `<span class="${g.code}" style="flex:${byGrade[g.code]}" title="${esc(g.label)}: ${byGrade[g.code]} project${byGrade[g.code] > 1 ? "s" : ""}">${byGrade[g.code]}</span>` : "").join("")}</div>
           <div class="gradekey">${GRADES.map(g => `<span><i style="background:${COLORS.grade[g.code]}"></i>${esc(g.label)} ${g.min === 0 ? "below 65%" : g.min + "%+"}</span>`).join("")}</div>
         </div>
@@ -86,7 +86,7 @@ export async function render(ctx) {
       </section>
       <section class="panel span-5"><div class="panel-h"><h2>Projects</h2><span class="muted">Latest score, last audits</span></div>
         <div class="league" id="league" style="max-height:470px;overflow-y:auto"></div></section>
-      <section class="panel span-7"><div class="panel-h"><h2>${mod === "full" ? "Ratings by element" : "Ratings by section"}</h2><span class="muted">Latest audit of each project</span></div>
+      <section class="panel span-7"><div class="panel-h"><h2>${esc(def.sectionsLabel)}</h2><span class="muted">Latest audit of each project</span></div>
         <div class="chart tall" id="c-heat"></div></section>
       <section class="panel span-6"><div class="panel-h"><h2>Score by month</h2><span class="muted">Average score and number of audits</span></div><div class="chart" id="c-trend"></div></section>
       <section class="panel span-6"><div class="panel-h"><h2>Audit plan ${f.year}</h2><span class="muted">${planDone} done of ${plan.length}</span><a class="act btn sm ghost" href="${link("plan")}">Open plan</a></div><div class="chart" id="c-plan"></div></section>
@@ -205,7 +205,7 @@ async function heat(el, def, mod, rows) {
     yLabels = items.map(it => it.title);
     rows.forEach((x, xi) => items.forEach((it, yi) => { const v = x.a.ratings[it.id]; data.push([xi, yi, typeof v === "number" ? v : "-"]); }));
   } else {
-    yLabels = def.parts.map(p => `${p.code}. ${p.name}`);
+    yLabels = def.parts.map(p => def.partTitle(p));
     rows.forEach((x, xi) => x.s.parts.forEach((p, yi) => data.push([xi, yi, p.score == null ? "-" : Math.round(p.score * 1000) / 10])));
   }
   el.style.height = Math.max(320, yLabels.length * 22 + 70) + "px";
