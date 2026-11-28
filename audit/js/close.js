@@ -2,6 +2,7 @@
 // No sign-in. The long code in the link (#t=...) is the key. Nothing is saved on the device
 // except the sender's name, to fill it next time.
 import { esc, fmtDate, todayISO, daysBetween, shrinkImage, photoInputs, lightbox, ensureSupabase } from "./ui.js";
+import { voiceTyping, voiceSupported, voiceLang, setVoiceLang } from "./voice.js";
 
 const CFG = window.HSE_AUDIT_CONFIG || {};
 const BUCKET = CFG.photoBucket || "audit-photos";
@@ -11,6 +12,19 @@ const SEV = { Serious: "Serious", Major: "Major", Minor: "Minor" };
 const $ = s => document.querySelector(s);
 let client = null;
 const urls = new Map();
+
+// Voice typing: a microphone on every text box. Arabic first when the phone is in Arabic.
+if (voiceSupported) {
+  try { if (!localStorage.getItem("oc-voice-lang") && /^ar/i.test(navigator.language || "")) setVoiceLang("ar-EG"); } catch (e) { /* private mode */ }
+  const box = document.getElementById("lk-voice"), sel = document.getElementById("lk-vl");
+  box.hidden = false; sel.value = voiceLang();
+  sel.addEventListener("change", () => setVoiceLang(sel.value));
+  voiceTyping({ message: m => {
+    let el = document.querySelector(".lk-msg");
+    if (!el) { el = document.createElement("div"); el.className = "lk-msg"; el.setAttribute("role", "status"); document.body.appendChild(el); }
+    el.textContent = m; clearTimeout(el._t); el._t = setTimeout(() => el.remove(), 5000);
+  } });
+}
 
 const mem = { get: k => { try { return localStorage.getItem("oc-link-" + k) || ""; } catch (e) { return ""; } }, set: (k, v) => { try { localStorage.setItem("oc-link-" + k, v); } catch (e) { /* private mode */ } } };
 const plainErr = e => {

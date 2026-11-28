@@ -36,6 +36,7 @@
   color-scheme: light;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 400 15px/1.5 var(--f-body); }
 h1, h2, h3, h4 { font-family: var(--f-cond); font-weight: 700; line-height: 1.15; margin: 0; letter-spacing: 0.005em; }
@@ -595,3 +596,31 @@ input[type=number] { -moz-appearance: textfield; }
   .signin-col { min-width: 0; flex-basis: 100%; }
   .signin-card { padding: 22px 18px; }
 }
+
+/* tick boxes to pick rows */
+.tbl th.c-sel, .tbl td.c-sel { width: 40px; text-align: center; }
+.tbl td.c-sel input, .tbl th.c-sel input { width: 20px; height: 20px; cursor: pointer; }
+@media (max-width: 860px) {
+  .tbl td.c-sel { order: -4; grid-column: 1 / -1; justify-self: start; width: auto; padding-bottom: 0; }
+  .tbl td.c-sel:empty { display: none; }
+}
+
+/* evidence photos on each checklist item */
+label.btn input[type="file"] { display: none; }
+label.btn { cursor: pointer; }
+.q-ph:empty { display: none; }
+.q-ph { margin-top: 8px; }
+.q-ph .ph { width: 72px; height: 72px; }
+.rep .ph-cell.ev img { display: inline-block; width: 120px; height: 90px; margin: 0 4px 4px 0; }
+
+/* voice typing: microphone on every text box */
+.vwrap { position: relative; display: block; }
+.vwrap > textarea { width: 100%; padding-right: 46px; }
+.vwrap:has(> textarea[hidden]) { display: none; }
+.vwrap:has(> textarea:disabled) .vmic, .vwrap:has(> textarea[readonly]) .vmic { display: none; }
+.vmic { position: absolute; right: 6px; bottom: 8px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: #fff; color: var(--navy); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.vmic:hover { border-color: var(--navy); }
+.vmic.on { background: var(--g-red); border-color: var(--g-red); color: #fff; }
+@media (prefers-reduced-motion: no-preference) { .vmic.on { animation: vpulse 1.2s ease-in-out infinite; } }
+@keyframes vpulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(200, 40, 40, .45); } 50% { box-shadow: 0 0 0 8px rgba(200, 40, 40, 0); } }
+@media (max-width: 860px) { .ck-row .vwrap { grid-column: 1 / -1; } }

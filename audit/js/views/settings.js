@@ -5,6 +5,7 @@ import * as Sync from "../sync.js";
 import { setTitle, link, leaveDemo, rerender } from "../app.js";
 import { esc, ICON, toast, confirmBox, dialog } from "../ui.js";
 import { MODULES, MODULE_IDS } from "../templates.js";
+import { voiceSupported, voiceLang, setVoiceLang, LANGS } from "../voice.js";
 
 export const VERSION = "1.0.0";
 export async function render(ctx) {
@@ -37,6 +38,8 @@ export async function render(ctx) {
         <div class="row" style="margin-top:6px">
           ${mode === "cloud" ? `<button class="btn" type="button" id="sendnow">${ICON.cloud}<span>Send and refresh now</span></button><button class="btn ghost" type="button" id="pw">Change my password</button><button class="btn ghost" type="button" id="out">${ICON.out}<span>Sign out</span></button>` : `<button class="btn" type="button" id="leave">${ICON.out}<span>Leave sample mode</span></button>`}
         </div>
+        ${voiceSupported ? `<label class="fld" style="margin-top:10px"><span>Voice typing language (the microphone on text boxes)</span><select id="vlang">${LANGS.map(([v, l]) => `<option value="${v}" ${voiceLang() === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>`
+          : `<p class="muted small" style="margin-top:10px">Voice typing works in Chrome, Edge and Safari. This browser doesn't have it.</p>`}
         ${mode === "demo" ? `<label class="fld" style="margin-top:10px"><span>See the system as</span><select id="viewas">${M.members().map(m => `<option value="${esc(m.id)}" ${m.id === M.me().id ? "selected" : ""}>${esc(m.name)} (${esc(m.role)})</option>`).join("")}</select></label>` : ""}
         <p class="muted small" style="margin-top:6px">On iPhone, add the system to the home screen (Share, Add to Home Screen) so the device keeps its saved audits. On Android, install the app or add it from Chrome.</p>
       </div></section>
@@ -83,6 +86,23 @@ export async function render(ctx) {
         <label class="fld"><span>${esc(MODULES[id].short)}: NCR classifications (${d.ncrClasses.length})</span><textarea rows="8" data-l="ncrClasses">${esc(d.ncrClasses.join("\n"))}</textarea></label>
         <label class="fld"><span>${esc(MODULES[id].short)}: good practice classifications (${d.goodClasses.length})</span><textarea rows="8" data-l="goodClasses">${esc(d.goodClasses.join("\n"))}</textarea></label></div>`; }).join("")}
       <div class="row"><button class="btn primary" type="button" id="savelists">Save lists</button></div>
+    </section>
+    <section class="panel" id="deldata"><div class="panel-h"><h2>Delete data</h2><span class="muted">For test records or a fresh start</span></div>
+      <p class="small" style="margin-top:0">Deleted audits take their NCRs and good practice with them. They leave every screen, report and dashboard, and you can bring them back under Deleted records.</p>
+      <div class="grid3">
+        <label class="fld"><span>Audit type</span><select id="dd-m"><option value="">All three</option>${MODULE_IDS.map(id => `<option value="${id}">${esc(MODULES[id].short)}</option>`).join("")}</select></label>
+        <label class="fld"><span>Which audits</span><select id="dd-s"><option value="">All</option><option value="draft">In progress</option><option value="submitted">Waiting approval</option><option value="approved">Approved</option><option value="none">None, only the plan</option></select></label>
+        <label class="fld"><span>Year</span><select id="dd-y"><option value="">All years</option>${[...new Set([...S.all("audit").map(a => String(a.date || "").slice(0, 4)), ...S.all("plan").map(p => String(p.year))])].filter(Boolean).sort().reverse().map(y => `<option>${esc(y)}</option>`).join("")}</select></label>
+      </div>
+      <label class="tick" style="margin-top:10px"><input type="checkbox" id="dd-plan">Also delete the audit plan for this type and year</label>
+      <p class="small" id="dd-n" style="margin:10px 0"></p>
+      <div class="row"><button class="btn danger" type="button" id="dd-go">Delete</button></div>
+    </section>
+    <section class="panel" id="deleted"><div class="panel-h"><h2>Deleted records</h2><span class="muted">Bring back anything deleted by mistake</span></div>
+      ${(() => { const bs = M.deletedBatches(); return bs.length ? `<div class="stack" style="gap:10px">${bs.map(b => `<div class="row" style="justify-content:space-between;gap:12px;border-top:1px solid var(--line-soft);padding-top:10px">
+        <div><b>${esc([b.audit && `${b.audit} audit${b.audit === 1 ? "" : "s"}`, b.ncr && `${b.ncr} NCR${b.ncr === 1 ? "" : "s"}`, b.good && `${b.good} good practice`, b.plan && `${b.plan} plan line${b.plan === 1 ? "" : "s"}`].filter(Boolean).join(", "))}</b>
+          <div class="muted small">${esc([...b.modules].map(m => (MODULES[m] || {}).short || m).join(", "))}${b.at ? `, deleted ${esc(b.at.slice(0, 10))} ${esc(b.at.slice(11, 16))}` : ""}${b.by ? ` by ${esc(b.by)}` : ""}${b.refs.length ? `. ${esc(b.refs.slice(0, 4).join(", "))}${b.refs.length > 4 ? ` and ${b.refs.length - 4} more` : ""}` : ""}</div></div>
+        <button class="btn sm" type="button" data-restore="${esc(b.batch)}">Bring back</button></div>`).join("")}</div>` : `<p class="muted small" style="margin:0">Nothing deleted.</p>`; })()}
     </section>` : ""}
     <p class="muted small">OC HSE Audit ${VERSION}. Forms ${esc(MODULES.full.formRef)} and ${esc(MODULES.lifting.formRef)}, NCR form ${esc(MODULES.full.ncrFormRef)}.</p>
   </div>`;
@@ -104,6 +124,7 @@ export async function render(ctx) {
     try { await Sync.setOwnPassword(r); toast("Password changed.", "ok"); } catch (e) { toast(e.message, "error"); }
   };
   if ($("#sendnow")) $("#sendnow").onclick = async () => { await Sync.syncNow(true); toast("Done."); rerender(); };
+  if ($("#vlang")) $("#vlang").onchange = e => { setVoiceLang(e.target.value); toast(`Voice typing: ${e.target.selectedOptions[0].textContent}.`, "ok"); };
   if ($("#viewas")) $("#viewas").onchange = async e => { await S.meta("demoUser", e.target.value); location.hash = ""; location.reload(); };
   if ($("#saverules")) $("#saverules").onclick = async () => {
     const s = S.settings(); const modules = { ...(s.modules || {}) };
@@ -147,6 +168,47 @@ export async function render(ctx) {
       actions: [{ label: "Done", kind: "primary", value: null }],
     });
   };
+  // ---------- delete data ----------
+  const pickDel = () => {
+    const m = $("#dd-m").value, st = $("#dd-s").value, y = $("#dd-y").value;
+    const mods = m ? [m] : MODULE_IDS;
+    const audits = st === "none" ? [] : mods.flatMap(id => M.audits(id)).filter(a => (!st || a.status === st) && (!y || String(a.date).startsWith(y)));
+    const ncrs = audits.reduce((t, a) => t + M.auditNCRs(a).length, 0);
+    const plans = $("#dd-plan").checked ? mods.flatMap(id => M.plans(id)).filter(p => !y || String(p.year) === y) : [];
+    return { audits, ncrs, plans };
+  };
+  const showDel = () => {
+    if (!$("#dd-n")) return;
+    const r = pickDel();
+    $("#dd-n").textContent = r.audits.length || r.plans.length ? `This deletes ${r.audits.length} audit${r.audits.length === 1 ? "" : "s"} with ${r.ncrs} NCR${r.ncrs === 1 ? "" : "s"}${r.plans.length ? ` and ${r.plans.length} plan line${r.plans.length === 1 ? "" : "s"}` : ""}.` : "Nothing matches.";
+    $("#dd-go").disabled = !r.audits.length && !r.plans.length;
+  };
+  if ($("#deldata")) { $("#deldata").addEventListener("change", showDel); showDel(); }
+  if ($("#dd-go")) $("#dd-go").onclick = async () => {
+    const r = pickDel(); if (!r.audits.length && !r.plans.length) return;
+    const ok = await dialog({
+      title: "Delete these records?",
+      body: `<p>${esc($("#dd-n").textContent)} Every user stops seeing them. You can bring them back under Deleted records.</p>
+        <label class="fld"><span>Type DELETE to confirm</span><input id="dd-c" autocomplete="off" autocapitalize="characters"></label>`,
+      onMount: w => w.querySelector("#dd-c").focus(),
+      actions: [{ label: "Cancel", value: null }, { label: "Delete", kind: "danger", validate: w => (w.querySelector("#dd-c").value.trim().toUpperCase() === "DELETE" ? null : "Type DELETE to confirm."), value: () => true }],
+    });
+    if (!ok) return;
+    const b = $("#dd-go"); b.disabled = true; b.textContent = "Deleting…";
+    try {
+      if (r.audits.length) await M.deleteAudits(r.audits);
+      if (r.plans.length) await M.deletePlans(r.plans.map(p => S.get(p.id) || p));
+      await Sync.syncNow(true);
+      toast(`Deleted. ${r.audits.length} audit${r.audits.length === 1 ? "" : "s"}${r.plans.length ? `, ${r.plans.length} plan line${r.plans.length === 1 ? "" : "s"}` : ""}.`, "ok");
+    } catch (e) { toast(e.message, "error"); }
+    rerender();
+  };
+  view.querySelectorAll("[data-restore]").forEach(btn => btn.onclick = async () => {
+    btn.disabled = true;
+    const n = await M.restoreBatch(btn.dataset.restore);
+    await Sync.syncNow(true);
+    toast(`${n} record${n === 1 ? "" : "s"} brought back.`, "ok"); rerender();
+  });
   if ($("#savelists")) $("#savelists").onclick = async () => {
     const s = S.settings(); const modules = { ...(s.modules || {}) };
     view.querySelectorAll("[data-lmod]").forEach(box => {

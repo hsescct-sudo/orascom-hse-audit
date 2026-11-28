@@ -29,6 +29,9 @@
     .lk-sig canvas { width: 100%; max-width: 360px; height: 110px; border: 1px dashed var(--line); border-radius: 8px; background: #fff; touch-action: none; display: block; }
     .lk-err { color: var(--g-red); font-size: 14px; }
     .chip.st-review { background: #e1ecfb; color: #1c4f96; }
+    .lk-voice { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13.5px; color: #c3d2e6; }
+    .lk-voice select { min-height: 34px; border-radius: 8px; border: 0; padding: 0 8px; font: inherit; }
+    .lk-msg { position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 520px; margin: 0 auto; background: #14233b; color: #fff; padding: 12px 14px; border-radius: 10px; font-size: 14px; z-index: 50; }
     @media (max-width: 560px) { .lk-wrap .grid2 { grid-template-columns: 1fr; } }
   </style>
   <script src="js/config.js"></script>
@@ -38,6 +41,7 @@
     <div class="brand"><span class="brand-logo"><img src="assets/orascom-logo.png" alt="Orascom Construction"></span><span class="brand-name">Corporate HSE<span>Audit system</span></span></div>
     <h1 id="lk-title">NCR follow-up</h1>
     <p id="lk-sub">Loading…</p>
+    <label class="lk-voice" id="lk-voice" hidden>Voice typing <select id="lk-vl"><option value="en-US">English</option><option value="ar-EG">العربية</option></select></label>
   </header>
   <main class="lk-wrap" id="lk-main"><div class="empty">Loading the NCRs…</div></main>
   <noscript>This page needs JavaScript turned on.</noscript>

@@ -1,18 +1,23 @@
 // List of audits for one audit type.
 import * as M from "../model.js";
 import { setTitle, setActions, go, link } from "../app.js";
-import { esc, ICON, fmtDate } from "../ui.js";
+import { esc, ICON, fmtDate, toast, confirmBox } from "../ui.js";
 import { mtag, auditChip, projectOptions } from "../components.js";
 import { startAudit } from "../widgets.js";
 
 export async function render(ctx) {
   const { module: mod, def, view, query } = ctx;
   setTitle("Audits", `${def.name}, ${def.formRef}`);
+  let all = M.audits(mod);
+  // tick boxes to delete several audits at once (administrators: any; auditors: their own drafts)
+  const canSel = all.some(a => M.canDeleteAudit(a));
+  const sel = new Set();
+  let bar = null;
   if (M.canEdit()) {
-    const bar = setActions(`${def.binary ? `<a class="btn" href="${link("import")}" id="upxl">${ICON.xls}<span>Upload Excel</span></a>` : ""}<button class="btn primary" type="button" id="new">${ICON.plus}<span>${esc(def.startLabel)}</span></button>`);
+    bar = setActions(`${canSel ? `<button class="btn danger" type="button" id="delsel" hidden>Delete</button>` : ""}${def.binary ? `<a class="btn" href="${link("import")}" id="upxl">${ICON.xls}<span>Upload Excel</span></a>` : ""}<button class="btn primary" type="button" id="new">${ICON.plus}<span>${esc(def.startLabel)}</span></button>`);
     bar.querySelector("#new").onclick = () => startAudit(mod);
   }
-  const all = M.audits(mod);
+  const selBtn = () => { const b = bar && bar.querySelector("#delsel"); if (!b) return; b.hidden = !sel.size; b.textContent = `Delete ${sel.size} audit${sel.size === 1 ? "" : "s"}`; };
   const years = [...new Set(all.map(a => a.date.slice(0, 4)))].sort().reverse();
   let f = { project: query.project || "", status: query.status || "", year: query.year || "", q: "" };
   view.innerHTML = `
@@ -23,7 +28,7 @@ export async function render(ctx) {
       <select id="fy" aria-label="Year"><option value="">All years</option>${years.map(y => `<option>${y}</option>`).join("")}</select>
       <span class="muted small" id="cnt"></span>
     </div>
-    <div class="panel" style="padding:0"><div class="tscroll"><table class="tbl"><thead><tr><th>Ref</th><th>Project</th><th>Date</th><th>Lead auditor</th><th>Status</th><th>NCRs</th><th style="text-align:right">Score</th></tr></thead><tbody id="rows"></tbody></table></div></div>`;
+    <div class="panel" style="padding:0"><div class="tscroll"><table class="tbl"><thead><tr>${canSel ? `<th class="c-sel"><input type="checkbox" id="selall" aria-label="Select all audits shown"></th>` : ""}<th>Ref</th><th>Project</th><th>Date</th><th>Lead auditor</th><th>Status</th><th>NCRs</th><th style="text-align:right">Score</th></tr></thead><tbody id="rows"></tbody></table></div></div>`;
   view.querySelector("#fs").value = f.status;
   const draw = () => {
     const q = f.q.toLowerCase();
@@ -33,13 +38,33 @@ export async function render(ctx) {
     view.querySelector("#rows").innerHTML = list.length ? list.map(a => {
       const p = M.project(a.project_id); const ns = M.auditNCRs(a); const open = ns.filter(n => n.status === "Open").length;
       const lead = M.member(a.lead_id);
-      return `<tr class="click" data-a="${esc(a.id)}"><td class="ref c-ref">${esc(a.ref)}</td><td class="wrap c-wide"><b style="font-weight:600">${esc(p.name)}</b><br><span class="muted small">${esc(p.code)}, ${esc(p.city)}</span></td><td class="nowrap">${esc(fmtDate(a.date))}</td><td>${esc(lead ? lead.name : (a.auditors[0] || {}).name || "")}</td><td>${auditChip(a)}</td><td class="num nowrap">${ns.length}${open ? ` <span class="muted small">(${open} open)</span>` : ""}</td><td class="c-end" style="text-align:right">${mtag(M.score(a).total)}</td></tr>`;
-    }).join("") : `<tr><td colspan="7"><div class="empty"><h3>No audits match</h3><p>${all.length ? "Change the filters." : `Start the first ${esc(def.short)} audit.`}</p></div></td></tr>`;
+      return `<tr class="click" data-a="${esc(a.id)}">${canSel ? `<td class="c-sel">${M.canDeleteAudit(a) ? `<input type="checkbox" data-sel="${esc(a.id)}" ${sel.has(a.id) ? "checked" : ""} aria-label="Select ${esc(a.ref)}">` : ""}</td>` : ""}<td class="ref c-ref">${esc(a.ref)}</td><td class="wrap c-wide"><b style="font-weight:600">${esc(p.name)}</b><br><span class="muted small">${esc(p.code)}, ${esc(p.city)}</span></td><td class="nowrap">${esc(fmtDate(a.date))}</td><td>${esc(lead ? lead.name : (a.auditors[0] || {}).name || "")}</td><td>${auditChip(a)}</td><td class="num nowrap">${ns.length}${open ? ` <span class="muted small">(${open} open)</span>` : ""}</td><td class="c-end" style="text-align:right">${mtag(M.score(a).total)}</td></tr>`;
+    }).join("") : `<tr><td colspan="${canSel ? 8 : 7}"><div class="empty"><h3>No audits match</h3><p>${all.length ? "Change the filters." : `Start the first ${esc(def.short)} audit.`}</p></div></td></tr>`;
   };
   view.querySelector("#q").addEventListener("input", e => { f.q = e.target.value; draw(); });
   view.querySelector("#fp").addEventListener("change", e => { f.project = e.target.value; draw(); });
   view.querySelector("#fs").addEventListener("change", e => { f.status = e.target.value; draw(); });
   view.querySelector("#fy").addEventListener("change", e => { f.year = e.target.value; draw(); });
-  view.querySelector("#rows").addEventListener("click", e => { const r = e.target.closest("[data-a]"); if (r) go(link("audit", r.dataset.a)); });
+  view.querySelector("#rows").addEventListener("click", e => {
+    if (e.target.closest(".c-sel")) {
+      const c = e.target.closest(".c-sel").querySelector("[data-sel]");
+      if (c && e.target !== c) c.checked = !c.checked;
+      if (c) { if (c.checked) sel.add(c.dataset.sel); else sel.delete(c.dataset.sel); selBtn(); }
+      return;
+    }
+    const r = e.target.closest("[data-a]"); if (r) go(link("audit", r.dataset.a));
+  });
+  const sa = view.querySelector("#selall");
+  if (sa) sa.addEventListener("change", () => { view.querySelectorAll("[data-sel]").forEach(c => { c.checked = sa.checked; if (sa.checked) sel.add(c.dataset.sel); else sel.delete(c.dataset.sel); }); selBtn(); });
+  const db = bar && bar.querySelector("#delsel");
+  if (db) db.onclick = async () => {
+    const list = all.filter(a => sel.has(a.id) && M.canDeleteAudit(a)); if (!list.length) return;
+    const nc = list.reduce((t, a) => t + M.auditNCRs(a).length, 0);
+    const approved = list.filter(a => a.status === "approved").length;
+    if (!(await confirmBox(`${list.length} audit${list.length === 1 ? "" : "s"}${approved ? ` (${approved} approved)` : ""} and ${nc} NCR${nc === 1 ? "" : "s"} leave every screen, report and dashboard. An administrator can bring them back from Settings, Deleted records.`, { title: `Delete ${list.length} audit${list.length === 1 ? "" : "s"}?`, ok: "Delete", danger: true }))) return;
+    await M.deleteAudits(list);
+    toast(`${list.length} audit${list.length === 1 ? "" : "s"} deleted.`, "ok");
+    sel.clear(); selBtn(); all = M.audits(mod); if (sa) sa.checked = false; draw();
+  };
   draw();
 }

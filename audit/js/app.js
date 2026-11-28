@@ -5,6 +5,7 @@ import * as Sync from "./sync.js";
 import { MODULES, MODULE_IDS } from "./templates.js";
 import { sampleData, projectDocs, memberDocs } from "./seed.js";
 import { $, esc, ICON, toast, confirmBox, debounce } from "./ui.js";
+import { voiceTyping } from "./voice.js";
 
 const CFG = window.HSE_AUDIT_CONFIG || {};
 const VIEWS = {
@@ -44,6 +45,7 @@ function parse() {
 const defaultPage = () => (M.me() && ["auditor", "approver"].includes(M.me().role) ? "home" : "dashboard");
 
 async function boot() {
+  voiceTyping({ message: m => toast(m, "error") }); // a microphone on every text box
   if (window.top !== window.self) { document.body.innerHTML = "<p style=\"padding:24px\">Open the audit system in its own window.</p>"; return; }
   registerSW(); // save the app on the device from the first visit, even before sign-in
   try { await S.openStore(); }

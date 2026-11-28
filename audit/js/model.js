@@ -115,3 +115,48 @@ export function planStatus(p, today = todayISO()) {
 export const PLAN_STATE = { done: "Done", progress: "In progress", overdue: "Overdue", due: "This month", planned: "Planned" };
 
 export const DUE_DAYS = { Serious: 1, Major: 7, Minor: 14 };
+
+// ---------- delete and restore ----------
+// Records are marked deleted, not wiped: they leave every screen, report and dashboard, and a
+// whole delete can be brought back from Settings. Approved audits: administrators only.
+export const canDeleteAudit = a => !!a && !!current && (isAdmin() || (canEdit() && a.status === "draft" && (a.lead_id === current.id || a.created_by === current.id)));
+export const canEditDetails = a => !!a && !!current && (isAdmin() || (canEdit() && a.status === "draft"));
+const stampDel = (d, at, by, batch) => ({ ...d, deleted: true, deleted_at: at, deleted_by: by, del_batch: batch });
+export async function deleteAudits(list) {
+  const at = new Date().toISOString(), by = current ? current.name : "", batch = S.uid("del");
+  const ids = new Set(list.map(a => a.id));
+  for (const a of list) await S.put(stampDel(a, at, by, batch)); // one change-log line per audit
+  const ncrs = S.all("ncr").filter(n => ids.has(n.audit_id));
+  const goods = S.all("good").filter(g => ids.has(g.audit_id));
+  const plans = S.all("plan").filter(p => ids.has(p.audit_id));
+  await S.putMany([...ncrs.map(n => stampDel(n, at, by, batch)), ...goods.map(g => stampDel(g, at, by, batch)),
+    ...plans.map(p => ({ ...p, audit_id: "", unlinked_by: batch }))]); // the planned audit shows as not done again
+  return { batch, audits: list.length, ncrs: ncrs.length, goods: goods.length };
+}
+export async function deletePlans(list) {
+  const at = new Date().toISOString(), by = current ? current.name : "", batch = S.uid("del");
+  await S.putMany(list.map(p => stampDel(p, at, by, batch)));
+  return { batch, plans: list.length };
+}
+// Everything deleted together, newest first.
+export function deletedBatches() {
+  const map = new Map();
+  for (const k of ["audit", "ncr", "good", "plan"]) for (const d of S.all(k, { withDeleted: true })) {
+    if (!d.deleted || !d.del_batch) continue;
+    const b = map.get(d.del_batch) || { batch: d.del_batch, at: d.deleted_at || "", by: d.deleted_by || "", audit: 0, ncr: 0, good: 0, plan: 0, modules: new Set(), refs: [] };
+    b[k]++; if (d.module) b.modules.add(d.module); if (k === "audit") b.refs.push(d.ref);
+    map.set(d.del_batch, b);
+  }
+  return [...map.values()].sort((a, b) => String(b.at).localeCompare(String(a.at)));
+}
+export async function restoreBatch(batch) {
+  const back = [];
+  for (const k of ["audit", "ncr", "good", "plan"]) for (const d of S.all(k, { withDeleted: true })) if (d.deleted && d.del_batch === batch) back.push({ ...d, deleted: false, deleted_at: "", deleted_by: "", del_batch: "" });
+  // link the planned audits again
+  const relink = S.all("plan").filter(p => p.unlinked_by === batch && !p.audit_id).map(p => {
+    const a = back.find(x => x.kind === "audit" && x.plan_id === p.id);
+    return a ? { ...p, audit_id: a.id, unlinked_by: "" } : null;
+  }).filter(Boolean);
+  await S.putMany([...back, ...relink]);
+  return back.length;
+}

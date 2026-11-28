@@ -3,8 +3,8 @@
 import * as S from "../store.js";
 import * as M from "../model.js";
 import { setTitle, setActions, go, link } from "../app.js";
-import { esc, ICON, debounce, toast, confirmBox, dialog, fmtDate, addDays, todayISO, isTouch } from "../ui.js";
-import { tag, mtag, sevChip, ncrChip, repChip, auditChip } from "../components.js";
+import { esc, ICON, debounce, toast, confirmBox, dialog, fmtDate, addDays, todayISO, isTouch, photoInputs, shrinkImage } from "../ui.js";
+import { tag, mtag, sevChip, ncrChip, repChip, auditChip, projectOptions } from "../components.js";
 import { photoStrip, editNCR, editGood, projectLink, linkOf, linkUrl } from "../widgets.js";
 import { NA, isRated, fmtScore } from "../scoring.js";
 import { historyViewHTML, mountHistory } from "../sign.js";
@@ -180,6 +180,9 @@ export async function render(ctx) {
           <label class="fld"><span>Current manpower</span><input type="number" inputmode="numeric" min="0" data-f="manpower" value="${esc(a.manpower)}" placeholder="e.g. 850"></label>
           <label class="fld"><span>Progress of completion (%)</span><input type="number" inputmode="numeric" min="0" max="100" data-f="completion" value="${esc(a.completion)}" placeholder="e.g. 45"></label>
         </div>
+        ${M.canEditDetails(a) || M.canDeleteAudit(a) ? `<div class="row allow-ro" style="margin-top:14px">
+          ${M.canEditDetails(a) ? `<button class="btn sm" type="button" id="ed-det" data-ro-ok>${ICON.edit || ""}<span>Change project or auditors</span></button>` : ""}
+          ${M.canDeleteAudit(a) ? `<button class="btn sm danger" type="button" id="del-aud" data-ro-ok>Delete this audit</button>` : ""}</div>` : ""}
       </section>
       ${people("auditors", d.peopleLabel, "Name and position")}
       ${d.hasMeetings ? people("attendees", "Key people at the meeting", "From the project team") : ""}
@@ -191,6 +194,8 @@ export async function render(ctx) {
     </div>`;
     bindFields(el); bindPeople(el);
     el.querySelector("[data-next]").onclick = nextStep;
+    const ed = el.querySelector("#ed-det"); if (ed) ed.onclick = editDetails;
+    const dl = el.querySelector("#del-aud"); if (dl) dl.onclick = deleteAudit;
     if (d.hasEquipment) bindEquipment(el);
   }
   function equipmentPanel() {
@@ -207,6 +212,46 @@ export async function render(ctx) {
       if (e.target.closest("[data-eadd]")) { a.equipment = [...(a.equipment || []), { desc: "", count: "", owner: "Owned" }]; save(); drawStep(); }
       const del = e.target.closest("[data-edel]"); if (del) { a.equipment.splice(+del.dataset.edel, 1); save(); drawStep(); }
     });
+  }
+
+  // ---------- change project or auditors, delete ----------
+  async function editDetails() {
+    const team = M.auditors();
+    const inTeam = new Set(a.team_ids || [a.lead_id]);
+    const r = await dialog({
+      title: "Change project or auditors", wide: true,
+      body: `<label class="fld"><span>Project</span><select id="ed-p">${projectOptions(a.project_id, { all: "", list: M.projects().filter(p => p.active !== false || p.id === a.project_id) })}</select></label>
+        <label class="fld"><span>Lead auditor</span><select id="ed-l">${team.map(m => `<option value="${esc(m.id)}" ${m.id === a.lead_id ? "selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
+        <fieldset class="fld" style="border:0;padding:0;margin:0"><span>Audit team</span>
+          <div class="row">${team.map(m => `<label class="tick"><input type="checkbox" value="${esc(m.id)}" ${inTeam.has(m.id) ? "checked" : ""}>${esc(m.name)}</label>`).join("")}</div></fieldset>
+        <p class="muted small">A new project gives the audit and its NCRs new reference numbers.</p>`,
+      actions: [{ label: "Cancel", value: null }, { label: "Save", kind: "primary", value: w => ({ project_id: w.querySelector("#ed-p").value, lead_id: w.querySelector("#ed-l").value, team: [...w.querySelectorAll(".tick input:checked")].map(i => i.value) }) }],
+    });
+    if (!r || !r.project_id) return;
+    const lead = M.member(r.lead_id) || M.member(a.lead_id);
+    const people = [lead, ...r.team.filter(id => id !== lead.id).map(id => M.member(id)).filter(Boolean)];
+    const pos = Object.fromEntries((a.auditors || []).map(x => [String(x.name).toLowerCase(), x.position]));
+    const others = (a.auditors || []).filter(x => !team.some(m => m.name.toLowerCase() === String(x.name).toLowerCase())); // names typed by hand stay
+    a.lead_id = lead.id; a.team_ids = people.map(m => m.id);
+    a.auditors = [...people.map(m => ({ name: m.name, position: pos[m.name.toLowerCase()] || m.position || "Corporate HSE Auditor" })), ...others];
+    const moved = r.project_id !== a.project_id;
+    if (moved) {
+      const proj = M.project(r.project_id);
+      a.project_id = proj.id; a.number = M.nextAuditNumber(a.module, proj.id); a.ref = M.auditRef(d, proj, a.number);
+      if (a.plan_id) { const pl = S.get(a.plan_id); if (pl && pl.audit_id === a.id) await S.put({ ...pl, audit_id: "" }); a.plan_id = ""; }
+      for (const n of M.auditNCRs(a)) await S.put({ ...n, project_id: proj.id, ref: `${a.ref}-${String(n.seq).padStart(2, "0")}` });
+      for (const g of S.all("good").filter(g => g.audit_id === a.id)) await S.put({ ...g, project_id: proj.id });
+    }
+    a.history = [...(a.history || []), { at: new Date().toISOString(), by: me.name, what: moved ? `Moved to project ${M.project(a.project_id).name}, new ref ${a.ref}` : "Auditors changed" }];
+    await saveNow(); toast(moved ? `Saved. New reference ${a.ref}.` : "Saved.", "ok"); rerenderAll();
+  }
+  async function deleteAudit() {
+    const n = M.auditNCRs(a).length, g = S.all("good").filter(x => x.audit_id === a.id).length;
+    if (!(await confirmBox(`${a.ref} and its ${n} NCR${n === 1 ? "" : "s"}${g ? ` and ${g} good practice${g === 1 ? "" : "s"}` : ""} leave every screen, report and dashboard. An administrator can bring them back from Settings, Deleted records.`, { title: "Delete this audit?", ok: "Delete audit", danger: true }))) return;
+    save.flush();
+    await M.deleteAudits([S.get(a.id) || a]);
+    toast(`${a.ref} deleted.`, "ok");
+    go(link("audits"));
   }
 
   // ---------- last audit NCRs ----------
@@ -268,10 +313,30 @@ export async function render(ctx) {
           ${(ncrsByItem[it.id] || []).map(n => `${sevChip(n.severity)}`).join("")}
           <button class="btn sm ghost" type="button" data-ncr>${ICON.flag}<span>Raise NCR</span></button>
           <button class="btn sm ghost allow-ro" type="button" data-note>${ICON.edit}<span>${a.notes && a.notes[it.id] ? "Note" : "Add note"}</span></button>
+          ${locked() ? "" : photoInputs("btn sm ghost", `data-iphin="${esc(it.id)}"`, "Add photo")}
         </div>
         <textarea class="q-note" data-notef ${a.notes && a.notes[it.id] ? "" : "hidden"} placeholder="Evidence, what you checked">${esc((a.notes && a.notes[it.id]) || "")}</textarea>
+        <div class="q-ph" data-iph="${esc(it.id)}"></div>
       </article>`; }).join("")}`).join("") + `<div class="row" style="margin-top:14px"><button class="btn primary lg" type="button" data-next>Next: NCRs</button></div>`;
     el.querySelector("[data-next]").onclick = nextStep;
+    // evidence photos of each item
+    const itemPhotos = id => {
+      const box = el.querySelector(`[data-iph="${CSS.escape(id)}"]`); if (!box) return;
+      const ids = (a.item_photos || {})[id] || [];
+      if (!ids.length) { box.innerHTML = ""; return; }
+      photoStrip(box, ids, { readOnly: locked(), noAdd: true, max: 20, onChange: list => { a.item_photos = { ...(a.item_photos || {}), [id]: list }; save(); } });
+    };
+    Object.keys(a.item_photos || {}).forEach(itemPhotos);
+    el.addEventListener("change", async e => {
+      const inp = e.target.closest("input[data-iphin]"); if (!inp || locked()) return;
+      const id = inp.dataset.iphin; const files = [...inp.files]; inp.value = "";
+      const list = [...((a.item_photos || {})[id] || [])];
+      for (const f of files.slice(0, 20 - list.length)) {
+        try { list.push(await S.putPhoto(await shrinkImage(f, 1600, 0.8))); } catch (err) { toast(err.message, "error"); }
+      }
+      a.item_photos = { ...(a.item_photos || {}), [id]: list };
+      await saveNow(); itemPhotos(id);
+    });
     const setVal = (card, v) => {
       const id = card.dataset.it;
       if (v === "" || v == null) delete a.ratings[id]; else a.ratings[id] = v;
@@ -302,13 +367,13 @@ export async function render(ctx) {
         // Flash: a No is a finding. Open the NCR with the check, its topic and its risk filled in.
         if (d.binary && nv === 0 && !ncrsByItem[card.dataset.it]) {
           const it = M.findItem(d, card.dataset.it);
-          const r = await editNCR(a, null, { item_id: it.id, severity: (d.riskSeverity || {})[it.risk] || "Minor", classification: it.partName, description: `Not met: ${it.title}` });
+          const r = await editNCR(a, null, { item_id: it.id, severity: (d.riskSeverity || {})[it.risk] || "Minor", classification: it.partName, description: `Not met: ${it.title}`, photos: (a.item_photos || {})[it.id] || [] });
           if (r) { drawStep(); drawLive(); drawSteps(); }
         }
         return;
       }
       if (e.target.closest("[data-note]")) { const t = card.querySelector("[data-notef]"); t.hidden = !t.hidden; if (!t.hidden) t.focus(); return; }
-      if (e.target.closest("[data-ncr]") && !locked()) { const r = await editNCR(a, null, { item_id: card.dataset.it }); if (r) { drawStep(); drawLive(); drawSteps(); } }
+      if (e.target.closest("[data-ncr]") && !locked()) { const r = await editNCR(a, null, { item_id: card.dataset.it, photos: (a.item_photos || {})[card.dataset.it] || [] }); if (r) { drawStep(); drawLive(); drawSteps(); } }
     });
     el.addEventListener("input", e => {
       const card = e.target.closest("[data-it]"); if (!card) return;

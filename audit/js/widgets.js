@@ -66,13 +66,13 @@ export async function startAudit(module, { project_id = "", plan_id = "" } = {})
 
 // ---------- photo strip ----------
 // Renders thumbnails for photo ids and lets the user add/remove. onChange(ids) is called after each change.
-export function photoStrip(el, ids, { onChange, readOnly = false, max = 12, label = "Add photo" } = {}) {
+export function photoStrip(el, ids, { onChange, readOnly = false, max = 12, label = "Add photo", noAdd = false } = {}) {
   let list = [...(ids || [])];
   async function draw() {
     if (readOnly && !list.length) { el.innerHTML = `<p class="muted small" style="margin:0">No photos.</p>`; return; }
     const thumbs = await Promise.all(list.map(async id => ({ id, url: await S.photoURL(id) })));
     el.innerHTML = `<div class="photos">${thumbs.map((t, i) => `<div class="ph" data-i="${i}" style="${t.url ? `background-image:url('${t.url}')` : ""}" role="button" aria-label="Photo ${i + 1}" tabindex="0">${t.url ? "" : `<span class="small muted" style="display:grid;place-items:center;height:100%;padding:4px;text-align:center">On another device</span>`}${readOnly ? "" : `<button type="button" data-del="${i}" aria-label="Remove photo">${ICON.x}</button>`}</div>`).join("")}
-      ${readOnly || list.length >= max ? "" : photoInputs("photo-btn", `data-add accept="image/*"`, label)}</div>`;
+      ${readOnly || noAdd || list.length >= max ? "" : photoInputs("photo-btn", `data-add accept="image/*"`, label)}</div>`;
   }
   el.addEventListener("click", async e => {
     const del = e.target.closest("[data-del]");
@@ -95,7 +95,7 @@ export function photoStrip(el, ids, { onChange, readOnly = false, max = 12, labe
 }
 
 // ---------- NCR form ----------
-export async function editNCR(audit, ncr = null, { item_id = "", severity = "", classification = "", description = "" } = {}) {
+export async function editNCR(audit, ncr = null, { item_id = "", severity = "", classification = "", description = "", photos = [] } = {}) {
   const d = M.def(audit.module);
   const isNew = !ncr;
   const seq = isNew ? M.auditNCRs(audit).reduce((m, n) => Math.max(m, n.seq || 0), 0) + 1 : ncr.seq;
@@ -103,7 +103,7 @@ export async function editNCR(audit, ncr = null, { item_id = "", severity = "", 
     id: S.uid("ncr"), kind: "ncr", module: audit.module, audit_id: audit.id, project_id: audit.project_id, seq, ref: `${audit.ref}-${String(seq).padStart(2, "0")}`,
     date: audit.date, severity: severity || "Minor", repeated: false, classification, item_id, clause: d.ncrClause, requirement: d.ncrRequirement,
     description, location: "", root_causes: [], other_cause: "", action_required: "Correct the condition, find the root cause and stop it happening again. Send evidence photos.",
-    photos: [], responsible_name: "", responsible_position: "", due_date: addDays(audit.date, M.DUE_DAYS[severity || "Minor"]), status: "Open",
+    photos: [...(photos || [])], responsible_name: "", responsible_position: "", due_date: addDays(audit.date, M.DUE_DAYS[severity || "Minor"]), status: "Open",
     ca_text: "", ca_date: "", followup_name: "", followup_position: "", followup_date: "", comments: "",
   };
   const prevNCRs = M.ncrs(audit.module).filter(x => x.project_id === audit.project_id && x.audit_id !== audit.id && !x.deleted).sort((x, y) => String(y.date).localeCompare(String(x.date)));

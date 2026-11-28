@@ -25,7 +25,7 @@ export async function render(ctx) {
   act.addEventListener("click", async e => { const x = e.target.closest("[data-x]"); if (!x) return; const m = await import("../report/export.js"); x.dataset.x === "xlsx" ? m.excelReport(a) : m.pptReport(a); });
   view.innerHTML = `<div class="empty">Preparing…</div>`;
   const urls = {};
-  const ids = [...(a.photos || []), ...M.auditNCRs(a).flatMap(n => [...(n.photos || []), ...(n.ca_photos || [])]), ...M.auditGoods(a).flatMap(g => g.photos || [])];
+  const ids = [...(a.photos || []), ...Object.values(a.item_photos || {}).flat(), ...M.auditNCRs(a).flatMap(n => [...(n.photos || []), ...(n.ca_photos || [])]), ...M.auditGoods(a).flatMap(g => g.photos || [])];
   await Promise.all(ids.map(async id => { urls[id] = await S.photoURL(id); }));
   view.innerHTML = type === "ncr" ? ncrPack(a, d, urls, query.ncr) : (d.id === "full" ? fullReport(a, d, urls) : liftReport(a, d, urls)) + changeLogHTML(a);
 }
@@ -81,6 +81,14 @@ function flashConclusion(d, sc) {
     <tr><th>Checklist compliance</th><th style="background:${sc.grade ? COLORS.grade[sc.grade.code] : "#eee"};color:${sc.grade && ["orange", "yellow"].includes(sc.grade.code) ? "#2b1700" : "#fff"}">${fmtScore(sc.total)} (${esc(sc.grade ? sc.grade.label : "")})</th></tr></tbody></table>
     <p class="small">The score is the share of Yes among the checks that apply. N/A checks are left out.</p>`;
 }
+// Evidence photos taken on each checklist item
+function evidence(a, d, urls) {
+  const ip = a.item_photos || {};
+  const rows = d.parts.flatMap(p => p.items.filter(it => (ip[it.id] || []).length).map(it => ({ it, p })));
+  if (!rows.length) return "";
+  return `<h2>Evidence photos by item</h2><table><thead><tr><th style="width:180px">Section</th><th>Item</th><th style="width:46%">Photos</th></tr></thead><tbody>
+    ${rows.map(({ it, p }) => `<tr><td>${esc(d.partTitle(p))}</td><td>${esc(it.title)}${a.notes && a.notes[it.id] ? `<br><i>Note: ${esc(a.notes[it.id])}</i>` : ""}</td><td class="ph-cell ev">${ip[it.id].map(id => urls[id] ? `<img src="${urls[id]}" alt="Evidence photo">` : "").join("")}</td></tr>`).join("")}</tbody></table>`;
+}
 function conclusion(d, sc) {
   const rows = sc.parts.map(p => `<tr><td>${esc(d.id === "full" ? `${p.code} ${p.name} (${p.share}%)` : `${p.code}- ${p.name}`)}</td><td>${p.score == null ? "N/A" : ((p.score * 100) * p.share / 100).toFixed(1) + "%"}</td></tr>`).join("");
   return `<table><thead><tr><th>Conclusion</th><th style="width:140px">Result</th></tr></thead><tbody>${rows}
@@ -113,6 +121,7 @@ function fullReport(a, d, urls) {
     <table><tbody><tr><th style="width:150px">Project name</th><td>${esc(p.name)}</td></tr><tr><th>Project manager</th><td>${esc(p.manager || ((a.attendees || []).find(x => /project manager/i.test(x.position)) || {}).name || "–")}</td></tr><tr><th>Appraisal date</th><td>${esc(fmtDate(a.date))}</td></tr></tbody></table>
     <table class="bandtbl"><thead><tr><th colspan="2">Rating identification</th></tr></thead><tbody>${GRADES.map(g => `<tr><td style="background:${COLORS.grade[g.code]}"></td><td><b>${esc(g.code[0].toUpperCase() + g.code.slice(1))} code</b>: ${esc(g.appraisal)} (${g.min === 85 ? "85-100" : g.min === 75 ? "75-84" : g.min === 65 ? "65-74" : "0-64"}). Receives ${g.bonus}% of the profit share / bonus allocated to HSE evaluation.</td></tr>`).join("")}</tbody></table>
     ${appraisal(a, d, sc)}
+    ${evidence(a, d, urls)}
     <table><tbody><tr><th>Part 3: Serious violations</th><td>${esc(d.seriousNote)}</td><td style="width:80px">${sc.seriousCount}</td></tr><tr><th>Part 4: Repeated violations</th><td>Open NCRs from the last audit found still open at this audit.</td><td>${sc.repeatedCount}</td></tr></tbody></table>
     ${conclusion(d, sc)}
     ${a.status === "approved" ? `<p class="small">Approved by ${esc(a.approved_by || "")} on ${esc(fmtDate((a.approved_at || "").slice(0, 10)))}.</p>` : `<p class="small"><b>${a.status === "submitted" ? "Waiting approval." : "Draft. Not approved yet."}</b></p>`}
@@ -137,6 +146,7 @@ function liftReport(a, d, urls) {
     ${head(d, d.checklistTitle, d.formRef, d.formRev)}
     ${d.binary ? flashChecklist(a, d, sc) : appraisal(a, d, sc)}
     ${d.binary ? flashConclusion(d, sc) : conclusion(d, sc)}
+    ${evidence(a, d, urls)}
     ${a.status === "approved" ? `<p class="small">Approved by ${esc(a.approved_by || "")} on ${esc(fmtDate((a.approved_at || "").slice(0, 10)))}.</p>` : `<p class="small"><b>${a.status === "submitted" ? "Waiting approval." : "Draft. Not approved yet."}</b></p>`}
   </div>`;
 }
