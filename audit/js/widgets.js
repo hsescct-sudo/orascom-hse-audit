@@ -52,7 +52,7 @@ export async function startAudit(module, { project_id = "", plan_id = "" } = {})
   }
   const audit = await S.put({
     id: S.uid("aud"), kind: "audit", module, project_id: proj.id, plan_id: planItem ? planItem.id : "", ref: M.auditRef(d, proj, number), number, date: res.date,
-    status: "draft", lead_id: lead.id, created_by: me.id,
+    status: "draft", lead_id: lead.id, team_ids: people.map(m => m.id), created_by: me.id,
     auditors: people.map(m => ({ name: m.name, position: m.position || "Corporate HSE Auditor" })),
     attendees: [{ name: "", position: "Project Manager" }, { name: "", position: "HSE Manager" }],
     manpower: "", completion: "", opening: "", siteTour: "", closeMeeting: "", summary: "",

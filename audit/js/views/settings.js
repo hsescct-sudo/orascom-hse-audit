@@ -69,7 +69,7 @@ export async function render(ctx) {
         <label class="tick"><input type="checkbox" id="rm-prj" ${rem.projects !== false ? "checked" : ""}>Projects: open NCRs past the deadline or due in the next 3 days, with the project link</label>
         <label class="tick" style="padding-left:26px"><input type="checkbox" id="rm-cc" ${rem.ccLead !== false ? "checked" : ""}>Copy the lead auditor</label>
         <label class="tick"><input type="checkbox" id="rm-aud" ${rem.auditors !== false ? "checked" : ""}>Auditors: reports not sent after 7 days, evidence waiting for review, planned audits this month not started</label>
-        <label class="tick"><input type="checkbox" id="rm-adm" ${rem.admins !== false ? "checked" : ""}>Administrators: a weekly summary on the first day picked</label>
+        <label class="tick"><input type="checkbox" id="rm-adm" ${rem.admins !== false ? "checked" : ""}>Administrators and approvers: a weekly summary on the first day picked</label>
       </div>
       <p class="muted small" style="margin-top:8px">Projects get e-mails only if their e-mails are added under Projects. The sending account is set once in GitHub (see the setup steps in README). Until then nothing is sent.</p>
       <div class="row" style="margin-top:10px"><button class="btn primary" type="button" id="saverem">Save reminders</button>${mode === "cloud" ? `<button class="btn ghost" type="button" id="remkey">Make the GitHub key</button>` : ""}</div>

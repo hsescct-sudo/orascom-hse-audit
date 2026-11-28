@@ -19,7 +19,7 @@ export async function render(ctx) {
   const d = M.def(a.module);
   const proj = M.project(a.project_id);
   const me = M.me();
-  const locked = () => a.status === "approved" || !M.canEdit() || (a.status === "submitted" && !M.isAdmin());
+  const locked = () => a.status === "approved" || !M.canEdit() || (a.status === "submitted" && !M.mayApprove(a));
   setTitle(a.ref, `${d.short}, ${proj.name}`);
 
   const stepKey = "oc-audit-step-" + a.id;
@@ -113,20 +113,31 @@ export async function render(ctx) {
   }
   function drawLock() {
     const el = view.querySelector("#lockbar");
-    if (a.status === "approved") el.innerHTML = `<div class="panel row" style="margin-bottom:12px;border-color:#bfe3cd;background:#f1faf4">${ICON.lock}<span>Approved ${a.approved_at ? "on " + esc(fmtDate(a.approved_at.slice(0, 10))) : ""}. The audit is locked.</span>${M.isAdmin() ? `<button class="btn sm" id="reopen" style="margin-left:auto">Reopen</button>` : ""}</div>`;
-    else if (a.status === "submitted") el.innerHTML = `<div class="panel row" style="margin-bottom:12px;border-color:#c7d9f3;background:#f3f7fd"><span>Sent for approval${a.submitted_at ? " on " + esc(fmtDate(a.submitted_at.slice(0, 10))) : ""}.</span>${M.isAdmin() ? `<span style="margin-left:auto" class="row"><button class="btn sm" id="return">Return to auditor</button><button class="btn sm primary" id="approve">Approve</button></span>` : ""}</div>`;
+    if (a.status === "approved") el.innerHTML = `<div class="panel row" style="margin-bottom:12px;border-color:#bfe3cd;background:#f1faf4">${ICON.lock}<span>Approved${a.approved_at ? " on " + esc(fmtDate(a.approved_at.slice(0, 10))) : ""}${a.approved_by ? " by " + esc(a.approved_by) : ""}. The audit is locked.</span>${M.isAdmin() ? `<button class="btn sm" id="reopen" style="margin-left:auto">Reopen</button>` : ""}</div>`;
+    else if (a.status === "submitted") el.innerHTML = `<div class="panel row" style="margin-bottom:12px;border-color:#c7d9f3;background:#f3f7fd"><span>Sent for approval${a.submitted_at ? " on " + esc(fmtDate(a.submitted_at.slice(0, 10))) : ""}.</span>${M.mayApprove(a) ? `<span style="margin-left:auto" class="row"><button class="btn sm" id="return">Return to auditor</button><button class="btn sm primary" id="approve">Approve</button></span>`
+      : `<span class="muted">${M.canApprove() ? "You were on this audit, so another administrator or approver approves it." : "An administrator or approver checks it next."}</span>`}</div>`;
+    else if (a.return_note && a.status === "draft") el.innerHTML = `<div class="panel" style="margin-bottom:12px;border-color:#f1d27a;background:#fff8e1"><b>Returned${a.returned_by ? " by " + esc(a.returned_by) : ""}${a.returned_at ? " on " + esc(fmtDate(a.returned_at.slice(0, 10))) : ""}.</b> ${esc(a.return_note)}</div>`;
     else el.innerHTML = "";
     const ro = el.querySelector("#reopen"); if (ro) ro.onclick = async () => { if (await confirmBox("The audit goes back to 'In progress' so it can be changed. The change is recorded.", { title: "Reopen this audit?", ok: "Reopen" })) { a.status = "draft"; a.history = [...(a.history || []), { at: new Date().toISOString(), by: me.name, what: "Reopened" }]; await saveNow(); rerenderAll(); } };
-    const rt = el.querySelector("#return"); if (rt) rt.onclick = async () => { a.status = "draft"; a.history = [...(a.history || []), { at: new Date().toISOString(), by: me.name, what: "Returned to auditor" }]; await saveNow(); toast("Returned to the auditor."); rerenderAll(); };
+    const rt = el.querySelector("#return"); if (rt) rt.onclick = async () => {
+      const note = await dialog({ title: "Return to the auditor", body: `<label class="fld"><span>What needs to change</span><textarea id="rt-n" rows="4"></textarea></label>`,
+        actions: [{ label: "Cancel", value: null }, { label: "Return", kind: "primary", validate: w => (w.querySelector("#rt-n").value.trim() ? null : "Write what needs to change."), value: w => w.querySelector("#rt-n").value.trim() }] });
+      if (!note) return;
+      const at = new Date().toISOString();
+      a.status = "draft"; a.return_note = note; a.returned_by = me.name; a.returned_at = at;
+      a.history = [...(a.history || []), { at, by: me.name, what: `Returned to auditor: ${note}` }];
+      await saveNow(); toast("Returned to the auditor."); rerenderAll();
+    };
     const ap = el.querySelector("#approve"); if (ap) ap.onclick = () => approve();
   }
   async function approve() {
+    if (!M.mayApprove(a)) { toast(M.canApprove() ? "You were on this audit. Another administrator or approver approves it." : "Only an administrator or approver can approve.", "error"); return; }
     const sc = M.score(a);
     if (!sc.complete) { toast("Rate every item (or mark it N/A) before approving.", "error"); return; }
     if (!(await confirmBox(`Approve ${a.ref} with a score of ${fmtScore(sc.total)}? The audit will be locked.`, { title: "Approve audit", ok: "Approve" }))) return;
     a.status = "approved"; a.approved_at = new Date().toISOString(); a.approved_by = me.name; a.score_snapshot = { total: sc.total, base: sc.base, grade: sc.grade.code };
     a.history = [...(a.history || []), { at: a.approved_at, by: me.name, what: `Approved at ${fmtScore(sc.total)}` }];
-    await saveNow(); toast("Audit approved.", "ok"); rerenderAll();
+    await saveNow(); toast("Audit approved. Now e-mail the report to the project.", "ok"); rerenderAll(); goStep("finish");
   }
   function rerenderAll() { drawLock(); drawSteps(); drawStep(); drawLive(); drawMeta(); }
 
@@ -358,7 +369,6 @@ export async function render(ctx) {
       [M.carryCandidates(a).every(n => (a.carry || []).some(c => c.ncr_id === n.id)), "Last audit NCRs checked", "", "last"],
       [(a.photos || []).length > 0, "General view photos added", "Optional", "close"],
     ];
-    const isLead = a.lead_id === me.id || M.isAdmin();
     el.innerHTML = `<div class="stack">
       <section class="panel fin-hero">
         ${tag(sc.total, { size: "xl", white: true })}
@@ -376,16 +386,16 @@ export async function render(ctx) {
           <button class="btn allow-ro" type="button" data-x="xlsx">${ICON.xls}<span>Excel report</span></button>
           <button class="btn allow-ro" type="button" data-x="pptx">${ICON.ppt}<span>PowerPoint</span></button>
         </div></section>
-      ${M.finished(a) ? `<section class="panel allow-ro" id="sentbox"><div class="panel-h"><h2>Report sent to the project (P-20 7.4)</h2>${M.sendOverdue(a) ? `<span class="chip st-overdue">Not sent after 7 days</span>` : ""}</div>
+      ${a.status === "submitted" ? `<section class="panel"><div class="panel-h"><h2>Report to the project</h2>${M.sendOverdue(a) ? `<span class="chip st-overdue">Not sent after 7 days</span>` : ""}</div>
+        <p class="muted">${M.mayApprove(a) ? "Approve the audit first. Then e-mail the report to the project from here." : "After approval, the administrator or approver e-mails the report to the project."}</p></section>` : ""}
+      ${a.status === "approved" ? `<section class="panel allow-ro" id="sentbox"><div class="panel-h"><h2>Report sent to the project (P-20 7.4)</h2>${M.sendOverdue(a) ? `<span class="chip st-overdue">Not sent after 7 days</span>` : ""}</div>
         <p class="muted small">Send F/HSE/078 and F/HSE/003 through Corporate HSE within 7 days of the audit date. Record it here.</p>
         <div class="grid3"><label class="fld"><span>Date sent</span><input type="date" data-sf="date" value="${esc((a.sent || {}).date || "")}"></label>
         <label class="fld"><span>Sent to (names or distribution list)</span><input data-sf="to" value="${esc((a.sent || {}).to || "")}"></label>
         <label class="fld"><span>Email or reference</span><input data-sf="ref" value="${esc((a.sent || {}).ref || "")}"></label></div>
-        ${M.canEdit() ? `<div class="row" style="margin-top:12px"><a class="btn" id="mailrep" href="${esc(reportMail(a).href)}">${ICON.out}<span>E-mail the report</span></a><button class="btn ghost" type="button" id="plink">${ICON.ext}<span>Project link</span></button>
-          <span class="muted small">${M.project(a.project_id).contact_emails ? `To: ${esc(M.project(a.project_id).contact_emails)}` : "Add the project e-mails under Projects."} Attach the PDF report to the e-mail.</span></div>` : ""}</section>` : ""}
-      ${a.status === "draft" && M.canEdit() ? `<div class="row">${isLead && M.isAdmin()
-        ? `<button class="btn primary lg" type="button" id="approve-now">Approve and lock</button><button class="btn lg" type="button" id="submit">Send for approval</button>`
-        : `<button class="btn primary lg" type="button" id="submit">Send for approval</button>`}</div>` : ""}
+        ${M.canApprove() ? `<div class="row" style="margin-top:12px"><a class="btn" id="mailrep" href="${esc(reportMail(a).href)}">${ICON.out}<span>E-mail the report</span></a><button class="btn ghost" type="button" id="plink">${ICON.ext}<span>Project link</span></button>
+          <span class="muted small">${M.project(a.project_id).contact_emails ? `To: ${esc(M.project(a.project_id).contact_emails)}` : "Add the project e-mails under Projects."} Attach the PDF report to the e-mail.</span></div>` : `<p class="muted small" style="margin-top:10px">The administrator or approver sends the report and records it here.</p>`}</section>` : ""}
+      ${a.status === "draft" && M.canEdit() ? `<div class="row"><button class="btn primary lg" type="button" id="submit">Send for approval</button><span class="muted small">An administrator or approver who was not on this audit approves it.</span></div>` : ""}
       ${(a.history || []).length ? `<section class="panel"><div class="panel-h"><h2>History</h2></div>${a.history.map(h => `<div class="small">${esc(fmtDate(h.at.slice(0, 10)))}, ${esc(h.by)}: ${esc(h.what)}</div>`).join("")}</section>` : ""}
     </div>`;
     el.addEventListener("click", async e => {
@@ -405,7 +415,7 @@ export async function render(ctx) {
     const plk = el.querySelector("#plink");
     if (plk) plk.onclick = async () => { await projectLink(a.module, a.project_id); goStep("finish"); };
     el.querySelectorAll("[data-sf]").forEach(i => {
-      i.disabled = !M.canEdit();
+      i.disabled = !M.canApprove();
       i.addEventListener("input", () => {
         a.sent = { ...(a.sent || {}), [i.dataset.sf]: i.value, by: me.name };
         if (a.sent.date && !(a.history || []).some(h => h.what === "Report sent to project")) a.history = [...(a.history || []), { at: new Date().toISOString(), by: me.name, what: "Report sent to project" }];
@@ -416,15 +426,23 @@ export async function render(ctx) {
     if (sub) sub.onclick = async () => {
       const sc2 = M.score(a);
       if (!sc2.complete) { toast("Rate every item (or mark it N/A) before sending.", "error"); goStep("score"); return; }
-      if (!(await confirmBox(`Send ${a.ref} for approval with a score of ${fmtScore(sc2.total)}? You can still view it; changes need the admin to return it.`, { title: "Send for approval", ok: "Send" }))) return;
-      a.status = "submitted"; a.submitted_at = new Date().toISOString(); a.history = [...(a.history || []), { at: a.submitted_at, by: me.name, what: `Sent for approval at ${fmtScore(sc2.total)}` }];
+      if (!(await confirmBox(`Send ${a.ref} for approval with a score of ${fmtScore(sc2.total)}? You can still view it. To change it after this, an administrator or approver returns it to you.`, { title: "Send for approval", ok: "Send" }))) return;
+      a.status = "submitted"; a.submitted_at = new Date().toISOString(); delete a.return_note; a.history = [...(a.history || []), { at: a.submitted_at, by: me.name, what: `Sent for approval at ${fmtScore(sc2.total)}` }];
       await saveNow(); toast("Sent for approval. It goes to the server when there is internet.", "ok"); rerenderAll();
     };
-    const apn = el.querySelector("#approve-now"); if (apn) apn.onclick = () => approve();
   }
 
+  // A newer copy from the server (returned, approved, sent): use it, unless I'm typing.
+  const offServer = S.on(e => {
+    if (!e.fromServer || save.pending()) return;
+    const fresh = S.get(a.id);
+    if (!fresh || fresh.updated_at === a.updated_at) return;
+    const changed = fresh.status !== a.status;
+    a = fresh;
+    if (changed) rerenderAll();
+  });
   drawLock(); drawSteps(); drawStep(); drawLive(); drawMeta();
-  return () => { save.flush && save.flush(); };
+  return () => { offServer(); save.flush(); };
 }
 
 function howDialog(d, sc) {

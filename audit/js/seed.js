@@ -61,6 +61,7 @@ export function projectDocs(now) {
 
 export function memberDocs(now) {
   const out = [{ id: "mem-admin", kind: "member", name: "Corporate HSE", email: "", position: "Corporate HSE Manager", role: "admin", active: true, created_at: now, updated_at: now }];
+  out.push({ id: "mem-p01", kind: "member", name: "HSE Approver", email: "", position: "Corporate HSE Manager", role: "approver", active: true, created_at: now, updated_at: now });
   for (let i = 1; i <= 9; i++) out.push({ id: "mem-a" + String(i).padStart(2, "0"), kind: "member", name: "Auditor " + String(i).padStart(2, "0"), email: "", position: "Corporate HSE Auditor", role: "auditor", active: true, created_at: now, updated_at: now });
   return out;
 }

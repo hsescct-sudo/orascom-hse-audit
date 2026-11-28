@@ -17,10 +17,10 @@ Live: https://hsescct-sudo.github.io/orascom-hse-audit/audit/
 - NCRs with photos from the camera, root causes, responsible person and deadline. Follow-up and closure with evidence.
 - Reports made on the device: printable report and NCR forms (save as PDF), Excel in the form layout with live formulas, PowerPoint summary.
 - Dashboard: company grade, projects by grade, weakest areas, ratings by element for every project, score by month, plan progress, NCRs by type, root causes, open NCRs by project.
-- Roles: administrator, auditor, viewer. The administrator makes each person's sign-in from the app; the person sets their own password at the first sign-in.
+- Roles: administrator, approver, auditor, viewer. The auditor sends the audit for approval. An administrator or approver approves it, or returns it with a note, and then e-mails the report to the project. Nobody approves an audit they were on. Only the administrator adds users and changes settings. The administrator makes each person's sign-in from the app; the person sets their own password at the first sign-in.
 - Project link: the project opens a link (no sign-in) to see its NCRs and send evidence with photos and a signature. The NCR then waits for the auditor's review.
 - History and signatures are also kept on the server in a record that nobody can change or delete.
-- E-mail: "E-mail the report" opens Outlook with the project e-mails, score, NCR counts and the project link, and records the sending. Reminders by e-mail every chosen day (see below).
+- E-mail: after approval, "E-mail the report" (administrator or approver) opens Outlook with the project e-mails, score, NCR counts and the project link, and records the sending. Reminders by e-mail every chosen day (see below).
 
 ## Scoring fixes compared with the Excel forms
 
@@ -47,13 +47,15 @@ Live: https://hsescct-sudo.github.io/orascom-hse-audit/audit/
 | `vendor/`, `fonts/` | Chart, Excel, PowerPoint, database libraries and fonts, saved locally for offline use |
 | `../supabase/audit-schema.sql` | Server tables. Run once in Supabase |
 | `../supabase/audit-update-2.sql` | Update 2 (sign-ins, project links, kept history, reminders). Run once |
+| `../supabase/audit-update-3.sql` | Update 3 (server checks on every save). Run once |
+| `../supabase/audit-update-4.sql` | Update 4 (approver role, approval rules). Run once |
 
 ## Server setup (once)
 
 1. Open `supabase/audit-schema.sql`, put the administrator e-mail in the last part.
 2. Supabase, SQL Editor, paste, Run. It only adds new tables (`ha_*`) and a private photo bucket.
 3. Sign in at the audit system with that e-mail. The company project list loads on the first sign-in.
-4. Run `supabase/audit-update-2.sql` the same way (once).
+4. Run `supabase/audit-update-2.sql`, then `audit-update-3.sql`, then `audit-update-4.sql` the same way (once each).
 5. Add auditors under Auditors and users with their work e-mail. The app offers **Make sign-in** with a temporary password. Send it to them privately. At the first sign-in they set their own password. Someone who already has a Flash Audit sign-in uses the same password.
 
 ## E-mail reminders (once)

@@ -175,13 +175,14 @@ def build(data, app_url, test=False):
             out.append({"kind": "auditor", "to": [m["email"]], "cc": [],
                         "subject": f"HSE audit: {n_items} open item{'s' if n_items != 1 else ''} for you", "text": "\n".join(lines)})
 
-    # 3. Administrators: weekly summary
+    # 3. Administrators and approvers: weekly summary
     if st.get("admins", True) and first_day:
-        admins = [m for m in members.values() if m.get("role") == "admin" and m.get("email")]
+        admins = [m for m in members.values() if m.get("role") in ("admin", "approver") and m.get("email")]
         late = [n for n in ncrs if n.get("status") == "Open" and day(n.get("due_date")) and day(n["due_date"]) < today]
         review = [n for n in ncrs if n.get("status") == "Review"]
         unsent = [a for a in audits.values() if a.get("status") in ("submitted", "approved") and not a.get("sent_date")
                   and day(a.get("date")) and (today - day(a["date"])).days > SEND_LATE_DAYS]
+        waiting = [a for a in audits.values() if a.get("status") == "submitted"]
         plans = data.get("plans") or []
         by_p = {}
         for n in late:
@@ -190,6 +191,7 @@ def build(data, app_url, test=False):
         lines = ["Weekly summary of the Corporate HSE audit system.", "",
                  f"NCRs past the deadline: {len(late)}",
                  f"Evidence waiting for review: {len(review)}",
+                 f"Audits waiting for approval: {len(waiting)}",
                  f"Reports not sent after {SEND_LATE_DAYS} days: {len(unsent)}",
                  f"Audits planned this month: {len(plans)}, started: {sum(1 for p in plans if p.get('audit_id'))}", ""]
         if top:

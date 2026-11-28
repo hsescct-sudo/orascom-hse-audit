@@ -39,7 +39,7 @@ function parse() {
   if (MODULE_IDS.includes(parts[0])) return { module: parts[0], page: parts[1] || "dashboard", id: parts[2] || null, query };
   return { module: state.module, page: parts[0] || defaultPage(), id: parts[1] || null, query };
 }
-const defaultPage = () => (M.me() && M.me().role === "auditor" ? "home" : "dashboard");
+const defaultPage = () => (M.me() && ["auditor", "approver"].includes(M.me().role) ? "home" : "dashboard");
 
 async function boot() {
   if (window.top !== window.self) { document.body.innerHTML = "<p style=\"padding:24px\">Open the audit system in its own window.</p>"; return; }
@@ -263,7 +263,7 @@ const updateBadges = () => { if (document.getElementById("nav")) drawNav(); };
 function drawWho() {
   const me = M.me(); if (!me) return;
   const ini = me.name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
-  $("#who").innerHTML = `<span class="avatar">${esc(ini)}</span><span style="min-width:0"><b>${esc(me.name)}</b><small>${esc({ admin: "Administrator", auditor: "Auditor", viewer: "Viewer" }[me.role] || me.role)}</small></span>`;
+  $("#who").innerHTML = `<span class="avatar">${esc(ini)}</span><span style="min-width:0"><b>${esc(me.name)}</b><small>${esc({ admin: "Administrator", approver: "Approver", auditor: "Auditor", viewer: "Viewer" }[me.role] || me.role)}</small></span>`;
 }
 
 function updateSync(st) {

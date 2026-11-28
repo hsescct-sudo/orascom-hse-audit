@@ -8,7 +8,7 @@ import { mtag } from "../components.js";
 export async function render(ctx) {
   const { view } = ctx;
   setTitle("Projects", "Shared by HSE Audit and Lifting");
-  const admin = M.isAdmin();
+  const admin = M.canApprove();
   if (admin) {
     const act = setActions(`<button class="btn" type="button" id="pe-get" title="Download the project e-mails template" aria-label="E-mails template">${ICON.xls}<span>E-mails template</span></button><button class="btn" type="button" id="pe-put" title="Import the filled e-mails template" aria-label="Import e-mails">${ICON.upload}<span>Import e-mails</span></button><input type="file" id="pe-file" accept=".xlsx" hidden><button class="btn primary" type="button" id="add">${ICON.plus}<span>Add project</span></button>`);
     act.querySelector("#add").onclick = () => edit();

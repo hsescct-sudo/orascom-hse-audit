@@ -43,8 +43,10 @@ export function photoInputs(cls, attrs, label = "Add photo") {
 
 export function debounce(fn, ms = 600) {
   let t = null;
-  const d = (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
-  d.flush = (...a) => { clearTimeout(t); return fn(...a); };
+  const d = (...a) => { clearTimeout(t); t = setTimeout(() => { t = null; fn(...a); }, ms); };
+  // Run a waiting call now. Nothing waiting: do nothing, so an old copy is never saved again.
+  d.flush = (...a) => { if (t === null) return; clearTimeout(t); t = null; return fn(...a); };
+  d.pending = () => t !== null;
   return d;
 }
 

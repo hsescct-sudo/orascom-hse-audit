@@ -5,8 +5,8 @@ import * as Sync from "../sync.js";
 import { setTitle, setActions, rerender } from "../app.js";
 import { esc, ICON, dialog, toast, fmtDate } from "../ui.js";
 
-const ROLE = { admin: "Administrator", auditor: "Auditor", viewer: "Viewer (read only)" };
-const ROLE_TXT = { admin: "Plans the year, approves audits, edits projects, users and settings.", auditor: "Runs audits, raises NCRs, follows up NCRs.", viewer: "Sees dashboards, audits and registers. Changes nothing." };
+const ROLE = { admin: "Administrator", approver: "Approver", auditor: "Auditor", viewer: "Viewer (read only)" };
+const ROLE_TXT = { admin: "Does everything: approves audits, e-mails reports to projects, plans the year, edits projects, users and settings.", approver: "Approves audits and e-mails the report to the project. Also plans the year, edits projects, runs audits and follows up NCRs. Can't add users or change settings.", auditor: "Runs audits, raises NCRs, sends audits for approval, follows up NCRs. Can't approve.", viewer: "Sees dashboards, audits and registers. Changes nothing." };
 const APP_URL = () => (window.HSE_AUDIT_CONFIG || {}).publicUrl || location.href.split("#")[0];
 
 export async function render(ctx) {
@@ -22,6 +22,7 @@ export async function render(ctx) {
       ${list.map(m => `<tr class="${admin ? "click" : ""}" data-m="${esc(m.id)}"><td class="c-ref"><b style="font-weight:600">${esc(m.name)}</b></td><td>${esc(m.position || "")}</td><td>${esc(m.email || "")}</td><td class="c-end"><span class="chip">${esc(ROLE[m.role] || m.role)}</span></td>${admin && cloud ? `<td class="small" data-login="${esc((m.email || "").toLowerCase())}"><span class="muted">…</span></td>` : ""}<td>${m.active === false ? '<span class="chip">Off</span>' : ""}</td></tr>`).join("")}
     </tbody></table></div></div>
     <section class="panel"><div class="panel-h"><h2>Roles</h2></div>${Object.keys(ROLE).map(r => `<p><b>${ROLE[r]}.</b> ${ROLE_TXT[r]}</p>`).join("")}
+      <p>Nobody approves an audit they were on, as lead auditor or in the team. The server checks this too.</p>
       ${cloud && admin ? `<p class="muted small">To let someone sign in: add them here with their work e-mail, open their row and choose <b>Make sign-in</b>. The system gives a temporary password. They set their own at the first sign-in.</p>` : ""}</section></div>`;
   view.querySelector("tbody").addEventListener("click", e => { const r = e.target.closest("[data-m]"); if (r && admin) edit(S.get(r.dataset.m)); });
   if (admin && cloud) loadStatus(view);

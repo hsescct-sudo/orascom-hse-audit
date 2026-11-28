@@ -15,7 +15,7 @@ export async function render(ctx) {
   const allPlans = M.plans(mod);
   const years = [...new Set([nowY, nowY + 1, ...allPlans.map(p => p.year)])].sort();
   setTitle("Audit plan", `${def.name}, ${year}`);
-  const admin = M.isAdmin();
+  const admin = M.canApprove();
   const act = setActions(`${admin ? `<button class="btn" type="button" id="gen">${ICON.cal}<span>Build the year plan</span></button>` : ""}<button class="btn" type="button" id="xl">${ICON.xls}<span>Excel</span></button>`);
   const g = act.querySelector("#gen"); if (g) g.onclick = () => buildPlan(mod, year);
   act.querySelector("#xl").onclick = async () => { const m = await import("../report/export.js"); m.planExcel(mod, year); };
@@ -71,7 +71,7 @@ async function addPlan(mod, project_id, year, month) {
 async function planItem(mod, pl) {
   if (!pl) return;
   const p = M.project(pl.project_id); const a = pl.audit_id ? S.get(pl.audit_id) : null;
-  const admin = M.isAdmin(); const auditors = M.auditors();
+  const admin = M.canApprove(); const auditors = M.auditors();
   const r = await dialog({
     title: `${p.name}`,
     body: `<div class="row">${planChip(pl)}<span class="muted">${monthName(pl.month)} ${pl.year}</span></div>

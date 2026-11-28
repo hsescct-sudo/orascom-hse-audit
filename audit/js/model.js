@@ -8,8 +8,9 @@ export const def = m => moduleDef(m, S.settings());
 export const projects = () => S.all("project").sort((a, b) => a.code.localeCompare(b.code));
 export const activeProjects = () => projects().filter(p => p.active !== false);
 export const project = id => S.get(id) || { id, name: "Unknown project", code: "?", city: "", country: "" };
-export const members = () => S.all("member").sort((a, b) => (a.role === "admin" ? -1 : 0) - (b.role === "admin" ? -1 : 0) || a.name.localeCompare(b.name));
-export const auditors = () => members().filter(m => m.active !== false && (m.role === "auditor" || m.role === "admin"));
+const RANK = { admin: 0, approver: 1, auditor: 2, viewer: 3 };
+export const members = () => S.all("member").sort((a, b) => (RANK[a.role] ?? 4) - (RANK[b.role] ?? 4) || a.name.localeCompare(b.name));
+export const auditors = () => members().filter(m => m.active !== false && ["admin", "approver", "auditor"].includes(m.role));
 export const member = id => S.get(id);
 // P-20 7.2 exception: JV projects and projects outside Egypt
 export const planException = p => !!p && (!!p.jv || (!!p.country && !/egypt|مصر/i.test(p.country)));
@@ -18,7 +19,20 @@ let current = null;
 export const me = () => current;
 export const setMe = m => { current = m; S.setActor(m ? (m.name || m.email || "") : ""); };
 export const isAdmin = () => !!current && current.role === "admin";
-export const canEdit = () => !!current && (current.role === "admin" || current.role === "auditor");
+export const canEdit = () => !!current && ["admin", "approver", "auditor"].includes(current.role);
+// Administrators and approvers approve audits, e-mail the report to the project,
+// and change the plan and the project list. Only administrators add users.
+export const canApprove = () => !!current && (current.role === "admin" || current.role === "approver");
+// Was this person on the audit? Lead auditor, team list, or a name on the audit.
+// The server checks the same.
+export const onAudit = (a, m = current) => {
+  if (!a || !m) return false;
+  const nm = String(m.name || "").trim().toLowerCase();
+  return a.lead_id === m.id || (Array.isArray(a.team_ids) && a.team_ids.includes(m.id))
+    || (!!nm && (a.auditors || []).some(x => x && String(x.name || "").trim().toLowerCase() === nm));
+};
+// Nobody approves an audit they were on.
+export const mayApprove = a => canApprove() && !!a && !onAudit(a);
 
 const byDate = (a, b) => (a.date || "").localeCompare(b.date || "") || (a.created_at || "").localeCompare(b.created_at || "");
 export const audits = m => S.all("audit").filter(a => a.module === m).sort(byDate).reverse();
