@@ -25,7 +25,8 @@ export function scoreAudit(def, audit, ncrs = [], opts = {}) {
   let itemCount = 0, ratedCount = 0;
   const parts = def.parts.map(p => {
     let wSum = 0, wr = 0, rated = 0, na = 0;
-    const items = p.items.map(it => {
+    // A check taken off the list counts only in audits that answered it.
+    const items = p.items.filter(it => !it.retired || isRated(ratings[it.id])).map(it => {
       itemCount++;
       const v = ratings[it.id];
       const state = !isRated(v) ? "open" : (isNA(v) || (zeroIsNA && v === 0)) ? "na" : "rated";
@@ -35,7 +36,7 @@ export function scoreAudit(def, audit, ncrs = [], opts = {}) {
       return { id: it.id, title: it.title, weight: it.weight, value: v, state };
     });
     const score = wSum ? wr / wSum : null;
-    return { id: p.id, code: p.code, name: p.name, share: p.share, score, rated, na, total: p.items.length, wSum, items };
+    return { id: p.id, code: p.code, name: p.name, share: p.share, score, rated, na, total: items.length, wSum, items };
   });
   const live = parts.filter(p => p.score != null);
   const shareSum = live.reduce((a, p) => a + p.share, 0);

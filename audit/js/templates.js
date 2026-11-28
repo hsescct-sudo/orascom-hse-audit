@@ -253,9 +253,12 @@ export const MODULE_IDS = ["full", "lifting", "flash"];
 export function moduleDef(id, settings) {
   const base = MODULES[id];
   const o = (settings && settings.modules && settings.modules[id]) || {};
+  // Flash: checks added in Settings, and changes to the text, risk or "taken off the list".
+  const added = Array.isArray(o.added) ? o.added : [];
   const parts = base.parts.map(p => ({
     ...p,
-    items: p.items.map(it => ({ ...it, ...((o.items && o.items[it.id]) || {}) })),
+    items: [...p.items, ...added.filter(a => a.part === p.id).map(a => ({ id: a.id, title: a.title, text: "", weight: 1, risk: a.risk || "Med", added: true }))]
+      .map(it => ({ ...it, ...((o.items && o.items[it.id]) || {}) })),
   }));
   return {
     ...base,

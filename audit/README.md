@@ -5,6 +5,8 @@ Corporate HSE audit system for Orascom Construction projects. Three audit types,
 - **HSE Audit**: form F-HSE-078 Rev 06 (appraisal Part 1 90%, Part 2 10%).
 - **Lifting Operation Assessment**: form F-HSE-0175 Rev 02 (sections A to G).
 - **HSE Flash Audit**: form F-HSE-0075 (13 topics, 109 checks; each check is Yes, No or N/A; the score is the share of Yes).
+  - Upload Excel (Flash audits page): reads the F-HSE-0075 report, or any sheet with one finding per row, with its photos. Each finding becomes an NCR; the audit stays a draft until the checklist is answered and it is sent for approval.
+  - Settings, Flash checklist (administrators): change the wording or risk of a check, add checks, or take a check off the list. A check taken off the list stays in audits that already answered it.
 
 Each type has its own audits, NCR numbering, NCR register (form F-HSE-0003), good practice register and dashboard. All three follow the same steps: the auditor sends the audit for approval, an administrator or approver approves it and e-mails the project, and the project closes its NCRs from a link. The old Flash Audit app (project sign-ins) is retired; its tables in the database are not used.
 

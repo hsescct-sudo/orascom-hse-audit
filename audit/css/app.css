@@ -566,3 +566,20 @@ input[type=number] { -moz-appearance: textfield; }
 @media (max-width: 860px) {
   .rate .quick.yn { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* Excel upload */
+.drop { display: grid; gap: 4px; justify-items: center; text-align: center; margin-top: 14px; padding: 26px 16px; border: 2px dashed var(--line); border-radius: 12px; background: #f7f9fb; cursor: pointer; }
+.drop:hover, .drop.over { border-color: var(--navy); background: #eef3f9; }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.drop:focus-within { outline: 3px solid rgba(16, 96, 176, .3); }
+.err { color: var(--g-red); font-weight: 600; min-height: 1.2em; margin: 10px 0 0; }
+
+/* Flash checklist editor */
+.ck-row { display: grid; grid-template-columns: 70px minmax(0, 1fr) 110px auto 72px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line-soft); }
+.ck-row textarea { font: inherit; font-size: 14.5px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; resize: vertical; min-height: 40px; }
+.ck-row select { min-height: 40px; }
+.ck-row.off textarea, .ck-row.off .q-id { opacity: .45; text-decoration: line-through; }
+@media (max-width: 860px) {
+  .ck-row { grid-template-columns: 64px minmax(0, 1fr); }
+  .ck-row textarea { grid-column: 1 / -1; }
+}

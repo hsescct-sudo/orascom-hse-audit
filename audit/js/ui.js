@@ -227,3 +227,5 @@ export const ICON = {
   edit: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 17.2V20h2.8l9.7-9.7-2.8-2.8zM19.7 7a1 1 0 0 0 0-1.4l-1.3-1.3a1 1 0 0 0-1.4 0l-1.6 1.6 2.8 2.8z" fill="currentColor"/></svg>',
   lock: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3h2v11H5V10zm2 0h6V7a3 3 0 0 0-6 0z" fill="currentColor"/></svg>',
 };
+// Reads pictures placed inside cells (Excel 365, WPS). Without it, floating pictures still import.
+export const ensureJSZip = () => ensureLib("Zip", "JSZip", "vendor/jszip.min.js", ["https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"]).catch(() => null);

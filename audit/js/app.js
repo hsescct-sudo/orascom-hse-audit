@@ -20,8 +20,10 @@ const VIEWS = {
   team: () => import("./views/team.js"),
   settings: () => import("./views/settings.js"),
   report: () => import("./views/report.js"),
+  import: () => import("./views/import.js"),
+  checklist: () => import("./views/checklist.js"),
 };
-const MODULE_PAGES = ["home", "dashboard", "plan", "audits", "audit", "ncrs", "ncr", "good", "report"];
+const MODULE_PAGES = ["home", "dashboard", "plan", "audits", "audit", "ncrs", "ncr", "good", "report", "import"];
 
 let state = { module: "full", page: "dashboard", id: null, query: {} };
 let cleanup = null;

@@ -164,3 +164,28 @@ export const FLASH_PARTS = [
       { id: "GEN-05", title: "HSE personnel coverage adequate for manpower and active work fronts", text: "", weight: 1, risk: "Med" },
     ] },
 ];
+
+// Guess the topic of a finding from its words (used when an Excel report is uploaded).
+const KEYWORDS = [
+  ["CSE", /confined|manhole|tank entry|vessel entry|gas test/i],
+  ["PTW", /permit|ptw|isolation certificate|work authori[sz]/i],
+  ["LFT", /lift|crane|rigg|sling|shackle|hoist|forklift|telehandler|load chart/i],
+  ["EXC", /excavat|trench|benching|shoring|spoil|slope/i],
+  ["WAH", /scaffold|height|harness|lanyard|guardrail|ladder|man-?lift|mewp|edge protection|fall arrest/i],
+  ["FOB", /falling object|dropped object|overhead protection|toe ?board|materials? (stored )?(near|on) (the )?edge/i],
+  ["ELE", /electric|cable|db\b|distribution board|socket|elcb|rcd|earthing|generator|loto|lock ?out/i],
+  ["TRF", /traffic|vehicle|flagm|banksm|speed|pedestrian|walkway|driver|reversing|bus/i],
+  ["FIR", /fire|extinguish|hot work|cylinder|flammable|scrap|combustible|smok/i],
+  ["EMR", /emergency|first aid|assembly|drill|ambulance|clinic|heat stress|spill kit/i],
+  ["LOF", /line of fire|pinch|caught|stored energy|pressur|whip ?check/i],
+  ["HKP", /housekeeping|debris|tripping|slipping|rebar|access route|obstruct|waste|eating|sleeping|hygiene/i],
+  ["GEN", /ppe|helmet|hard hat|glove|goggle|toolbox|induction|supervis/i],
+];
+export function guessFlashTopic(text, parts = FLASH_PARTS) {
+  const t = String(text || "");
+  const c = t.trim().toLowerCase();
+  const byName = c && parts.find(p => p.id.toLowerCase() === c || p.name.toLowerCase() === c || c.includes(p.name.toLowerCase()));
+  if (byName) return byName.id;
+  for (const [code, re] of KEYWORDS) if (parts.some(p => p.id === code) && re.test(t)) return code;
+  return parts.some(p => p.id === "GEN") ? "GEN" : parts[0].id;
+}

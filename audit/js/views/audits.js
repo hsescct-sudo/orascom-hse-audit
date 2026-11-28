@@ -8,7 +8,10 @@ import { startAudit } from "../widgets.js";
 export async function render(ctx) {
   const { module: mod, def, view, query } = ctx;
   setTitle("Audits", `${def.name}, ${def.formRef}`);
-  if (M.canEdit()) setActions(`<button class="btn primary" type="button" id="new">${ICON.plus}<span>${esc(def.startLabel)}</span></button>`).querySelector("#new").onclick = () => startAudit(mod);
+  if (M.canEdit()) {
+    const bar = setActions(`${def.binary ? `<a class="btn" href="${link("import")}" id="upxl">${ICON.xls}<span>Upload Excel</span></a>` : ""}<button class="btn primary" type="button" id="new">${ICON.plus}<span>${esc(def.startLabel)}</span></button>`);
+    bar.querySelector("#new").onclick = () => startAudit(mod);
+  }
   const all = M.audits(mod);
   const years = [...new Set(all.map(a => a.date.slice(0, 4)))].sort().reverse();
   let f = { project: query.project || "", status: query.status || "", year: query.year || "", q: "" };

@@ -249,9 +249,11 @@ export async function render(ctx) {
     const ncrsByItem = {}; for (const n of M.auditNCRs(a)) if (n.item_id) (ncrsByItem[n.item_id] = ncrsByItem[n.item_id] || []).push(n);
     const corr = M.correctionPct(a);
     let k = 0;
+    // a check taken off the list shows only in audits that already answered it
+    const shown = p => p.items.filter(it => !it.retired || isRated(a.ratings[it.id]));
     el.innerHTML = d.parts.map(p => `
-      <div class="part-h"><h2>${esc(d.partTitle(p))}</h2><span class="muted">${d.countScore ? `${p.items.length} checks` : `${p.share}% of the score`}</span>${d.binary ? `<button class="btn sm ghost" type="button" data-allna="${esc(p.id)}">Not on this site: rest N/A</button>` : ""}<span class="ps" data-pscore="${p.id}"></span></div>
-      ${p.items.map(it => { k++; const v = a.ratings[it.id]; const na = v === NA; return `
+      <div class="part-h"><h2>${esc(d.partTitle(p))}</h2><span class="muted">${d.countScore ? `${shown(p).length} checks` : `${p.share}% of the score`}</span>${d.binary ? `<button class="btn sm ghost" type="button" data-allna="${esc(p.id)}">Not on this site: rest N/A</button>` : ""}<span class="ps" data-pscore="${p.id}"></span></div>
+      ${shown(p).map(it => { k++; const v = a.ratings[it.id]; const na = v === NA; return `
       <article class="qcard ${it.critical ? "crit" : ""} ${na ? "is-na" : ""}" data-it="${esc(it.id)}">
         <div class="q-top"><span class="q-id">${esc(String(d.itemNo(it, k)))}</span><div style="min-width:0"><div class="q-title">${esc(it.title)}</div>${it.text ? `<div class="q-text">${esc(it.text)}</div>` : ""}</div>${d.binary ? `<div class="q-w">Risk<b>${esc(it.risk || "")}</b></div>` : `<div class="q-w">Weight<b>${it.weight}</b></div>`}</div>
         <div class="rate">${d.binary ? `
@@ -285,7 +287,7 @@ export async function render(ctx) {
       const all = e.target.closest("[data-allna]");
       if (all && !locked()) {
         const part = d.parts.find(p => p.id === all.dataset.allna);
-        const open = part.items.filter(it => !isRated(a.ratings[it.id]));
+        const open = part.items.filter(it => !it.retired && !isRated(a.ratings[it.id]));
         if (!open.length) { toast("Every check in this topic is answered."); return; }
         if (!(await confirmBox(`Mark the ${open.length} unanswered check${open.length > 1 ? "s" : ""} in ${part.name} as N/A?`, { title: "Not on this site", ok: "Mark N/A" }))) return;
         open.forEach(it => { a.ratings[it.id] = NA; });

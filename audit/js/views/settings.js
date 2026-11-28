@@ -74,6 +74,10 @@ export async function render(ctx) {
       <p class="muted small" style="margin-top:8px">Projects get e-mails only if their e-mails are added under Projects. The sending account is set once in GitHub (see the setup steps in README). Until then nothing is sent.</p>
       <div class="row" style="margin-top:10px"><button class="btn primary" type="button" id="saverem">Save reminders</button>${mode === "cloud" ? `<button class="btn ghost" type="button" id="remkey">Make the GitHub key</button>` : ""}</div>
     </section>
+    <section class="panel"><div class="panel-h"><h2>Flash checklist</h2><span class="muted">${M.def("flash").parts.reduce((n, p) => n + p.items.filter(it => !it.retired).length, 0)} checks</span></div>
+      <p class="small" style="margin-top:0">Change the wording or risk of a check, add checks to a topic, or take a check off the list. Used for new Flash audits.</p>
+      <div class="row"><a class="btn" href="#/checklist">Edit the Flash checklist</a></div>
+    </section>
     <section class="panel"><div class="panel-h"><h2>Lists</h2><span class="muted">One item per line</span></div>
       ${MODULE_IDS.map(id => { const d = M.def(id); return `<div class="grid2" style="margin-bottom:14px" data-lmod="${id}">
         <label class="fld"><span>${esc(MODULES[id].short)}: NCR classifications (${d.ncrClasses.length})</span><textarea rows="8" data-l="ncrClasses">${esc(d.ncrClasses.join("\n"))}</textarea></label>
